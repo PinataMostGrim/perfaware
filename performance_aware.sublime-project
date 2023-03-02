@@ -1,0 +1,19 @@
+{
+    "folders":
+    [
+        {
+            "path": ".",
+            "index_exclude_patterns": [".cache/*", ".git/*", "*.exe", "*.obj", "*.ilk", "*.pdb"],
+        }
+    ],
+    "settings":
+    {
+        "LSP":
+        {
+            "clangd":
+            {
+                "enabled": true,
+            },
+        },
+    },
+}
