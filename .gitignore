@@ -1,0 +1,7 @@
+*.cache
+
+# Sublime Text files
+*.sublime-workspace
+
+# Computer Enhance files
+computer_enhance/
