@@ -89,10 +89,17 @@ internal void decode_instruction(uint8 byte1, uint8 byte2)
 
 int main(int argc, char const *argv[])
 {
-    // TODO (Aaron): accept command line argument for file
+    if (argc > 2)
+    {
+        printf("usage: sim8086 filename\n\n");
+        printf("disassembles 8086/88 assembly\n\n");
+        printf("positional arguments:\n");
+        printf("  filename\t\tassembly file to load\n");
 
-    // char filename[] = "listing_0037_single_register_mov";
-    char filename[] = "listing_0038_many_register_mov";
+        exit(EXIT_FAILURE);
+    }
+
+    const char *filename = argv[1];
 
     FILE *file;
     errno_t error;
