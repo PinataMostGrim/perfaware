@@ -136,7 +136,6 @@ int main(int argc, char const *argv[])
             uint8 reg = (instructions.byte1 >> 3) & (0b00000111);
             uint8 rm = instructions.byte1 & 0b00000111;
 
-            // determine how many bits of displacement required and read it
             // memory mode, no displacement
             if(mod == 0b0)
             {
@@ -162,10 +161,76 @@ int main(int argc, char const *argv[])
             // 8-bit displacement
             else if (mod == 0b1)
             {
+                // read 8-bit displacement value
+                instructions.bufferPtr += 1;
+                fread(instructions.bufferPtr, 1, 1, file);
+                uint8 displacement = *instructions.bufferPtr;
+
+                // destination is in RM field, source is in REG field
+                if (direction == 0)
+                {
+                    if (displacement == 0)
+                    {
+                        sprintf_s(destStr, "[%s]", RegMemEncodings[rm]);
+                    }
+                    else
+                    {
+                        sprintf_s(destStr, "[%s + %i]", RegMemEncodings[rm], displacement);
+                    }
+
+                    sprintf_s(sourceStr, "%s", RegisterEncodings[width].encodings[reg]);
+                }
+                // destination is in REG field, source is in RM field
+                else
+                {
+                    sprintf_s(destStr, "%s", RegisterEncodings[width].encodings[reg]);
+
+                    if(displacement == 0)
+                    {
+                        sprintf_s(sourceStr, "[%s]", RegMemEncodings[rm]);
+                    }
+                    else
+                    {
+                        sprintf_s(sourceStr, "[%s + %i]", RegMemEncodings[rm], displacement);
+                    }
+                }
             }
             // 16-bit displacement
             else if (mod == 0b10)
             {
+                // read 16-bit displacement value
+                instructions.bufferPtr += 1;
+                fread(instructions.bufferPtr, 1, 2, file);
+                uint16 displacement = *(uint16 *)instructions.bufferPtr;
+
+                // destination is in RM field, source is in REG field
+                if (direction == 0)
+                {
+                    if (displacement == 0)
+                    {
+                        sprintf_s(destStr, "[%s]", RegMemEncodings[rm]);
+                    }
+                    else
+                    {
+                        sprintf_s(destStr, "[%s + %i]", RegMemEncodings[rm], displacement);
+                    }
+
+                    sprintf_s(sourceStr, "%s", RegisterEncodings[width].encodings[reg]);
+                }
+                // destination is in REG field, source is in RM field
+                else
+                {
+                    sprintf_s(destStr, "%s", RegisterEncodings[width].encodings[reg]);
+
+                    if(displacement == 0)
+                    {
+                        sprintf_s(sourceStr, "[%s]", RegMemEncodings[rm]);
+                    }
+                    else
+                    {
+                        sprintf_s(sourceStr, "[%s + %i]", RegMemEncodings[rm], displacement);
+                    }
+                }
             }
             // register mode, no displacement
             else if (mod == 0b11)
