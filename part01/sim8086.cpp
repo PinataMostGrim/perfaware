@@ -160,50 +160,27 @@ int main(int argc, char const *argv[])
                     }
                 }
             }
-            // 8-bit displacement
-            else if (mod == 0b1)
+            // memory mode, 8-bit and 16-bit displacements
+            else if ((mod == 0b1) || (mod == 0b10))
             {
-                // read 8-bit displacement value
                 instructions.bufferPtr += 1;
-                fread(instructions.bufferPtr, 1, 1, file);
-                uint8 displacement = *instructions.bufferPtr;
+                uint16 displacement = 0;
 
-                // destination is in RM field, source is in REG field
-                if (direction == 0)
+                if (mod == 0b1)
                 {
-                    if (displacement == 0)
-                    {
-                        sprintf_s(destStr, "[%s]", RegMemEncodings.table[rm]);
-                    }
-                    else
-                    {
-                        sprintf_s(destStr, "[%s + %i]", RegMemEncodings.table[rm], displacement);
-                    }
-
-                    sprintf_s(sourceStr, "%s", RegisterEncodings[width].table[reg]);
+                    fread(instructions.bufferPtr, 1, 1, file);
+                    displacement = (uint32)(*(uint8 *)instructions.bufferPtr);
                 }
-                // destination is in REG field, source is in RM field
+                else if (mod == 0b10)
+                {
+                    fread(instructions.bufferPtr, 1, 2, file);
+                    displacement = (uint32)(*(uint16 *)instructions.bufferPtr);
+                }
+                // unhandled case
                 else
                 {
-                    sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
-
-                    if(displacement == 0)
-                    {
-                        sprintf_s(sourceStr, "[%s]", RegMemEncodings.table[rm]);
-                    }
-                    else
-                    {
-                        sprintf_s(sourceStr, "[%s + %i]", RegMemEncodings.table[rm], displacement);
-                    }
+                    Assert(false);
                 }
-            }
-            // 16-bit displacement
-            else if (mod == 0b10)
-            {
-                // read 16-bit displacement value
-                instructions.bufferPtr += 1;
-                fread(instructions.bufferPtr, 1, 2, file);
-                uint16 displacement = *(uint16 *)instructions.bufferPtr;
 
                 // destination is in RM field, source is in REG field
                 if (direction == 0)
