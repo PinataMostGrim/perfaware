@@ -18,7 +18,7 @@ typedef uint32_t uint32;
 
 struct field_encoding
 {
-    char *table[8] {};
+    const char *table[8] {};
 };
 
 global_variable field_encoding RegisterEncodings[2]
