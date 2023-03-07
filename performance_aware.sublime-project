@@ -18,7 +18,7 @@
             [
                 {
                     "name": "x64 Debug with warnings",
-                    "shell_cmd": "call vcvarsall.bat x64 && cl -nologo -MT -Oi -Z7 -DEBUG:FULL -W4 $file",
+                    "shell_cmd": "call vcvarsall.bat x64 && cl -nologo -MT -Oi -Z7 -DEBUG:FULL -W4 -wd4201 $file",
                 },
             ],
         },
