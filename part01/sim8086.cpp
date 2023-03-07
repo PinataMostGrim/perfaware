@@ -185,14 +185,9 @@ int main(int argc, char const *argv[])
                 // destination is in RM field, source is in REG field
                 if (direction == 0)
                 {
-                    if (displacement == 0)
-                    {
-                        sprintf_s(destStr, "[%s]", RegMemEncodings.table[rm]);
-                    }
-                    else
-                    {
-                        sprintf_s(destStr, "[%s + %i]", RegMemEncodings.table[rm], displacement);
-                    }
+                    sprintf_s(destStr,
+                              (displacement == 0) ? "[%s]" : "[%s + %i]",
+                              (displacement == 0) ? RegMemEncodings.table[rm] : RegMemEncodings.table[rm], displacement);
 
                     sprintf_s(sourceStr, "%s", RegisterEncodings[width].table[reg]);
                 }
@@ -200,22 +195,20 @@ int main(int argc, char const *argv[])
                 else
                 {
                     sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
-
-                    if(displacement == 0)
-                    {
-                        sprintf_s(sourceStr, "[%s]", RegMemEncodings.table[rm]);
-                    }
-                    else
-                    {
-                        sprintf_s(sourceStr, "[%s + %i]", RegMemEncodings.table[rm], displacement);
-                    }
+                    sprintf_s(sourceStr,
+                              (displacement == 0) ? "[%s]" : "[%s + %i]",
+                              (displacement == 0) ? RegMemEncodings.table[rm] : RegMemEncodings.table[rm], displacement);
                 }
             }
             // register mode, no displacement
             else if (mod == 0b11)
             {
-                sprintf_s(destStr, "%s", (direction == 1) ? RegisterEncodings[width].table[reg] : RegisterEncodings[width].table[rm]);
-                sprintf_s(sourceStr, "%s", (direction == 1) ? RegisterEncodings[width].table[rm] : RegisterEncodings[width].table[reg]);
+                sprintf_s(destStr,
+                          "%s",
+                          (direction == 1) ? RegisterEncodings[width].table[reg] : RegisterEncodings[width].table[rm]);
+                sprintf_s(sourceStr,
+                          "%s",
+                          (direction == 1) ? RegisterEncodings[width].table[rm] : RegisterEncodings[width].table[reg]);
             }
             // unhandled case
             else
