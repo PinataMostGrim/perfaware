@@ -16,28 +16,33 @@ typedef uint32_t uint32;
 #define Assert(Expression)
 #endif
 
-global_variable const char *RegisterEncodingsW0[]
+struct register_encodings
 {
-    "al",
-    "cl",
-    "dl",
-    "bl",
-    "ah",
-    "ch",
-    "dh",
-    "bh",
+    const char *encodings[8] {};
 };
 
-global_variable const char *RegisterEncodingsW1[]
+global_variable register_encodings RegisterEncodings[2]
 {
-    "ax",
-    "cx",
-    "dx",
-    "bx",
-    "sp",
-    "bp",
-    "si",
-    "di",
+    {
+        "al",
+        "cl",
+        "dl",
+        "bl",
+        "ah",
+        "ch",
+        "dh",
+        "bh",
+    },
+    {
+        "ax",
+        "cx",
+        "dx",
+        "bx",
+        "sp",
+        "bp",
+        "si",
+        "di",
+    }
 };
 
 typedef struct instruction_data
@@ -134,20 +139,8 @@ int main(int argc, char const *argv[])
             // register mode, no displacement
             else if (mod == 0b11)
             {
-                if (width == 0b0)
-                {
-                    destStr = (direction == 1) ? RegisterEncodingsW0[reg] : RegisterEncodingsW0[rm];
-                    sourceStr = (direction == 1) ? RegisterEncodingsW0[rm] : RegisterEncodingsW0[reg];
-                }
-                else if (width == 0b1)
-                {
-                    destStr = (direction == 1) ? RegisterEncodingsW1[reg] : RegisterEncodingsW1[rm];
-                    sourceStr = (direction == 1) ? RegisterEncodingsW1[rm] : RegisterEncodingsW1[reg];
-                }
-                else
-                {
-                    Assert(false);
-                }
+                destStr = (direction == 1) ? RegisterEncodings[width].encodings[reg] : RegisterEncodings[width].encodings[rm];
+                sourceStr = (direction == 1) ? RegisterEncodings[width].encodings[rm] : RegisterEncodings[width].encodings[reg];
             }
             // unhandled case
             else
