@@ -40,53 +40,6 @@ global_variable const char *RegisterEncodingsW1[]
     "di",
 };
 
-internal void decode_instruction(uint8 byte1, uint8 byte2)
-{
-    const char *instructionStr;
-    const char *destStr;
-    const char *sourceStr;
-
-    uint8 operation = byte1 >> 2;
-    uint8 direction = (byte1 >> 1) & (0b00000001);
-    uint8 w = byte1 & 0b00000001;
-
-    uint8 mod = (byte2 >> 6);
-    uint8 reg = (byte2 >> 3) & (0b00000111);
-    uint8 rm = byte2 & 0b00000111;
-
-    if (operation == 34)
-    {
-        instructionStr = "mov";
-        if(mod == 3)
-        {
-            if (w == 1)
-            {
-                destStr = (direction == 1) ? RegisterEncodingsW1[reg] : RegisterEncodingsW1[rm];
-                sourceStr = (direction == 1) ? RegisterEncodingsW1[rm] : RegisterEncodingsW1[reg];
-            }
-            else
-            {
-                destStr = (direction == 1) ? RegisterEncodingsW0[reg] : RegisterEncodingsW0[rm];
-                sourceStr = (direction == 1) ? RegisterEncodingsW0[rm] : RegisterEncodingsW0[reg];
-            }
-        }
-        else
-        {
-            destStr = "?";
-            sourceStr = "?";
-        }
-    }
-    else
-    {
-        instructionStr = "?";
-        destStr = "?";
-        sourceStr = "?";
-    }
-
-    printf("%s %s,%s\n", instructionStr, destStr, sourceStr);
-}
-
-
 int main(int argc, char const *argv[])
 {
     if (argc > 2)
@@ -105,7 +58,7 @@ int main(int argc, char const *argv[])
     errno_t error;
     size_t bytesRead;
 
-    uint8 instructionBuffer[2] = {};
+    uint8 instructionBuffer[6] = {};
     uint8 *bufferPtr = instructionBuffer;
     uint32 instructionCounter = 0;
 
@@ -119,19 +72,87 @@ int main(int argc, char const *argv[])
     printf("; %s:\n", filename);
     printf("bits 16\n");
 
-    // read file in 16 bit chunks
-    // TODO (Aaron): Eventually, the length read will have to depend on the instruction
-    bytesRead = fread(bufferPtr, 1, 2, file);
+    // read initial instruction byte for parsing
+    bytesRead = fread(bufferPtr, 1, 1, file);
     instructionCounter++;
+
+    // main loop
     while(bytesRead)
     {
-        Assert(bytesRead == 2);
+        // parse instruction & produce disassembly
+        uint8 byte0 = instructionBuffer[0];
 
-        // parse instructions & produce disassembly
-        decode_instruction(instructionBuffer[0], instructionBuffer[1]);
+        const char *instructionStr = "?";
+        const char *destStr = "?";
+        const char *sourceStr = "?";
+
+        // mov - register/memory to/from register (0b100010)
+        if ((byte0 >> 2) == 34)
+        {
+            instructionStr = "mov";
+
+            // parse initial instruction byte
+            uint8 direction = (byte0 >> 1) & (0b00000001);
+            uint8 width = byte0 & 0b00000001;
+
+            // read second instruction byte and parse it
+            bufferPtr = instructionBuffer + 1;
+            fread(bufferPtr, 1, 1, file);
+            uint8 byte1 = instructionBuffer[1];
+
+            uint8 mod = (byte1 >> 6);
+            uint8 reg = (byte1 >> 3) & (0b00000111);
+            uint8 rm = byte1 & 0b00000111;
+
+            // determine how many bits of displacement to read and read it
+
+            // memory mode, no displacement
+            if(mod == 0b0)
+            {
+            }
+            // 8-bit displacement
+            else if (mod == 0b01)
+            {
+            }
+            // 16-bit displacement
+            else if (mod == 0b10)
+            {
+            }
+            // register mode, no displacement
+            else if (mod == 0b11)
+            {
+                if (width == 0b0)
+                {
+                    destStr = (direction == 1) ? RegisterEncodingsW0[reg] : RegisterEncodingsW0[rm];
+                    sourceStr = (direction == 1) ? RegisterEncodingsW0[rm] : RegisterEncodingsW0[reg];
+                }
+                else if (width == 0b1)
+                {
+                    destStr = (direction == 1) ? RegisterEncodingsW1[reg] : RegisterEncodingsW1[rm];
+                    sourceStr = (direction == 1) ? RegisterEncodingsW1[rm] : RegisterEncodingsW1[reg];
+                }
+                else
+                {
+                    Assert(false);
+                }
+            }
+            // unhandled case
+            else
+            {
+                Assert(false);
+            }
+
+        }
+        else
+        {
+            // Note (Aaron): Unsupported instruction
+        }
+
+        printf("%s %s,%s\n", instructionStr, destStr, sourceStr);
 
         // read next instructions
-        bytesRead = fread(bufferPtr, 1, 2, file);
+        bufferPtr = instructionBuffer;
+        bytesRead = fread(bufferPtr, 1, 1, file);
         instructionCounter++;
     }
 
