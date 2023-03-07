@@ -9,6 +9,10 @@ typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 
+typedef int8_t int8;
+typedef int16_t int16;
+typedef int32_t int32;
+
 // TODO (Aaron): Disable after testing
 #if 1
 #define Assert(Expression) if (!(Expression)) {*(int *)0 = 0;}
@@ -164,17 +168,17 @@ int main(int argc, char const *argv[])
             else if ((mod == 0b1) || (mod == 0b10))
             {
                 instructions.bufferPtr += 1;
-                uint16 displacement = 0;
+                int16 displacement = 0;
 
                 if (mod == 0b1)
                 {
                     fread(instructions.bufferPtr, 1, 1, file);
-                    displacement = (uint32)(*(uint8 *)instructions.bufferPtr);
+                    displacement = (int16)(*(int8 *)instructions.bufferPtr);
                 }
                 else if (mod == 0b10)
                 {
                     fread(instructions.bufferPtr, 1, 2, file);
-                    displacement = (uint32)(*(uint16 *)instructions.bufferPtr);
+                    displacement = (int16)(*(int16 *)instructions.bufferPtr);
                 }
                 // unhandled case
                 else
@@ -182,22 +186,28 @@ int main(int argc, char const *argv[])
                     Assert(false);
                 }
 
+                // Note (Aaron): 9 characters should be more than this should ever need hold (including the null byte).
+                char displacementStr[16] = "";
+                if (displacement < 0)
+                {
+                    sprintf_s(displacementStr, " - %i", displacement * -1);
+                }
+                else if (displacement > 0)
+                {
+                    sprintf_s(displacementStr, " + %i", displacement);
+                }
+
                 // destination is in RM field, source is in REG field
                 if (direction == 0)
                 {
-                    sprintf_s(destStr,
-                              (displacement == 0) ? "[%s]" : "[%s + %i]",
-                              (displacement == 0) ? RegMemEncodings.table[rm] : RegMemEncodings.table[rm], displacement);
-
+                    sprintf_s(destStr, "[%s%s]", RegMemEncodings.table[rm], displacementStr);
                     sprintf_s(sourceStr, "%s", RegisterEncodings[width].table[reg]);
                 }
                 // destination is in REG field, source is in RM field
                 else
                 {
                     sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
-                    sprintf_s(sourceStr,
-                              (displacement == 0) ? "[%s]" : "[%s + %i]",
-                              (displacement == 0) ? RegMemEncodings.table[rm] : RegMemEncodings.table[rm], displacement);
+                    sprintf_s(sourceStr, "[%s%s]", RegMemEncodings.table[rm], displacementStr);
                 }
             }
             // register mode, no displacement
