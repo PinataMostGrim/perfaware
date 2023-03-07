@@ -18,7 +18,7 @@ typedef uint32_t uint32;
 
 struct register_encodings
 {
-    const char *encodings[8] {};
+    char *encodings[8] {};
 };
 
 global_variable register_encodings RegisterEncodings[2]
@@ -102,21 +102,21 @@ int main(int argc, char const *argv[])
     while(bytesRead)
     {
         // parse instruction & produce disassembly
-        const char *instructionStr = "?";
-        const char *destStr = "?";
-        const char *sourceStr = "?";
+        char instructionStr[32] = "?";
+        char destStr[32] = "?";
+        char sourceStr[32] = "?";
 
         // mov - register/memory to/from register (0b100010)
         if ((instructions.byte0 >> 2) == 34)
         {
-            instructionStr = "mov";
+            sprintf_s(instructionStr, "mov");
 
             // parse initial instruction byte
             uint8 direction = (instructions.byte0 >> 1) & (0b00000001);
             uint8 width = instructions.byte0 & 0b00000001;
 
             // read second instruction byte and parse it
-            instructions.bufferPtr = instructions.buffer + 1;
+            instructions.bufferPtr += 1;
             fread(instructions.bufferPtr, 1, 1, file);
 
             uint8 mod = (instructions.byte1 >> 6);
@@ -139,8 +139,8 @@ int main(int argc, char const *argv[])
             // register mode, no displacement
             else if (mod == 0b11)
             {
-                destStr = (direction == 1) ? RegisterEncodings[width].encodings[reg] : RegisterEncodings[width].encodings[rm];
-                sourceStr = (direction == 1) ? RegisterEncodings[width].encodings[rm] : RegisterEncodings[width].encodings[reg];
+                sprintf_s(destStr, "%s", (direction == 1) ? RegisterEncodings[width].encodings[reg] : RegisterEncodings[width].encodings[rm]);
+                sprintf_s(sourceStr, "%s", (direction == 1) ? RegisterEncodings[width].encodings[rm] : RegisterEncodings[width].encodings[reg]);
             }
             // unhandled case
             else
@@ -148,6 +148,35 @@ int main(int argc, char const *argv[])
                 Assert(false);
             }
 
+        }
+        // Immediate to register (0b1011)
+        else if ((instructions.byte0 >> 4) == 0b1011)
+        {
+            sprintf_s(instructionStr, "mov");
+
+            // parse width and reg
+            uint8 width = (instructions.byte0 >>3) & (0b1);
+            uint8 reg = instructions.byte0 & (0b111);
+            instructions.bufferPtr += 1;
+
+            if (width == 0b0)
+            {
+                // read 8-bit data
+                fread(instructions.bufferPtr, 1, 1, file);
+                sprintf_s(sourceStr, "%i", *instructions.bufferPtr);
+            }
+            else if (width == 0b1)
+            {
+                // read 16-bit data
+                fread(instructions.bufferPtr, 1, 2, file);
+                sprintf_s(sourceStr, "%i", *(uint16 *)instructions.bufferPtr);
+            }
+            else
+            {
+                Assert(false);
+            }
+
+            sprintf_s(destStr, "%s", RegisterEncodings[width].encodings[reg]);
         }
         else
         {
