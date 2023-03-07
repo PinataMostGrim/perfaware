@@ -16,12 +16,12 @@ typedef uint32_t uint32;
 #define Assert(Expression)
 #endif
 
-struct register_encodings
+struct field_encoding
 {
     char *encodings[8] {};
 };
 
-global_variable register_encodings RegisterEncodings[2]
+global_variable field_encoding RegisterEncodings[2]
 {
     {
         "al",
@@ -42,7 +42,19 @@ global_variable register_encodings RegisterEncodings[2]
         "bp",
         "si",
         "di",
-    }
+    },
+};
+
+global_variable char *RegMemEncodings[8]
+{
+    "bx + si",
+    "bx + di",
+    "bp + si",
+    "bp + di",
+    "si",
+    "di",
+    "bp",
+    "bx",
 };
 
 typedef struct instruction_data
@@ -105,6 +117,7 @@ int main(int argc, char const *argv[])
         char instructionStr[32] = "?";
         char destStr[32] = "?";
         char sourceStr[32] = "?";
+        char result[256] = "";
 
         // mov - register/memory to/from register (0b100010)
         if ((instructions.byte0 >> 2) == 34)
@@ -127,9 +140,27 @@ int main(int argc, char const *argv[])
             // memory mode, no displacement
             if(mod == 0b0)
             {
+                if(rm == 0b110)
+                {
+                }
+                else
+                {
+                    // destination is in RM field, source is in REG field
+                    if (direction == 0)
+                    {
+                        sprintf_s(destStr, "[%s]", RegMemEncodings[rm]);
+                        sprintf_s(sourceStr, "%s", RegisterEncodings[width].encodings[reg]);
+                    }
+                    // destination is in REG field, source is in RM field
+                    else
+                    {
+                        sprintf_s(destStr, "%s", RegisterEncodings[width].encodings[reg]);
+                        sprintf_s(sourceStr, "[%s]", RegMemEncodings[rm]);
+                    }
+                }
             }
             // 8-bit displacement
-            else if (mod == 0b01)
+            else if (mod == 0b1)
             {
             }
             // 16-bit displacement
@@ -171,6 +202,7 @@ int main(int argc, char const *argv[])
                 fread(instructions.bufferPtr, 1, 2, file);
                 sprintf_s(sourceStr, "%i", *(uint16 *)instructions.bufferPtr);
             }
+            // unhandled case
             else
             {
                 Assert(false);
@@ -183,7 +215,8 @@ int main(int argc, char const *argv[])
             // Note (Aaron): Unsupported instruction
         }
 
-        printf("%s %s,%s\n", instructionStr, destStr, sourceStr);
+        sprintf_s(result, "%s %s, %s\n", instructionStr, destStr, sourceStr);
+        printf("%s", result);
 
         // read next instructions
         instructions.bufferPtr = instructions.buffer;
