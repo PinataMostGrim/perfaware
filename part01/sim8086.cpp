@@ -18,7 +18,7 @@ typedef uint32_t uint32;
 
 struct field_encoding
 {
-    char *encodings[8] {};
+    char *table[8] {};
 };
 
 global_variable field_encoding RegisterEncodings[2]
@@ -45,16 +45,18 @@ global_variable field_encoding RegisterEncodings[2]
     },
 };
 
-global_variable char *RegMemEncodings[8]
+global_variable field_encoding RegMemEncodings
 {
-    "bx + si",
-    "bx + di",
-    "bp + si",
-    "bp + di",
-    "si",
-    "di",
-    "bp",
-    "bx",
+    {
+        "bx + si",
+        "bx + di",
+        "bp + si",
+        "bp + di",
+        "si",
+        "di",
+        "bp",
+        "bx",
+    }
 };
 
 typedef struct instruction_data
@@ -113,13 +115,13 @@ int main(int argc, char const *argv[])
     // main loop
     while(bytesRead)
     {
-        // parse instruction & produce disassembly
+        // parse initial instruction byte
         char instructionStr[32] = "?";
         char destStr[32] = "?";
         char sourceStr[32] = "?";
         char result[256] = "";
 
-        // mov - register/memory to/from register (0b100010)
+        // mov instruction - register/memory to/from register (0b100010)
         if ((instructions.byte0 >> 2) == 34)
         {
             sprintf_s(instructionStr, "mov");
@@ -147,14 +149,14 @@ int main(int argc, char const *argv[])
                     // destination is in RM field, source is in REG field
                     if (direction == 0)
                     {
-                        sprintf_s(destStr, "[%s]", RegMemEncodings[rm]);
-                        sprintf_s(sourceStr, "%s", RegisterEncodings[width].encodings[reg]);
+                        sprintf_s(destStr, "[%s]", RegMemEncodings.table[rm]);
+                        sprintf_s(sourceStr, "%s", RegisterEncodings[width].table[reg]);
                     }
                     // destination is in REG field, source is in RM field
                     else
                     {
-                        sprintf_s(destStr, "%s", RegisterEncodings[width].encodings[reg]);
-                        sprintf_s(sourceStr, "[%s]", RegMemEncodings[rm]);
+                        sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
+                        sprintf_s(sourceStr, "[%s]", RegMemEncodings.table[rm]);
                     }
                 }
             }
@@ -171,27 +173,27 @@ int main(int argc, char const *argv[])
                 {
                     if (displacement == 0)
                     {
-                        sprintf_s(destStr, "[%s]", RegMemEncodings[rm]);
+                        sprintf_s(destStr, "[%s]", RegMemEncodings.table[rm]);
                     }
                     else
                     {
-                        sprintf_s(destStr, "[%s + %i]", RegMemEncodings[rm], displacement);
+                        sprintf_s(destStr, "[%s + %i]", RegMemEncodings.table[rm], displacement);
                     }
 
-                    sprintf_s(sourceStr, "%s", RegisterEncodings[width].encodings[reg]);
+                    sprintf_s(sourceStr, "%s", RegisterEncodings[width].table[reg]);
                 }
                 // destination is in REG field, source is in RM field
                 else
                 {
-                    sprintf_s(destStr, "%s", RegisterEncodings[width].encodings[reg]);
+                    sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
 
                     if(displacement == 0)
                     {
-                        sprintf_s(sourceStr, "[%s]", RegMemEncodings[rm]);
+                        sprintf_s(sourceStr, "[%s]", RegMemEncodings.table[rm]);
                     }
                     else
                     {
-                        sprintf_s(sourceStr, "[%s + %i]", RegMemEncodings[rm], displacement);
+                        sprintf_s(sourceStr, "[%s + %i]", RegMemEncodings.table[rm], displacement);
                     }
                 }
             }
@@ -208,35 +210,35 @@ int main(int argc, char const *argv[])
                 {
                     if (displacement == 0)
                     {
-                        sprintf_s(destStr, "[%s]", RegMemEncodings[rm]);
+                        sprintf_s(destStr, "[%s]", RegMemEncodings.table[rm]);
                     }
                     else
                     {
-                        sprintf_s(destStr, "[%s + %i]", RegMemEncodings[rm], displacement);
+                        sprintf_s(destStr, "[%s + %i]", RegMemEncodings.table[rm], displacement);
                     }
 
-                    sprintf_s(sourceStr, "%s", RegisterEncodings[width].encodings[reg]);
+                    sprintf_s(sourceStr, "%s", RegisterEncodings[width].table[reg]);
                 }
                 // destination is in REG field, source is in RM field
                 else
                 {
-                    sprintf_s(destStr, "%s", RegisterEncodings[width].encodings[reg]);
+                    sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
 
                     if(displacement == 0)
                     {
-                        sprintf_s(sourceStr, "[%s]", RegMemEncodings[rm]);
+                        sprintf_s(sourceStr, "[%s]", RegMemEncodings.table[rm]);
                     }
                     else
                     {
-                        sprintf_s(sourceStr, "[%s + %i]", RegMemEncodings[rm], displacement);
+                        sprintf_s(sourceStr, "[%s + %i]", RegMemEncodings.table[rm], displacement);
                     }
                 }
             }
             // register mode, no displacement
             else if (mod == 0b11)
             {
-                sprintf_s(destStr, "%s", (direction == 1) ? RegisterEncodings[width].encodings[reg] : RegisterEncodings[width].encodings[rm]);
-                sprintf_s(sourceStr, "%s", (direction == 1) ? RegisterEncodings[width].encodings[rm] : RegisterEncodings[width].encodings[reg]);
+                sprintf_s(destStr, "%s", (direction == 1) ? RegisterEncodings[width].table[reg] : RegisterEncodings[width].table[rm]);
+                sprintf_s(sourceStr, "%s", (direction == 1) ? RegisterEncodings[width].table[rm] : RegisterEncodings[width].table[reg]);
             }
             // unhandled case
             else
@@ -245,7 +247,7 @@ int main(int argc, char const *argv[])
             }
 
         }
-        // Immediate to register (0b1011)
+        // mov instruction - immediate to register (0b1011)
         else if ((instructions.byte0 >> 4) == 0b1011)
         {
             sprintf_s(instructionStr, "mov");
@@ -273,7 +275,7 @@ int main(int argc, char const *argv[])
                 Assert(false);
             }
 
-            sprintf_s(destStr, "%s", RegisterEncodings[width].encodings[reg]);
+            sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
         }
         else
         {
@@ -283,8 +285,8 @@ int main(int argc, char const *argv[])
         sprintf_s(result, "%s %s, %s\n", instructionStr, destStr, sourceStr);
         printf("%s", result);
 
-        // read next instructions
         instructions.bufferPtr = instructions.buffer;
+        // read the next initial instruction byte
         bytesRead = fread(instructions.bufferPtr, 1, 1, file);
         instructions.instructionCount++;
     }
