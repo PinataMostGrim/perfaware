@@ -8,20 +8,20 @@
     ],
     "build_systems":
     [
-        {
-            "name": "msvc",
-            "shell_cmd": "call vcvarsall.bat x64 && cl \"$file\"",
-            "working_dir": "${file_path:${folder}}",
-            "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\):():? (.*)$",
-            "selector": "source.c, source.c++",
-            "variants" :
-            [
-                {
-                    "name": "x64 Debug with warnings",
-                    "shell_cmd": "call vcvarsall.bat x64 && cl -nologo -MT -Oi -Z7 -DEBUG:FULL -W4 -wd4201 $file",
-                },
-            ],
-        },
+        // {
+        //     "name": "msvc",
+        //     "shell_cmd": "call vcvarsall.bat x64 && cl \"$file\"",
+        //     "working_dir": "${file_path:${folder}}",
+        //     "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\):():? (.*)$",
+        //     "selector": "source.c, source.c++",
+        //     "variants" :
+        //     [
+        //         {
+        //             "name": "x64 Debug with warnings",
+        //             "shell_cmd": "call vcvarsall.bat x64 && cl -nologo -MT -Oi -Z7 -DEBUG:FULL -W4 -wd4201 $file",
+        //         },
+        //     ],
+        // },
     ],
     "settings":
     {
