@@ -126,7 +126,7 @@ int main(int argc, char const *argv[])
         char result[256] = "";
 
         // mov instruction - register/memory to/from register (0b100010)
-        if ((instructions.byte0 >> 2) == 34)
+        if ((instructions.byte0 >> 2) == 0b100010)
         {
             sprintf_s(instructionStr, "mov");
 
@@ -145,9 +145,36 @@ int main(int argc, char const *argv[])
             // memory mode, no displacement
             if(mod == 0b0)
             {
+                // special case for direct address in memory mode with no displacement (R/M == 110)
                 if(rm == 0b110)
                 {
+                    // read direct address based on width
+                    uint16 directAddress = 0;
+                    if (width == 0)
+                    {
+                        fread(instructions.bufferPtr, 1, 1, file);
+                        directAddress = (uint16)(*instructions.bufferPtr);
+                    }
+                    else if (width == 1)
+                    {
+                        fread(instructions.bufferPtr, 1, 2, file);
+                        directAddress = (uint16)(*(uint16 *)instructions.bufferPtr);
+                    }
+
+                    // destination is in RM field, source is in REG field
+                    if (direction == 0)
+                    {
+                        sprintf_s(destStr, "[%i]", directAddress);
+                        sprintf_s(sourceStr, "%s", RegisterEncodings[width].table[reg]);
+                    }
+                    // destination is in REG field, source is in RM field
+                    else
+                    {
+                        sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
+                        sprintf_s(sourceStr, "[%i]", directAddress);
+                    }
                 }
+                // regular case for memory mode with no displacement
                 else
                 {
                     // destination is in RM field, source is in REG field
