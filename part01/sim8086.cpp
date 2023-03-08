@@ -14,6 +14,7 @@ typedef int16_t int16;
 typedef int32_t int32;
 
 #pragma warning(disable:4996)   //_CRT_SECURE_NO_WARNINGS
+#pragma clang diagnostic ignored "-Wnull-dereference"
 
 // TODO (Aaron): Disable after testing
 #if 1
