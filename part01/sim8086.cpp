@@ -131,7 +131,7 @@ int main(int argc, char const *argv[])
             sprintf_s(instructionStr, "mov");
 
             // parse initial instruction byte
-            uint8 direction = (instructions.byte0 >> 1) & (0b00000001);
+            uint8 direction = (instructions.byte0 >> 1) & 0b00000001;
             uint8 width = instructions.byte0 & 0b00000001;
 
             // read second instruction byte and parse it
@@ -139,7 +139,7 @@ int main(int argc, char const *argv[])
             fread(instructions.bufferPtr, 1, 1, file);
 
             uint8 mod = (instructions.byte1 >> 6);
-            uint8 reg = (instructions.byte1 >> 3) & (0b00000111);
+            uint8 reg = (instructions.byte1 >> 3) & 0b00000111;
             uint8 rm = instructions.byte1 & 0b00000111;
 
             // memory mode, no displacement
@@ -227,14 +227,90 @@ int main(int argc, char const *argv[])
             }
 
         }
+        // mov instruction - immediate to register/memory (0b1100011)
+        else if ((instructions.byte0 >> 1) == 0b1100011)
+        {
+            sprintf_s(instructionStr, "mov");
+            uint8 width = instructions.byte0 & 0b1;
+
+            // read second instruction byte and parse it
+            instructions.bufferPtr += 1;
+            fread(instructions.bufferPtr, 1, 1, file);
+
+            uint8 mod = (instructions.byte1 >> 6);
+            uint8 rm = (instructions.byte1) & 0b111;
+
+            int16 displacement = 0;
+
+            // read displacement, if any
+            if (mod == 0b0)
+            {
+                // no displacement to read
+            }
+            else if (mod == 0b1)
+            {
+                // read 8-bit displacement
+                instructions.bufferPtr += 1;
+                fread(instructions.bufferPtr, 1, 1, file);
+                displacement = (int16)(*instructions.bufferPtr);
+
+                // advance bufferPtr here because we know how far it should be advanced
+                instructions.bufferPtr += 1;
+            }
+            else if (mod == 0b10)
+            {
+                // read 16-bit displacement
+                instructions.bufferPtr += 1;
+                fread(instructions.bufferPtr, 1, 2, file);
+                displacement = (int16)(*(uint16 *)instructions.bufferPtr);
+
+                // Advance bufferPtr here because we know how far it should be advanced
+                instructions.bufferPtr += 2;
+            }
+
+            // read data. guaranteed to be at least 8-bits.
+            uint16 data = 0;
+            if (width == 0b0)
+            {
+                fread(instructions.bufferPtr, 1, 1, file);
+                data = (uint16)(*instructions.bufferPtr);
+            }
+            else if (width == 0b1)
+            {
+                fread(instructions.bufferPtr, 1, 2, file);
+                data = (uint16)(*(uint16 *)instructions.bufferPtr);
+            }
+            // unhandled case
+            else
+            {
+                Assert(false);
+            }
+
+            //
+            char displacementStr[16] = "";
+            if (displacement < 0)
+            {
+                sprintf_s(displacementStr, " - %i", displacement * -1);
+            }
+            else if (displacement > 0)
+            {
+                sprintf_s(displacementStr, " + %i", displacement);
+            }
+
+            sprintf_s(destStr, "[%s%s]", RegMemEncodings.table[rm], displacementStr);
+            sprintf_s(sourceStr,
+                      "%s %i",
+                      ((width == 0) ? "byte" : "word"),
+                      data);
+        }
         // mov instruction - immediate to register (0b1011)
         else if ((instructions.byte0 >> 4) == 0b1011)
         {
             sprintf_s(instructionStr, "mov");
 
             // parse width and reg
-            uint8 width = (instructions.byte0 >>3) & (0b1);
-            uint8 reg = instructions.byte0 & (0b111);
+            uint8 width = (instructions.byte0 >> 3) & (0b1);
+            uint8 reg = instructions.byte0 & 0b111;
             instructions.bufferPtr += 1;
 
             if (width == 0b0)
