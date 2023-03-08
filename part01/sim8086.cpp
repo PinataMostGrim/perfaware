@@ -219,6 +219,10 @@ int main(int argc, char const *argv[])
                 {
                     sprintf_s(displacementStr, " - %i", displacement * -1);
                 }
+                else if (displacement == 0)
+                {
+                    // Note (Aaron): displacementStr should be left empty in this case.
+                }
                 else if (displacement > 0)
                 {
                     sprintf_s(displacementStr, " + %i", displacement);
