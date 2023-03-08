@@ -252,7 +252,6 @@ int main(int argc, char const *argv[])
             {
                 Assert(false);
             }
-
         }
         // mov instruction - immediate to register/memory (0b1100011)
         else if ((instructions.byte0 >> 1) == 0b1100011)
@@ -359,6 +358,47 @@ int main(int argc, char const *argv[])
             }
 
             sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
+        }
+        // mov - memory to accumulator and accumulator to memory
+        else if (((instructions.byte0 >> 1) == 0b1010000) || ((instructions.byte0 >> 1) == 0b1010001))
+        {
+            sprintf_s(instructionStr, "mov");
+
+            uint8 width = instructions.byte0 & 0b1;
+            uint16 address = 0;
+            instructions.bufferPtr += 1;
+
+            if (width == 0)
+            {
+                fread(instructions.bufferPtr, 1, 1, file);
+                address = (uint16)(*instructions.bufferPtr);
+            }
+            else if (width == 1)
+            {
+                fread(instructions.bufferPtr, 1, 2, file);
+                address = (uint16)(*(uint16 *)instructions.bufferPtr);
+            }
+            // unhandled case
+            else
+            {
+                Assert(false);
+            }
+
+            if ((instructions.byte0 >> 1) == 0b1010000)
+            {
+                sprintf_s(destStr, "%s", "ax");
+                sprintf_s(sourceStr, "[%i]", address);
+            }
+            else if ((instructions.byte0 >> 1) == 0b1010001)
+            {
+                sprintf_s(destStr, "[%i]", address);
+                sprintf_s(sourceStr, "%s", "ax");
+            }
+            // unhandled case
+            else
+            {
+                Assert(false);
+            }
         }
         else
         {
