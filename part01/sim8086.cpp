@@ -95,14 +95,9 @@ int main(int argc, char const *argv[])
     }
 
     const char *filename = argv[1];
-
-    FILE *file;
-    errno_t error;
     size_t bytesRead;
+    FILE *file = fopen(filename, "rb");
 
-    instruction_buffer instructions = {};
-
-    error = fopen_s(&file, filename, "rb");
     if(!file)
     {
         printf("Unable to open '%s'\n", filename);
@@ -113,6 +108,7 @@ int main(int argc, char const *argv[])
     printf("bits 16\n");
 
     // read initial instruction byte for parsing
+    instruction_buffer instructions = {};
     bytesRead = fread(instructions.bufferPtr, 1, 1, file);
     instructions.instructionCount++;
 
@@ -128,7 +124,7 @@ int main(int argc, char const *argv[])
         // mov instruction - register/memory to/from register (0b100010)
         if ((instructions.byte0 >> 2) == 0b100010)
         {
-            sprintf_s(instructionStr, "mov");
+            sprintf(instructionStr, "mov");
 
             // parse initial instruction byte
             uint8 direction = (instructions.byte0 >> 1) & 0b00000001;
@@ -164,14 +160,14 @@ int main(int argc, char const *argv[])
                     // destination is in RM field, source is in REG field
                     if (direction == 0)
                     {
-                        sprintf_s(destStr, "[%i]", directAddress);
-                        sprintf_s(sourceStr, "%s", RegisterEncodings[width].table[reg]);
+                        sprintf(destStr, "[%i]", directAddress);
+                        sprintf(sourceStr, "%s", RegisterEncodings[width].table[reg]);
                     }
                     // destination is in REG field, source is in RM field
                     else
                     {
-                        sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
-                        sprintf_s(sourceStr, "[%i]", directAddress);
+                        sprintf(destStr, "%s", RegisterEncodings[width].table[reg]);
+                        sprintf(sourceStr, "[%i]", directAddress);
                     }
                 }
                 // regular case for memory mode with no displacement
@@ -180,14 +176,14 @@ int main(int argc, char const *argv[])
                     // destination is in RM field, source is in REG field
                     if (direction == 0)
                     {
-                        sprintf_s(destStr, "[%s]", RegMemEncodings.table[rm]);
-                        sprintf_s(sourceStr, "%s", RegisterEncodings[width].table[reg]);
+                        sprintf(destStr, "[%s]", RegMemEncodings.table[rm]);
+                        sprintf(sourceStr, "%s", RegisterEncodings[width].table[reg]);
                     }
                     // destination is in REG field, source is in RM field
                     else
                     {
-                        sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
-                        sprintf_s(sourceStr, "[%s]", RegMemEncodings.table[rm]);
+                        sprintf(destStr, "%s", RegisterEncodings[width].table[reg]);
+                        sprintf(sourceStr, "[%s]", RegMemEncodings.table[rm]);
                     }
                 }
             }
@@ -217,7 +213,7 @@ int main(int argc, char const *argv[])
                 char displacementStr[16] = "";
                 if (displacement < 0)
                 {
-                    sprintf_s(displacementStr, " - %i", displacement * -1);
+                    sprintf(displacementStr, " - %i", displacement * -1);
                 }
                 else if (displacement == 0)
                 {
@@ -225,29 +221,29 @@ int main(int argc, char const *argv[])
                 }
                 else if (displacement > 0)
                 {
-                    sprintf_s(displacementStr, " + %i", displacement);
+                    sprintf(displacementStr, " + %i", displacement);
                 }
 
                 // destination is in RM field, source is in REG field
                 if (direction == 0)
                 {
-                    sprintf_s(destStr, "[%s%s]", RegMemEncodings.table[rm], displacementStr);
-                    sprintf_s(sourceStr, "%s", RegisterEncodings[width].table[reg]);
+                    sprintf(destStr, "[%s%s]", RegMemEncodings.table[rm], displacementStr);
+                    sprintf(sourceStr, "%s", RegisterEncodings[width].table[reg]);
                 }
                 // destination is in REG field, source is in RM field
                 else
                 {
-                    sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
-                    sprintf_s(sourceStr, "[%s%s]", RegMemEncodings.table[rm], displacementStr);
+                    sprintf(destStr, "%s", RegisterEncodings[width].table[reg]);
+                    sprintf(sourceStr, "[%s%s]", RegMemEncodings.table[rm], displacementStr);
                 }
             }
             // register mode, no displacement
             else if (mod == 0b11)
             {
-                sprintf_s(destStr,
+                sprintf(destStr,
                           "%s",
                           (direction == 1) ? RegisterEncodings[width].table[reg] : RegisterEncodings[width].table[rm]);
-                sprintf_s(sourceStr,
+                sprintf(sourceStr,
                           "%s",
                           (direction == 1) ? RegisterEncodings[width].table[rm] : RegisterEncodings[width].table[reg]);
             }
@@ -260,7 +256,7 @@ int main(int argc, char const *argv[])
         // mov instruction - immediate to register/memory (0b1100011)
         else if ((instructions.byte0 >> 1) == 0b1100011)
         {
-            sprintf_s(instructionStr, "mov");
+            sprintf(instructionStr, "mov");
             uint8 width = instructions.byte0 & 0b1;
 
             // read second instruction byte and parse it
@@ -320,15 +316,15 @@ int main(int argc, char const *argv[])
             char displacementStr[16] = "";
             if (displacement < 0)
             {
-                sprintf_s(displacementStr, " - %i", displacement * -1);
+                sprintf(displacementStr, " - %i", displacement * -1);
             }
             else if (displacement > 0)
             {
-                sprintf_s(displacementStr, " + %i", displacement);
+                sprintf(displacementStr, " + %i", displacement);
             }
 
-            sprintf_s(destStr, "[%s%s]", RegMemEncodings.table[rm], displacementStr);
-            sprintf_s(sourceStr,
+            sprintf(destStr, "[%s%s]", RegMemEncodings.table[rm], displacementStr);
+            sprintf(sourceStr,
                       "%s %i",
                       ((width == 0) ? "byte" : "word"),
                       data);
@@ -336,7 +332,7 @@ int main(int argc, char const *argv[])
         // mov instruction - immediate to register (0b1011)
         else if ((instructions.byte0 >> 4) == 0b1011)
         {
-            sprintf_s(instructionStr, "mov");
+            sprintf(instructionStr, "mov");
 
             // parse width and reg
             uint8 width = (instructions.byte0 >> 3) & (0b1);
@@ -347,13 +343,13 @@ int main(int argc, char const *argv[])
             {
                 // read 8-bit data
                 fread(instructions.bufferPtr, 1, 1, file);
-                sprintf_s(sourceStr, "%i", *instructions.bufferPtr);
+                sprintf(sourceStr, "%i", *instructions.bufferPtr);
             }
             else if (width == 0b1)
             {
                 // read 16-bit data
                 fread(instructions.bufferPtr, 1, 2, file);
-                sprintf_s(sourceStr, "%i", *(uint16 *)instructions.bufferPtr);
+                sprintf(sourceStr, "%i", *(uint16 *)instructions.bufferPtr);
             }
             // unhandled case
             else
@@ -361,12 +357,12 @@ int main(int argc, char const *argv[])
                 Assert(false);
             }
 
-            sprintf_s(destStr, "%s", RegisterEncodings[width].table[reg]);
+            sprintf(destStr, "%s", RegisterEncodings[width].table[reg]);
         }
         // mov - memory to accumulator and accumulator to memory
         else if (((instructions.byte0 >> 1) == 0b1010000) || ((instructions.byte0 >> 1) == 0b1010001))
         {
-            sprintf_s(instructionStr, "mov");
+            sprintf(instructionStr, "mov");
 
             uint8 width = instructions.byte0 & 0b1;
             uint16 address = 0;
@@ -390,13 +386,13 @@ int main(int argc, char const *argv[])
 
             if ((instructions.byte0 >> 1) == 0b1010000)
             {
-                sprintf_s(destStr, "%s", "ax");
-                sprintf_s(sourceStr, "[%i]", address);
+                sprintf(destStr, "%s", "ax");
+                sprintf(sourceStr, "[%i]", address);
             }
             else if ((instructions.byte0 >> 1) == 0b1010001)
             {
-                sprintf_s(destStr, "[%i]", address);
-                sprintf_s(sourceStr, "%s", "ax");
+                sprintf(destStr, "[%i]", address);
+                sprintf(sourceStr, "%s", "ax");
             }
             // unhandled case
             else
@@ -409,11 +405,11 @@ int main(int argc, char const *argv[])
             // Note (Aaron): Unsupported instruction
         }
 
-        sprintf_s(result, "%s %s, %s\n", instructionStr, destStr, sourceStr);
+        sprintf(result, "%s %s, %s\n", instructionStr, destStr, sourceStr);
         printf("%s", result);
 
-        instructions.bufferPtr = instructions.buffer;
         // read the next initial instruction byte
+        instructions.bufferPtr = instructions.buffer;
         bytesRead = fread(instructions.bufferPtr, 1, 1, file);
         instructions.instructionCount++;
     }
