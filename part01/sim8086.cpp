@@ -130,16 +130,16 @@ int main(int argc, char const *argv[])
             sprintf(instructionStr, "mov");
 
             // parse initial instruction byte
-            uint8 direction = (instructions.byte0 >> 1) & 0b00000001;
-            uint8 width = instructions.byte0 & 0b00000001;
+            uint8 direction = (instructions.byte0 >> 1) & 0b1;
+            uint8 width = instructions.byte0 & 0b1;
 
             // read second instruction byte and parse it
             instructions.bufferPtr += 1;
             fread(instructions.bufferPtr, 1, 1, file);
 
             uint8 mod = (instructions.byte1 >> 6);
-            uint8 reg = (instructions.byte1 >> 3) & 0b00000111;
-            uint8 rm = instructions.byte1 & 0b00000111;
+            uint8 reg = (instructions.byte1 >> 3) & 0b111;
+            uint8 rm = instructions.byte1 & 0b111;
 
             // memory mode, no displacement
             if(mod == 0b0)
