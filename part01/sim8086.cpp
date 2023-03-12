@@ -408,6 +408,66 @@ int main(int argc, char const *argv[])
                 Assert(false);
             }
         }
+        // add / sub / cmp - reg/memory with register to either
+        else if (((instructions.byte0 >> 2) == 0b000000)
+            || ((instructions.byte0 >> 2) == 0b001010)
+            || ((instructions.byte0 >> 2) == 0b001110))
+        {
+            // decode direction and width
+            instructions.direction = (instructions.byte0 >> 1) & 0b1;
+            instructions.width = instructions.byte0 & 0b1;
+
+            // decode mod, reg and r/m
+            fread(instructions.bufferPtr, 1, 1, instructions.file);
+            instructions.bufferPtr++;
+
+            instructions.mod = (instructions.byte1 >> 6) & 0b11;
+            instructions.reg = (instructions.byte1 >> 3) & 0b111;
+            instructions.rm = instructions.byte1 & 0b111;
+
+            // decode instruction type
+            // add = 0b000
+            if (((instructions.byte0 >> 3) & 0b111) == 0b000)
+            {
+                sprintf(instructions.instructionStr, "add");
+            }
+            // sub = 0b101
+            else if (((instructions.byte0 >> 3) & 0b111) == 0b101)
+            {
+                sprintf(instructions.instructionStr, "sub");
+            }
+            // cmp = 0b111
+            else if (((instructions.byte0 >> 3) & 0b111) == 0b111)
+            {
+                sprintf(instructions.instructionStr, "cmp");
+            }
+            // unhandled case
+            else
+            {
+                Assert(false);
+            }
+
+            // decode reg string
+            sprintf(instructions.regStr, "%s", RegisterEncodings[instructions.width].table[instructions.reg]);
+
+            // decode r/m string
+            DecodeRmStr(&instructions);
+
+            // set dest and source strings
+            // destination is in RM field, source is in REG field
+            if (instructions.direction == 0)
+            {
+                sprintf(instructions.destStr, "%s", instructions.rmStr);
+                sprintf(instructions.sourceStr, "%s", instructions.regStr);
+
+            }
+            // destination is in REG field, source is in RM field
+            else
+            {
+                sprintf(instructions.destStr, "%s", instructions.regStr);
+                sprintf(instructions.sourceStr, "%s", instructions.rmStr);
+            }
+        }
         else
         {
             // Note (Aaron): Unsupported instruction
