@@ -136,6 +136,78 @@ ClearInstructionData(instruction_data *instructions)
 #endif
 
 
+internal void
+DecodeRmStr(instruction_data *instructions)
+{
+    // Note (Aaron): Requires width, mod and rm to be decoded
+
+    // memory mode, no displacement
+    if(instructions->mod == 0b0)
+    {
+        // special case for direct address in memory mode with no displacement (R/M == 110)
+        if(instructions->rm == 0b110)
+        {
+            // read direct address
+            if (instructions->width == 0)
+            {
+                fread(instructions->bufferPtr, 1, 1, instructions->file);
+                instructions->address = (uint16)(*instructions->bufferPtr);
+                instructions->bufferPtr++;
+            }
+            else
+            {
+                fread(instructions->bufferPtr, 1, 2, instructions->file);
+                instructions->address = (uint16)(*(uint16 *)instructions->bufferPtr);
+                instructions->bufferPtr += 2;
+            }
+
+            sprintf(instructions->rmStr, "[%i]", instructions->address);
+        }
+        else
+        {
+            sprintf(instructions->rmStr, "[%s]", RegMemEncodings.table[instructions->rm]);
+        }
+    }
+    // memory mode, 8-bit and 16-bit displacement
+    else if ((instructions->mod == 0b1) || (instructions->mod == 0b10))
+    {
+        // read displacement value
+        if (instructions->mod == 0b1)
+        {
+            fread(instructions->bufferPtr, 1, 1, instructions->file);
+            instructions->displacement = (int16)(*(int8 *)instructions->bufferPtr);
+            instructions->bufferPtr++;
+        }
+        else if (instructions->mod == 0b10)
+        {
+            fread(instructions->bufferPtr, 1, 2, instructions->file);
+            instructions->displacement = (int16)(*(int16 *)instructions->bufferPtr);
+            instructions->bufferPtr += 2;
+        }
+
+        // set displacement string
+        if(instructions->displacement == 0)
+        {
+            sprintf(instructions->displacementStr, "");
+        }
+        else if (instructions->displacement < 0)
+        {
+            sprintf(instructions->displacementStr, " - %i", -1 * instructions->displacement);
+        }
+        else if (instructions->displacement > 0)
+        {
+            sprintf(instructions->displacementStr, " + %i", instructions->displacement);
+        }
+
+        sprintf(instructions->rmStr, "[%s%s]", RegMemEncodings.table[instructions->rm], instructions->displacementStr);
+    }
+    // register mode, no displacement
+    else if (instructions->mod == 0b11)
+    {
+        sprintf(instructions->rmStr, "%s", RegisterEncodings[instructions->width].table[instructions->rm]);
+    }
+}
+
 int main(int argc, char const *argv[])
 {
     if (argc > 2)
@@ -188,130 +260,25 @@ int main(int argc, char const *argv[])
             instructions.reg = (instructions.byte1 >> 3) & 0b111;
             instructions.rm = instructions.byte1 & 0b111;
 
-            // memory mode, no displacement
-            if(instructions.mod == 0b0)
-            {
-                // special case for direct address in memory mode with no displacement (R/M == 110)
-                if(instructions.rm == 0b110)
-                {
-                    // read direct address based on width
-                    if (instructions.width == 0)
-                    {
-                        fread(instructions.bufferPtr, 1, 1, instructions.file);
-                        instructions.address = (uint16)(*instructions.bufferPtr);
-#if SIM8086_SLOW
-                        instructions.bufferPtr++;
-#endif
-                    }
-                    else if (instructions.width == 1)
-                    {
-                        fread(instructions.bufferPtr, 1, 2, instructions.file);
-                        instructions.address = (uint16)(*(uint16 *)instructions.bufferPtr);
-#if SIM8086_SLOW
-                        instructions.bufferPtr += 2;
-#endif
-                    }
+            // decode reg string
+            sprintf(instructions.regStr, "%s", RegisterEncodings[instructions.width].table[instructions.reg]);
 
-                    // destination is in RM field, source is in REG field
-                    if (instructions.direction == 0)
-                    {
-                        sprintf(instructions.destStr, "[%i]", instructions.address);
-                        sprintf(instructions.sourceStr, "%s", RegisterEncodings[instructions.width].table[instructions.reg]);
-                    }
-                    // destination is in REG field, source is in RM field
-                    else
-                    {
-                        sprintf(instructions.destStr, "%s", RegisterEncodings[instructions.width].table[instructions.reg]);
-                        sprintf(instructions.sourceStr, "[%i]", instructions.address);
-                    }
-                }
-                // regular case for memory mode with no displacement
-                else
-                {
-                    // destination is in RM field, source is in REG field
-                    if (instructions.direction == 0)
-                    {
-                        sprintf(instructions.destStr, "[%s]", RegMemEncodings.table[instructions.rm]);
-                        sprintf(instructions.sourceStr, "%s", RegisterEncodings[instructions.width].table[instructions.reg]);
-                    }
-                    // destination is in REG field, source is in RM field
-                    else
-                    {
-                        sprintf(instructions.destStr, "%s", RegisterEncodings[instructions.width].table[instructions.reg]);
-                        sprintf(instructions.sourceStr, "[%s]", RegMemEncodings.table[instructions.rm]);
-                    }
-                }
-            }
-            // memory mode, 8-bit and 16-bit displacements
-            else if ((instructions.mod == 0b1) || (instructions.mod == 0b10))
-            {
-                if (instructions.mod == 0b1)
-                {
-                    fread(instructions.bufferPtr, 1, 1, instructions.file);
-                    instructions.displacement = (int16)(*(int8 *)instructions.bufferPtr);
-#if SIM8086_SLOW
-                    instructions.bufferPtr++;
-#endif
-                }
-                else if (instructions.mod == 0b10)
-                {
-                    fread(instructions.bufferPtr, 1, 2, instructions.file);
-                    instructions.displacement = (int16)(*(int16 *)instructions.bufferPtr);
-#if SIM8086_SLOW
-                    instructions.bufferPtr++;
-#endif
-                }
-                // unhandled case
-                else
-                {
-                    Assert(false);
-                }
+            // decode r/m string
+            DecodeRmStr(&instructions);
 
-                // Note (Aaron): 9 characters should be more than this should ever need hold (including the null byte).
-                if (instructions.displacement < 0)
-                {
-                    sprintf(instructions.displacementStr, " - %i", instructions.displacement * -1);
-                }
-                else if (instructions.displacement == 0)
-                {
-                    sprintf(instructions.displacementStr, "");
-                }
-                else if (instructions.displacement > 0)
-                {
-                    sprintf(instructions.displacementStr, " + %i", instructions.displacement);
-                }
-
-                // destination is in RM field, source is in REG field
-                if (instructions.direction == 0)
-                {
-                    sprintf(instructions.destStr, "[%s%s]", RegMemEncodings.table[instructions.rm], instructions.displacementStr);
-                    sprintf(instructions.sourceStr, "%s", RegisterEncodings[instructions.width].table[instructions.reg]);
-                }
-                // destination is in REG field, source is in RM field
-                else
-                {
-                    sprintf(instructions.destStr, "%s", RegisterEncodings[instructions.width].table[instructions.reg]);
-                    sprintf(instructions.sourceStr, "[%s%s]", RegMemEncodings.table[instructions.rm], instructions.displacementStr);
-                }
-            }
-            // register mode, no displacement
-            else if (instructions.mod == 0b11)
+            // set dest and source strings
+            // destination is in RM field, source is in REG field
+            if (instructions.direction == 0)
             {
-                sprintf(instructions.destStr,
-                          "%s",
-                          (instructions.direction == 1)
-                              ? RegisterEncodings[instructions.width].table[instructions.reg]
-                              : RegisterEncodings[instructions.width].table[instructions.rm]);
-                sprintf(instructions.sourceStr,
-                          "%s",
-                          (instructions.direction == 1)
-                              ? RegisterEncodings[instructions.width].table[instructions.rm]
-                              : RegisterEncodings[instructions.width].table[instructions.reg]);
+                sprintf(instructions.destStr, "%s", instructions.rmStr);
+                sprintf(instructions.sourceStr, "%s", instructions.regStr);
+
             }
-            // unhandled case
+            // destination is in REG field, source is in RM field
             else
             {
-                Assert(false);
+                sprintf(instructions.destStr, "%s", instructions.regStr);
+                sprintf(instructions.sourceStr, "%s", instructions.rmStr);
             }
         }
         // mov instruction - immediate to register/memory (0b1100011)
@@ -327,26 +294,10 @@ int main(int argc, char const *argv[])
             instructions.mod = (instructions.byte1 >> 6);
             instructions.rm = (instructions.byte1) & 0b111;
 
-            // read displacement, if any
-            if (instructions.mod == 0b0)
-            {
-                // no displacement to read
-                instructions.displacement = 0;
-            }
-            else if (instructions.mod == 0b1)
-            {
-                // read 8-bit displacement
-                fread(instructions.bufferPtr, 1, 1, instructions.file);
-                instructions.displacement = (int16)(*instructions.bufferPtr);
-                instructions.bufferPtr++;
-            }
-            else if (instructions.mod == 0b10)
-            {
-                // read 16-bit displacement
-                fread(instructions.bufferPtr, 1, 2, instructions.file);
-                instructions.displacement = (int16)(*(uint16 *)instructions.bufferPtr);
-                instructions.bufferPtr += 2;
-            }
+            // Note (Aaron): No reg in this instruction
+
+            // decode r/m string
+            DecodeRmStr(&instructions);
 
             // read data. guaranteed to be at least 8-bits.
             uint16 data = 0;
@@ -372,20 +323,7 @@ int main(int argc, char const *argv[])
                 Assert(false);
             }
 
-            if (instructions.displacement < 0)
-            {
-                sprintf(instructions.displacementStr, " - %i", instructions.displacement * -1);
-            }
-            else if (instructions.displacement == 0)
-            {
-                sprintf(instructions.displacementStr, "");
-            }
-            else if (instructions.displacement > 0)
-            {
-                sprintf(instructions.displacementStr, " + %i", instructions.displacement);
-            }
-
-            sprintf(instructions.destStr, "[%s%s]", RegMemEncodings.table[instructions.rm], instructions.displacementStr);
+            sprintf(instructions.destStr, "%s", instructions.rmStr);
             sprintf(instructions.sourceStr,
                       "%s %i",
                       ((instructions.width == 0) ? "byte" : "word"),
