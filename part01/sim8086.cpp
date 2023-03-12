@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define internal static
 #define global_variable static
@@ -16,8 +17,13 @@ typedef int32_t int32;
 #pragma warning(disable:4996)   //_CRT_SECURE_NO_WARNINGS
 #pragma clang diagnostic ignored "-Wnull-dereference"
 
-// TODO (Aaron): Disable after testing
-#if 1
+#define SIM8086_SLOW 1
+// SIM8086_SLOW:
+//     0 - No slow code allowed!
+//     1 - Slow code welcome
+
+
+#if SIM8086_SLOW
 #define Assert(Expression) if (!(Expression)) {*(int *)0 = 0;}
 #else
 #define Assert(Expression)
@@ -105,6 +111,31 @@ typedef struct instruction_data
 
 } instructioninstruction_data;
 
+#if SIM8086_SLOW
+internal void
+ClearInstructionData(instruction_data *instructions)
+{
+    memset(instructions->buffer, 0, 6);
+
+    instructions->direction = 0;
+    instructions->width = 0;
+    instructions->mod = 0;
+    instructions->reg = 0;
+    instructions->rm = 0;
+    instructions->address = 0;
+    instructions->displacement = 0;
+
+    sprintf(instructions->regStr, "");
+    sprintf(instructions->rmStr, "");
+    sprintf(instructions->displacementStr, "");
+
+    sprintf(instructions->instructionStr, "");
+    sprintf(instructions->destStr, "");
+    sprintf(instructions->sourceStr, "");
+}
+#endif
+
+
 int main(int argc, char const *argv[])
 {
     if (argc > 2)
@@ -168,13 +199,17 @@ int main(int argc, char const *argv[])
                     {
                         fread(instructions.bufferPtr, 1, 1, instructions.file);
                         instructions.address = (uint16)(*instructions.bufferPtr);
+#if SIM8086_SLOW
                         instructions.bufferPtr++;
+#endif
                     }
                     else if (instructions.width == 1)
                     {
                         fread(instructions.bufferPtr, 1, 2, instructions.file);
                         instructions.address = (uint16)(*(uint16 *)instructions.bufferPtr);
+#if SIM8086_SLOW
                         instructions.bufferPtr += 2;
+#endif
                     }
 
                     // destination is in RM field, source is in REG field
@@ -214,13 +249,17 @@ int main(int argc, char const *argv[])
                 {
                     fread(instructions.bufferPtr, 1, 1, instructions.file);
                     instructions.displacement = (int16)(*(int8 *)instructions.bufferPtr);
+#if SIM8086_SLOW
                     instructions.bufferPtr++;
+#endif
                 }
                 else if (instructions.mod == 0b10)
                 {
                     fread(instructions.bufferPtr, 1, 2, instructions.file);
                     instructions.displacement = (int16)(*(int16 *)instructions.bufferPtr);
+#if SIM8086_SLOW
                     instructions.bufferPtr++;
+#endif
                 }
                 // unhandled case
                 else
@@ -235,7 +274,7 @@ int main(int argc, char const *argv[])
                 }
                 else if (instructions.displacement == 0)
                 {
-                    // Note (Aaron): instructions.displacementStr should be left empty in this case.
+                    sprintf(instructions.displacementStr, "");
                 }
                 else if (instructions.displacement > 0)
                 {
@@ -292,6 +331,7 @@ int main(int argc, char const *argv[])
             if (instructions.mod == 0b0)
             {
                 // no displacement to read
+                instructions.displacement = 0;
             }
             else if (instructions.mod == 0b1)
             {
@@ -314,13 +354,17 @@ int main(int argc, char const *argv[])
             {
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
                 data = (uint16)(*instructions.bufferPtr);
+#if SIM8086_SLOW
                 instructions.bufferPtr++;
+#endif
             }
             else if (instructions.width == 0b1)
             {
                 fread(instructions.bufferPtr, 1, 2, instructions.file);
                 data = (uint16)(*(uint16 *)instructions.bufferPtr);
+#if SIM8086_SLOW
                 instructions.bufferPtr += 2;
+#endif
             }
             // unhandled case
             else
@@ -331,6 +375,10 @@ int main(int argc, char const *argv[])
             if (instructions.displacement < 0)
             {
                 sprintf(instructions.displacementStr, " - %i", instructions.displacement * -1);
+            }
+            else if (instructions.displacement == 0)
+            {
+                sprintf(instructions.displacementStr, "");
             }
             else if (instructions.displacement > 0)
             {
@@ -357,14 +405,18 @@ int main(int argc, char const *argv[])
                 // read 8-bit data
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
                 sprintf(instructions.sourceStr, "%i", *instructions.bufferPtr);
+#if SIM8086_SLOW
                 instructions.bufferPtr++;
+#endif
             }
             else if (instructions.width == 0b1)
             {
                 // read 16-bit data
                 fread(instructions.bufferPtr, 1, 2, instructions.file);
                 sprintf(instructions.sourceStr, "%i", *(uint16 *)instructions.bufferPtr);
+#if SIM8086_SLOW
                 instructions.bufferPtr += 2;
+#endif
             }
             // unhandled case
             else
@@ -384,13 +436,17 @@ int main(int argc, char const *argv[])
             {
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
                 instructions.address = (uint16)(*instructions.bufferPtr);
+#if SIM8086_SLOW
                 instructions.bufferPtr++;
+#endif
             }
             else if (instructions.width == 1)
             {
                 fread(instructions.bufferPtr, 1, 2, instructions.file);
                 instructions.address = (uint16)(*(uint16 *)instructions.bufferPtr);
+#if SIM8086_SLOW
                 instructions.bufferPtr++;
+#endif
             }
             // unhandled case
             else
@@ -420,6 +476,10 @@ int main(int argc, char const *argv[])
         }
 
         printf("%s %s, %s\n", instructions.instructionStr, instructions.destStr, instructions.sourceStr);
+
+#if SIM8086_SLOW
+        ClearInstructionData(&instructions);
+#endif
 
         // read the next initial instruction byte
         instructions.bufferPtr = instructions.buffer;
