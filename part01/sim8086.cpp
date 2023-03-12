@@ -133,6 +133,7 @@ int main(int argc, char const *argv[])
 
     // read initial instruction byte for parsing
     bytesRead = fread(instructions.bufferPtr, 1, 1, instructions.file);
+    instructions.bufferPtr++;
     instructions.instructionCount++;
 
     // main loop
@@ -149,8 +150,8 @@ int main(int argc, char const *argv[])
             instructions.width = instructions.byte0 & 0b1;
 
             // read second instruction byte and parse it
-            instructions.bufferPtr += 1;
             fread(instructions.bufferPtr, 1, 1, instructions.file);
+            instructions.bufferPtr++;
 
             instructions.mod = (instructions.byte1 >> 6);
             instructions.reg = (instructions.byte1 >> 3) & 0b111;
@@ -167,11 +168,13 @@ int main(int argc, char const *argv[])
                     {
                         fread(instructions.bufferPtr, 1, 1, instructions.file);
                         instructions.address = (uint16)(*instructions.bufferPtr);
+                        instructions.bufferPtr++;
                     }
                     else if (instructions.width == 1)
                     {
                         fread(instructions.bufferPtr, 1, 2, instructions.file);
                         instructions.address = (uint16)(*(uint16 *)instructions.bufferPtr);
+                        instructions.bufferPtr += 2;
                     }
 
                     // destination is in RM field, source is in REG field
@@ -207,16 +210,17 @@ int main(int argc, char const *argv[])
             // memory mode, 8-bit and 16-bit displacements
             else if ((instructions.mod == 0b1) || (instructions.mod == 0b10))
             {
-                instructions.bufferPtr += 1;
                 if (instructions.mod == 0b1)
                 {
                     fread(instructions.bufferPtr, 1, 1, instructions.file);
                     instructions.displacement = (int16)(*(int8 *)instructions.bufferPtr);
+                    instructions.bufferPtr++;
                 }
                 else if (instructions.mod == 0b10)
                 {
                     fread(instructions.bufferPtr, 1, 2, instructions.file);
                     instructions.displacement = (int16)(*(int16 *)instructions.bufferPtr);
+                    instructions.bufferPtr++;
                 }
                 // unhandled case
                 else
@@ -278,8 +282,8 @@ int main(int argc, char const *argv[])
             instructions.width = instructions.byte0 & 0b1;
 
             // read second instruction byte and parse it
-            instructions.bufferPtr += 1;
             fread(instructions.bufferPtr, 1, 1, instructions.file);
+            instructions.bufferPtr++;
 
             instructions.mod = (instructions.byte1 >> 6);
             instructions.rm = (instructions.byte1) & 0b111;
@@ -292,19 +296,14 @@ int main(int argc, char const *argv[])
             else if (instructions.mod == 0b1)
             {
                 // read 8-bit displacement
-                instructions.bufferPtr += 1;
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
                 instructions.displacement = (int16)(*instructions.bufferPtr);
-
-                // advance bufferPtr here because we know how far it should be advanced
-                instructions.bufferPtr += 1;
+                instructions.bufferPtr++;
             }
             else if (instructions.mod == 0b10)
             {
                 // read 16-bit displacement
-                instructions.bufferPtr += 1;
                 fread(instructions.bufferPtr, 1, 2, instructions.file);
-                // Advance bufferPtr here because we know how far it should be advanced
                 instructions.displacement = (int16)(*(uint16 *)instructions.bufferPtr);
                 instructions.bufferPtr += 2;
             }
@@ -315,11 +314,13 @@ int main(int argc, char const *argv[])
             {
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
                 data = (uint16)(*instructions.bufferPtr);
+                instructions.bufferPtr++;
             }
             else if (instructions.width == 0b1)
             {
                 fread(instructions.bufferPtr, 1, 2, instructions.file);
                 data = (uint16)(*(uint16 *)instructions.bufferPtr);
+                instructions.bufferPtr += 2;
             }
             // unhandled case
             else
@@ -348,7 +349,6 @@ int main(int argc, char const *argv[])
             sprintf(instructions.instructionStr, "mov");
 
             // parse width and reg
-            instructions.bufferPtr += 1;
             instructions.width = (instructions.byte0 >> 3) & (0b1);
             instructions.reg = instructions.byte0 & 0b111;
 
@@ -357,12 +357,14 @@ int main(int argc, char const *argv[])
                 // read 8-bit data
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
                 sprintf(instructions.sourceStr, "%i", *instructions.bufferPtr);
+                instructions.bufferPtr++;
             }
             else if (instructions.width == 0b1)
             {
                 // read 16-bit data
                 fread(instructions.bufferPtr, 1, 2, instructions.file);
                 sprintf(instructions.sourceStr, "%i", *(uint16 *)instructions.bufferPtr);
+                instructions.bufferPtr += 2;
             }
             // unhandled case
             else
@@ -377,18 +379,18 @@ int main(int argc, char const *argv[])
         {
             sprintf(instructions.instructionStr, "mov");
 
-            instructions.bufferPtr += 1;
             instructions.width = instructions.byte0 & 0b1;
-
             if (instructions.width == 0)
             {
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
                 instructions.address = (uint16)(*instructions.bufferPtr);
+                instructions.bufferPtr++;
             }
             else if (instructions.width == 1)
             {
                 fread(instructions.bufferPtr, 1, 2, instructions.file);
                 instructions.address = (uint16)(*(uint16 *)instructions.bufferPtr);
+                instructions.bufferPtr++;
             }
             // unhandled case
             else
@@ -422,6 +424,7 @@ int main(int argc, char const *argv[])
         // read the next initial instruction byte
         instructions.bufferPtr = instructions.buffer;
         bytesRead = fread(instructions.bufferPtr, 1, 1, instructions.file);
+        instructions.bufferPtr++;
         instructions.instructionCount++;
     }
 
