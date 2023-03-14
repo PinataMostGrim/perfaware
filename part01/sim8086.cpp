@@ -468,6 +468,91 @@ int main(int argc, char const *argv[])
                 sprintf(instructions.sourceStr, "%s", instructions.rmStr);
             }
         }
+        // add / sub / cmp - immediate to register/memory
+        else if ((instructions.byte0 >> 2) == 0b100000)
+        {
+            uint8 sign = (instructions.byte0 >> 1) & 0b1;
+            instructions.width = instructions.byte0 & 0b1;
+
+            // decode mod and r/m
+            fread(instructions.bufferPtr, 1, 1, instructions.file);
+            instructions.bufferPtr++;
+            instructions.mod = (instructions.byte1 >> 6) & 0b11;
+            instructions.rm = instructions.byte1 & 0b111;
+
+            // decode instruction type
+            // add = 0b000
+            if (((instructions.byte1 >> 3) & 0b111) == 0b000)
+            {
+                sprintf(instructions.instructionStr, "add");
+            }
+            // sub = 0b101
+            else if (((instructions.byte1 >> 3) & 0b111) == 0b101)
+            {
+                sprintf(instructions.instructionStr, "sub");
+            }
+            // cmp = 0b111
+            else if (((instructions.byte1 >> 3) & 0b111) == 0b111)
+            {
+                sprintf(instructions.instructionStr, "cmp");
+            }
+            // unhandled case
+            else
+            {
+                Assert(false);
+            }
+
+            // decode r/m string
+            DecodeRmStr(&instructions);
+
+            // read data. guaranteed to be at least 8-bits.
+            int16 data = 0;
+            if (sign == 0b0 && instructions.width == 0)
+            {
+                // read 8-bit unsigned
+                fread(instructions.bufferPtr, 1, 1, instructions.file);
+                data = (int16)(*(uint8 *)instructions.bufferPtr);
+                instructions.bufferPtr++;
+            }
+            else if (sign == 0b0 && instructions.width == 1)
+            {
+                // read 16-bit unsigned
+                fread(instructions.bufferPtr, 1, 2, instructions.file);
+                data = (int16)(*(uint16 *)instructions.bufferPtr);
+                instructions.bufferPtr += 2;
+            }
+            else if (sign == 0b1 && instructions.width == 0)
+            {
+                // read 8-bit signed
+                fread(instructions.bufferPtr, 1, 1, instructions.file);
+                data = (int16)(*(int8 *)instructions.bufferPtr);
+                instructions.bufferPtr++;
+            }
+            else if (sign == 0b1 && instructions.width == 1)
+            {
+                fread(instructions.bufferPtr, 1, 1, instructions.file);
+                data = (int16)(*(int8 *)instructions.bufferPtr);
+                instructions.bufferPtr++;
+            }
+
+            // prepend width hint when immediate is being assigned to memory
+            bool prependWidth = ((instructions.mod == 0b0)
+                                 || (instructions.mod == 0b1)
+                                 || (instructions.mod == 0b10));
+
+            if (prependWidth)
+            {
+                sprintf(instructions.destStr,
+                        "%s %s",
+                        ((instructions.width == 0) ? "byte" : "word"),
+                        instructions.rmStr);
+            }
+            else
+            {
+                sprintf(instructions.destStr, "%s", instructions.rmStr);
+            }
+            sprintf(instructions.sourceStr, "%i", data);
+        }
         else
         {
             // Note (Aaron): Unsupported instruction
