@@ -553,6 +553,53 @@ int main(int argc, char const *argv[])
             }
             sprintf(instructions.sourceStr, "%i", data);
         }
+        // add / sub / cmp - immediate to/from/with accumulator
+        else if (((instructions.byte0 >> 1) == 0b0000010)
+            || ((instructions.byte0 >> 1) == 0b0010110)
+            || ((instructions.byte0 >> 1) == 0b0011110))
+        {
+            instructions.width = instructions.byte0 & 0b1;
+
+            // decode instruction type
+            // add = 0b000
+            if (((instructions.byte0 >> 3) & 0b111) == 0b000)
+            {
+                sprintf(instructions.instructionStr, "add");
+            }
+            // sub = 0b101
+            else if (((instructions.byte0 >> 3) & 0b111) == 0b101)
+            {
+                sprintf(instructions.instructionStr, "sub");
+            }
+            // cmp = 0b111
+            else if (((instructions.byte0 >> 3) & 0b111) == 0b111)
+            {
+                sprintf(instructions.instructionStr, "cmp");
+            }
+            // unhandled case
+            else
+            {
+                Assert(false);
+            }
+
+            // read data
+            uint16 data = 0;
+            if (instructions.width == 0b0)
+            {
+                fread(instructions.bufferPtr, 1, 1, instructions.file);
+                data = (uint16)(*(uint8 *)instructions.bufferPtr);
+                instructions.bufferPtr++;
+            }
+            else if (instructions.width == 0b1)
+            {
+                fread(instructions.bufferPtr, 1, 2, instructions.file);
+                data = (uint16)(*(uint16 *)instructions.bufferPtr);
+                instructions.bufferPtr += 2;
+            }
+
+            sprintf(instructions.destStr, (instructions.width == 0b0) ? "al" : "ax");
+            sprintf(instructions.sourceStr, "[%i]", data);
+        }
         else
         {
             // Note (Aaron): Unsupported instruction
