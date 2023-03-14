@@ -351,7 +351,7 @@ int main(int argc, char const *argv[])
             {
                 // read 8-bit data
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
-                sprintf(instructions.sourceStr, "%i", *instructions.bufferPtr);
+                sprintf(instructions.sourceStr, "%i", *(uint8 *)instructions.bufferPtr);
                 instructions.bufferPtr++;
             }
             else if (instructions.width == 0b1)
