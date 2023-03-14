@@ -319,11 +319,24 @@ int main(int argc, char const *argv[])
                 Assert(false);
             }
 
-            sprintf(instructions.destStr, "%s", instructions.rmStr);
-            sprintf(instructions.sourceStr,
-                      "%s %i",
-                      ((instructions.width == 0) ? "byte" : "word"),
-                      data);
+            // prepend width hint when value is being assigned to memory
+            bool prependWidth = ((instructions.mod == 0b0)
+                                 || (instructions.mod == 0b1)
+                                 || (instructions.mod == 0b10));
+
+            if (prependWidth)
+            {
+                sprintf(instructions.destStr,
+                        "%s %s",
+                        ((instructions.width == 0) ? "byte" : "word"),
+                        instructions.rmStr);
+            }
+            else
+            {
+                sprintf(instructions.destStr, "%s", instructions.rmStr);
+            }
+            sprintf(instructions.sourceStr, "%i", data);
+
         }
         // mov instruction - immediate to register (0b1011)
         else if ((instructions.byte0 >> 4) == 0b1011)
