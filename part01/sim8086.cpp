@@ -275,6 +275,8 @@ int main(int argc, char const *argv[])
                 sprintf(instructions.destStr, "%s", instructions.regStr);
                 sprintf(instructions.sourceStr, "%s", instructions.rmStr);
             }
+
+            printf("%s %s, %s\n", instructions.instructionStr, instructions.destStr, instructions.sourceStr);
         }
         // mov instruction - immediate to register/memory (0b1100011)
         else if ((instructions.byte0 >> 1) == 0b1100011)
@@ -332,6 +334,7 @@ int main(int argc, char const *argv[])
             }
             sprintf(instructions.sourceStr, "%i", data);
 
+            printf("%s %s, %s\n", instructions.instructionStr, instructions.destStr, instructions.sourceStr);
         }
         // mov instruction - immediate to register (0b1011)
         else if ((instructions.byte0 >> 4) == 0b1011)
@@ -363,6 +366,8 @@ int main(int argc, char const *argv[])
             }
 
             sprintf(instructions.destStr, "%s", RegisterEncodings[instructions.width].table[instructions.reg]);
+
+            printf("%s %s, %s\n", instructions.instructionStr, instructions.destStr, instructions.sourceStr);
         }
         // mov - memory to accumulator and accumulator to memory
         else if (((instructions.byte0 >> 1) == 0b1010000) || ((instructions.byte0 >> 1) == 0b1010001))
@@ -403,6 +408,8 @@ int main(int argc, char const *argv[])
             {
                 Assert(false);
             }
+
+            printf("%s %s, %s\n", instructions.instructionStr, instructions.destStr, instructions.sourceStr);
         }
         // add / sub / cmp - reg/memory with register to either
         else if (((instructions.byte0 >> 2) == 0b000000)
@@ -463,6 +470,8 @@ int main(int argc, char const *argv[])
                 sprintf(instructions.destStr, "%s", instructions.regStr);
                 sprintf(instructions.sourceStr, "%s", instructions.rmStr);
             }
+
+            printf("%s %s, %s\n", instructions.instructionStr, instructions.destStr, instructions.sourceStr);
         }
         // add / sub / cmp - immediate to register/memory
         else if ((instructions.byte0 >> 2) == 0b100000)
@@ -548,6 +557,8 @@ int main(int argc, char const *argv[])
                 sprintf(instructions.destStr, "%s", instructions.rmStr);
             }
             sprintf(instructions.sourceStr, "%i", data);
+
+            printf("%s %s, %s\n", instructions.instructionStr, instructions.destStr, instructions.sourceStr);
         }
         // add / sub / cmp - immediate to/from/with accumulator
         else if (((instructions.byte0 >> 1) == 0b0000010)
@@ -595,13 +606,148 @@ int main(int argc, char const *argv[])
 
             sprintf(instructions.destStr, (instructions.width == 0b0) ? "al" : "ax");
             sprintf(instructions.sourceStr, "[%i]", data);
+
+            printf("%s %s, %s\n", instructions.instructionStr, instructions.destStr, instructions.sourceStr);
+        }
+        // control transfer instructions
+        else if ((instructions.byte0 == 0b01110101)     // jnz / jne
+                 || (instructions.byte0 == 0b01110100)  // je
+                 || (instructions.byte0 == 0b01111100)  // jl
+                 || (instructions.byte0 == 0b01111110)  // jle
+                 || (instructions.byte0 == 0b01110010)  // jb
+                 || (instructions.byte0 == 0b01110110)  // jbe
+                 || (instructions.byte0 == 0b01111010)  // jp
+                 || (instructions.byte0 == 0b01110000)  // jo
+                 || (instructions.byte0 == 0b01111000)  // js
+                 || (instructions.byte0 == 0b01111101)  // jnl
+                 || (instructions.byte0 == 0b01111111)  // jg
+                 || (instructions.byte0 == 0b01110011)  // jnb
+                 || (instructions.byte0 == 0b01110111)  // ja
+                 || (instructions.byte0 == 0b01111011)  // jnp
+                 || (instructions.byte0 == 0b01110001)  // jno
+                 || (instructions.byte0 == 0b01111001)  // jns
+                 || (instructions.byte0 == 0b11100010)  // loop
+                 || (instructions.byte0 == 0b11100001)  // loopz
+                 || (instructions.byte0 == 0b11100000)  // loopnz
+                 || (instructions.byte0 == 0b11100011)) // jcxz
+        {
+            switch(instructions.byte0)
+            {
+                // jnz / jne
+                case 0b01110101:
+                    sprintf(instructions.instructionStr, "jnz");
+                    break;
+
+                // je
+                case 0b01110100:
+                    sprintf(instructions.instructionStr, "je");
+                    break;
+
+                // jl
+                case 0b01111100:
+                    sprintf(instructions.instructionStr, "jl");
+                    break;
+
+                // jle
+                case 0b01111110:
+                    sprintf(instructions.instructionStr, "jle");
+                    break;
+
+                // jb
+                case 0b01110010:
+                    sprintf(instructions.instructionStr, "jb");
+                    break;
+
+                // jbe
+                case 0b01110110:
+                    sprintf(instructions.instructionStr, "jbe");
+                    break;
+
+                // jp
+                case 0b01111010:
+                    sprintf(instructions.instructionStr, "jp");
+                    break;
+
+                // jo
+                case 0b01110000:
+                    sprintf(instructions.instructionStr, "jo");
+                    break;
+
+                // js
+                case 0b01111000:
+                    sprintf(instructions.instructionStr, "js");
+                    break;
+
+                // jnl
+                case 0b01111101:
+                    sprintf(instructions.instructionStr, "jnl");
+                    break;
+
+                // jg
+                case 0b01111111:
+                    sprintf(instructions.instructionStr, "jg");
+                    break;
+
+                // jnb
+                case 0b01110011:
+                    sprintf(instructions.instructionStr, "jnb");
+                    break;
+
+                // ja
+                case 0b01110111:
+                    sprintf(instructions.instructionStr, "ja");
+                    break;
+
+                // jnp
+                case 0b01111011:
+                    sprintf(instructions.instructionStr, "jnp");
+                    break;
+
+                // jno
+                case 0b01110001:
+                    sprintf(instructions.instructionStr, "jno");
+                    break;
+
+                // jns
+                case 0b01111001:
+                    sprintf(instructions.instructionStr, "jns");
+                    break;
+
+                // loop
+                case 0b11100010:
+                    sprintf(instructions.instructionStr, "LOOP");
+                    break;
+
+                // loopz
+                case 0b11100001:
+                    sprintf(instructions.instructionStr, "LOOPZ");
+                    break;
+
+                // loopnz
+                case 0b11100000:
+                    sprintf(instructions.instructionStr, "LOOPNZ");
+                    break;
+
+                // jcxz
+                case 0b11100011:
+                    sprintf(instructions.instructionStr, "JCXZ");
+                    break;
+                default:
+                    // unhandled instruction
+                    Assert(false);
+            }
+
+            // read 8-bit signed offset
+            bytesRead = fread(instructions.bufferPtr, 1, 1, instructions.file);
+            int8 offset = *(int8 *)instructions.bufferPtr;
+            instructions.bufferPtr++;
+
+            printf("%s %i\n", instructions.instructionStr, offset);
         }
         else
         {
             // Note (Aaron): Unsupported instruction
         }
-
-        printf("%s %s, %s\n", instructions.instructionStr, instructions.destStr, instructions.sourceStr);
 
 #if SIM8086_SLOW
         ClearInstructionData(&instructions);
