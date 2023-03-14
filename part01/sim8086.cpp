@@ -305,17 +305,13 @@ int main(int argc, char const *argv[])
             {
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
                 data = (uint16)(*instructions.bufferPtr);
-#if SIM8086_SLOW
                 instructions.bufferPtr++;
-#endif
             }
             else if (instructions.width == 0b1)
             {
                 fread(instructions.bufferPtr, 1, 2, instructions.file);
                 data = (uint16)(*(uint16 *)instructions.bufferPtr);
-#if SIM8086_SLOW
                 instructions.bufferPtr += 2;
-#endif
             }
             // unhandled case
             else
@@ -343,18 +339,14 @@ int main(int argc, char const *argv[])
                 // read 8-bit data
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
                 sprintf(instructions.sourceStr, "%i", *instructions.bufferPtr);
-#if SIM8086_SLOW
                 instructions.bufferPtr++;
-#endif
             }
             else if (instructions.width == 0b1)
             {
                 // read 16-bit data
                 fread(instructions.bufferPtr, 1, 2, instructions.file);
                 sprintf(instructions.sourceStr, "%i", *(uint16 *)instructions.bufferPtr);
-#if SIM8086_SLOW
                 instructions.bufferPtr += 2;
-#endif
             }
             // unhandled case
             else
@@ -374,17 +366,13 @@ int main(int argc, char const *argv[])
             {
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
                 instructions.address = (uint16)(*instructions.bufferPtr);
-#if SIM8086_SLOW
                 instructions.bufferPtr++;
-#endif
             }
             else if (instructions.width == 1)
             {
                 fread(instructions.bufferPtr, 1, 2, instructions.file);
                 instructions.address = (uint16)(*(uint16 *)instructions.bufferPtr);
-#if SIM8086_SLOW
                 instructions.bufferPtr++;
-#endif
             }
             // unhandled case
             else
