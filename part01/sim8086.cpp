@@ -185,12 +185,7 @@ DecodeRmStr(instruction_data *instructions)
             instructions->bufferPtr += 2;
         }
 
-        // set displacement string
-        if(instructions->displacement == 0)
-        {
-            sprintf(instructions->displacementStr, "");
-        }
-        else if (instructions->displacement < 0)
+        if (instructions->displacement < 0)
         {
             sprintf(instructions->displacementStr, " - %i", -1 * instructions->displacement);
         }
