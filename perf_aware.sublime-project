@@ -6,6 +6,34 @@
             "index_exclude_patterns": [".cache/*", ".git/*", "*.exe", "*.obj", "*.ilk", "*.pdb"],
         }
     ],
+    "build_systems":
+    [
+        {
+            "name": "Build sim8086",
+            "windows":
+            {
+                // file_regex for cl
+                "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\):():? (.*)$",
+                "shell_cmd": "call vcvarsall.bat x64 && build-sim8086.bat",
+            },
+            "working_dir": "${project_path}",
+            "env":
+            {
+                "DEBUG": "0"
+            },
+            "quiet": true,
+            "variants" :
+            [
+                {
+                    "name": "Debug",
+                    "env":
+                    {
+                        "DEBUG": "1"
+                    },
+                },
+            ],
+        },
+    ],
     "settings":
     {
         "LSP":

@@ -14,10 +14,7 @@ typedef int8_t int8;
 typedef int16_t int16;
 typedef int32_t int32;
 
-#pragma warning(disable:4996)   //_CRT_SECURE_NO_WARNINGS
-#pragma clang diagnostic ignored "-Wnull-dereference"
 
-#define SIM8086_SLOW 1
 // SIM8086_SLOW:
 //     0 - No slow code allowed!
 //     1 - Slow code welcome
