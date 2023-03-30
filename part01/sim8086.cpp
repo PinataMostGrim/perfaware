@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #define internal static
 #define global_variable static
@@ -19,12 +20,6 @@ typedef int32_t int32;
 //     0 - No slow code allowed!
 //     1 - Slow code welcome
 
-
-#if SIM8086_SLOW
-#define Assert(Expression) if (!(Expression)) {*(int *)0 = 0;}
-#else
-#define Assert(Expression)
-#endif
 
 struct field_encoding
 {
@@ -310,7 +305,7 @@ int main(int argc, char const *argv[])
             // unhandled case
             else
             {
-                Assert(false);
+                assert(false);
             }
 
             // prepend width hint when value is being assigned to memory
@@ -359,7 +354,7 @@ int main(int argc, char const *argv[])
             // unhandled case
             else
             {
-                Assert(false);
+                assert(false);
             }
 
             sprintf(instructions.destStr, "%s", RegisterEncodings[instructions.width].table[instructions.reg]);
@@ -387,7 +382,7 @@ int main(int argc, char const *argv[])
             // unhandled case
             else
             {
-                Assert(false);
+                assert(false);
             }
 
             if ((instructions.byte0 >> 1) == 0b1010000)
@@ -403,7 +398,7 @@ int main(int argc, char const *argv[])
             // unhandled case
             else
             {
-                Assert(false);
+                assert(false);
             }
 
             printf("%s %s, %s\n", instructions.instructionStr, instructions.destStr, instructions.sourceStr);
@@ -444,7 +439,7 @@ int main(int argc, char const *argv[])
             // unhandled case
             else
             {
-                Assert(false);
+                assert(false);
             }
 
             // decode reg string
@@ -501,7 +496,7 @@ int main(int argc, char const *argv[])
             // unhandled case
             else
             {
-                Assert(false);
+                assert(false);
             }
 
             // decode r/m string
@@ -584,7 +579,7 @@ int main(int argc, char const *argv[])
             // unhandled case
             else
             {
-                Assert(false);
+                assert(false);
             }
 
             // read data
@@ -732,7 +727,7 @@ int main(int argc, char const *argv[])
                     break;
                 default:
                     // unhandled instruction
-                    Assert(false);
+                    assert(false);
             }
 
             // read 8-bit signed offset
