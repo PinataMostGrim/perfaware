@@ -508,32 +508,33 @@ int main(int argc, char const *argv[])
             DecodeRmStr(&instructions);
 
             // read data. guaranteed to be at least 8-bits.
-            int16 data = 0;
+            int32 data = 0;
             if (sign == 0b0 && instructions.width == 0)
             {
                 // read 8-bit unsigned
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
-                data = (int16)(*(uint8 *)instructions.bufferPtr);
+                data = (int32)(*(uint8 *)instructions.bufferPtr);
                 instructions.bufferPtr++;
             }
             else if (sign == 0b0 && instructions.width == 1)
             {
                 // read 16-bit unsigned
                 fread(instructions.bufferPtr, 1, 2, instructions.file);
-                data = (int16)(*(uint16 *)instructions.bufferPtr);
+                data = (int32)(*(uint16 *)instructions.bufferPtr);
                 instructions.bufferPtr += 2;
             }
             else if (sign == 0b1 && instructions.width == 0)
             {
                 // read 8-bit signed
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
-                data = (int16)(*(int8 *)instructions.bufferPtr);
+                data = (int32)(*(int8 *)instructions.bufferPtr);
                 instructions.bufferPtr++;
             }
             else if (sign == 0b1 && instructions.width == 1)
             {
+                // read 8-bits and sign-extend to 16-bits
                 fread(instructions.bufferPtr, 1, 1, instructions.file);
-                data = (int16)(*(int8 *)instructions.bufferPtr);
+                data = (int32)(*(int8 *)instructions.bufferPtr);
                 instructions.bufferPtr++;
             }
 
