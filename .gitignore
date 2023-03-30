@@ -4,4 +4,5 @@
 *.sublime-workspace
 
 # Computer Enhance files
-computer_enhance/
+listing_*
+listing_*.*
