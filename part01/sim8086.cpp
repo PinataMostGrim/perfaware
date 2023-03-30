@@ -20,6 +20,14 @@ typedef int32_t int32;
 //     0 - No slow code allowed!
 //     1 - Slow code welcome
 
+struct sim_memory
+{
+    uint8 *Memory;
+    uint8 *ReadPtr;
+    uint16 Size = 0;
+    uint16 MaxSize = 0;
+};
+
 
 struct field_encoding
 {
@@ -64,9 +72,10 @@ global_variable field_encoding RegMemEncodings
     }
 };
 
+
 typedef struct instruction_data
 {
-    FILE *file = {};
+    uint32 InstructionCount = 0;
 
     union
     {
@@ -81,8 +90,8 @@ typedef struct instruction_data
             uint8 byte5;
         };
     };
+
     uint8 *bufferPtr = buffer;
-    uint32 instructionCount = 0;
 
     uint8 direction = 0;
     uint8 width = 0;
@@ -104,8 +113,7 @@ typedef struct instruction_data
 } instructioninstruction_data;
 
 #if SIM8086_SLOW
-internal void
-ClearInstructionData(instruction_data *instructions)
+internal void ClearInstructionData(instruction_data *instructions)
 {
     memset(instructions->buffer, 0, 6);
 
@@ -128,8 +136,19 @@ ClearInstructionData(instruction_data *instructions)
 #endif
 
 
-internal void
-DecodeRmStr(instruction_data *instructions)
+void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
+{
+    assert(size > 0);
+
+    unsigned char *source = (unsigned char *)sourcePtr;
+    unsigned char *dest = (unsigned char *)destPtr;
+    while(size--) *dest++ = *source++;
+
+    return destPtr;
+}
+
+
+internal void DecodeRmStr(instruction_data *instructions, sim_memory *simMemory)
 {
     // Note (Aaron): Requires width, mod and rm to be decoded
 
@@ -142,14 +161,15 @@ DecodeRmStr(instruction_data *instructions)
             // read direct address
             if (instructions->width == 0)
             {
-                fread(instructions->bufferPtr, 1, 1, instructions->file);
+                MemoryCopy(instructions->bufferPtr, simMemory->ReadPtr++, 1);
                 instructions->address = (uint16)(*instructions->bufferPtr);
                 instructions->bufferPtr++;
             }
             else
             {
-                fread(instructions->bufferPtr, 1, 2, instructions->file);
+                MemoryCopy(instructions->bufferPtr, simMemory->ReadPtr, 2);
                 instructions->address = (uint16)(*(uint16 *)instructions->bufferPtr);
+                simMemory->ReadPtr += 2;
                 instructions->bufferPtr += 2;
             }
 
@@ -166,14 +186,15 @@ DecodeRmStr(instruction_data *instructions)
         // read displacement value
         if (instructions->mod == 0b1)
         {
-            fread(instructions->bufferPtr, 1, 1, instructions->file);
+            MemoryCopy(instructions->bufferPtr, simMemory->ReadPtr++, 1);
             instructions->displacement = (int16)(*(int8 *)instructions->bufferPtr);
             instructions->bufferPtr++;
         }
         else if (instructions->mod == 0b10)
         {
-            fread(instructions->bufferPtr, 1, 2, instructions->file);
+            MemoryCopy(instructions->bufferPtr, simMemory->ReadPtr, 2);
             instructions->displacement = (int16)(*(int16 *)instructions->bufferPtr);
+            simMemory->ReadPtr += 2;
             instructions->bufferPtr += 2;
         }
 
@@ -195,6 +216,7 @@ DecodeRmStr(instruction_data *instructions)
     }
 }
 
+
 int main(int argc, char const *argv[])
 {
     if (argc > 2)
@@ -207,28 +229,43 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
+    sim_memory simMemory = {};
+    simMemory.MaxSize = 1024;
+    simMemory.Memory = (uint8 *)malloc(simMemory.MaxSize);
+    simMemory.ReadPtr = simMemory.Memory;
+
+    // TODO (Aaron): Validate memory read failure somehow
+    if (!simMemory.Memory)
+    {
+        printf("ERROR: Unable to allocate main memory for 8086\n");
+        exit(1);
+    }
+
     const char *filename = argv[1];
     instruction_data instructions = {};
-    instructions.file = fopen(filename, "rb");
-    size_t bytesRead;
+    FILE *file = {};
+    file = fopen(filename, "rb");
 
-    if(!instructions.file)
+    if(!file)
     {
         printf("Unable to open '%s'\n", filename);
         exit(EXIT_FAILURE);
     }
 
     printf("; %s:\n", filename);
+
+    simMemory.Size = (uint16)fread(simMemory.Memory, 1, simMemory.MaxSize, file);
+    fclose(file);
+
     printf("bits 16\n");
 
-    // read initial instruction byte for parsing
-    bytesRead = fread(instructions.bufferPtr, 1, 1, instructions.file);
-    instructions.bufferPtr++;
-    instructions.instructionCount++;
-
-    // main loop
-    while(bytesRead)
+    while (simMemory.ReadPtr < simMemory.Memory + simMemory.Size)
     {
+        // read initial instruction byte for parsing
+        instructions.bufferPtr = instructions.buffer;
+        MemoryCopy(instructions.bufferPtr++, simMemory.ReadPtr++, 1);
+        instructions.InstructionCount++;
+
         // parse initial instruction byte
         // mov instruction - register/memory to/from register (0b100010)
         if ((instructions.byte0 >> 2) == 0b100010)
@@ -240,8 +277,7 @@ int main(int argc, char const *argv[])
             instructions.width = instructions.byte0 & 0b1;
 
             // read second instruction byte and parse it
-            fread(instructions.bufferPtr, 1, 1, instructions.file);
-            instructions.bufferPtr++;
+            MemoryCopy(instructions.bufferPtr++, simMemory.ReadPtr++, 1);
 
             instructions.mod = (instructions.byte1 >> 6);
             instructions.reg = (instructions.byte1 >> 3) & 0b111;
@@ -251,7 +287,7 @@ int main(int argc, char const *argv[])
             sprintf(instructions.regStr, "%s", RegisterEncodings[instructions.width].table[instructions.reg]);
 
             // decode r/m string
-            DecodeRmStr(&instructions);
+            DecodeRmStr(&instructions, &simMemory);
 
             // set dest and source strings
             // destination is in RM field, source is in REG field
@@ -277,8 +313,7 @@ int main(int argc, char const *argv[])
             instructions.width = instructions.byte0 & 0b1;
 
             // read second instruction byte and parse it
-            fread(instructions.bufferPtr, 1, 1, instructions.file);
-            instructions.bufferPtr++;
+            MemoryCopy(instructions.bufferPtr++, simMemory.ReadPtr++, 1);
 
             instructions.mod = (instructions.byte1 >> 6);
             instructions.rm = (instructions.byte1) & 0b111;
@@ -286,20 +321,21 @@ int main(int argc, char const *argv[])
             // Note (Aaron): No reg in this instruction
 
             // decode r/m string
-            DecodeRmStr(&instructions);
+            DecodeRmStr(&instructions, &simMemory);
 
             // read data. guaranteed to be at least 8-bits.
             uint16 data = 0;
             if (instructions.width == 0b0)
             {
-                fread(instructions.bufferPtr, 1, 1, instructions.file);
+                MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr++, 1);
                 data = (uint16)(*instructions.bufferPtr);
                 instructions.bufferPtr++;
             }
             else if (instructions.width == 0b1)
             {
-                fread(instructions.bufferPtr, 1, 2, instructions.file);
-                data = (uint16)(*(uint16 *)instructions.bufferPtr);
+                MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr, 2);
+                data = (uint16)(*instructions.bufferPtr);
+                simMemory.ReadPtr += 2;
                 instructions.bufferPtr += 2;
             }
             // unhandled case
@@ -340,15 +376,16 @@ int main(int argc, char const *argv[])
             if (instructions.width == 0b0)
             {
                 // read 8-bit data
-                fread(instructions.bufferPtr, 1, 1, instructions.file);
+                MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr++, 1);
                 sprintf(instructions.sourceStr, "%i", *(uint8 *)instructions.bufferPtr);
                 instructions.bufferPtr++;
             }
             else if (instructions.width == 0b1)
             {
                 // read 16-bit data
-                fread(instructions.bufferPtr, 1, 2, instructions.file);
+                MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr, 2);
                 sprintf(instructions.sourceStr, "%i", *(uint16 *)instructions.bufferPtr);
+                simMemory.ReadPtr += 2;
                 instructions.bufferPtr += 2;
             }
             // unhandled case
@@ -369,15 +406,16 @@ int main(int argc, char const *argv[])
             instructions.width = instructions.byte0 & 0b1;
             if (instructions.width == 0)
             {
-                fread(instructions.bufferPtr, 1, 1, instructions.file);
+                MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr++, 1);
                 instructions.address = (uint16)(*instructions.bufferPtr);
                 instructions.bufferPtr++;
             }
             else if (instructions.width == 1)
             {
-                fread(instructions.bufferPtr, 1, 2, instructions.file);
+                MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr, 2);
                 instructions.address = (uint16)(*(uint16 *)instructions.bufferPtr);
-                instructions.bufferPtr++;
+                simMemory.ReadPtr += 2;
+                instructions.bufferPtr += 2;
             }
             // unhandled case
             else
@@ -413,8 +451,7 @@ int main(int argc, char const *argv[])
             instructions.width = instructions.byte0 & 0b1;
 
             // decode mod, reg and r/m
-            fread(instructions.bufferPtr, 1, 1, instructions.file);
-            instructions.bufferPtr++;
+            MemoryCopy(instructions.bufferPtr++, simMemory.ReadPtr++, 1);
 
             instructions.mod = (instructions.byte1 >> 6) & 0b11;
             instructions.reg = (instructions.byte1 >> 3) & 0b111;
@@ -446,7 +483,7 @@ int main(int argc, char const *argv[])
             sprintf(instructions.regStr, "%s", RegisterEncodings[instructions.width].table[instructions.reg]);
 
             // decode r/m string
-            DecodeRmStr(&instructions);
+            DecodeRmStr(&instructions, &simMemory);
 
             // set dest and source strings
             // destination is in RM field, source is in REG field
@@ -472,8 +509,8 @@ int main(int argc, char const *argv[])
             instructions.width = instructions.byte0 & 0b1;
 
             // decode mod and r/m
-            fread(instructions.bufferPtr, 1, 1, instructions.file);
-            instructions.bufferPtr++;
+            MemoryCopy(instructions.bufferPtr++, simMemory.ReadPtr++, 1);
+
             instructions.mod = (instructions.byte1 >> 6) & 0b11;
             instructions.rm = instructions.byte1 & 0b111;
 
@@ -500,35 +537,36 @@ int main(int argc, char const *argv[])
             }
 
             // decode r/m string
-            DecodeRmStr(&instructions);
+            DecodeRmStr(&instructions, &simMemory);
 
             // read data. guaranteed to be at least 8-bits.
             int32 data = 0;
             if (sign == 0b0 && instructions.width == 0)
             {
                 // read 8-bit unsigned
-                fread(instructions.bufferPtr, 1, 1, instructions.file);
+                MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr++, 1);
                 data = (int32)(*(uint8 *)instructions.bufferPtr);
                 instructions.bufferPtr++;
             }
             else if (sign == 0b0 && instructions.width == 1)
             {
                 // read 16-bit unsigned
-                fread(instructions.bufferPtr, 1, 2, instructions.file);
+                MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr, 2);
                 data = (int32)(*(uint16 *)instructions.bufferPtr);
+                simMemory.ReadPtr += 2;
                 instructions.bufferPtr += 2;
             }
             else if (sign == 0b1 && instructions.width == 0)
             {
                 // read 8-bit signed
-                fread(instructions.bufferPtr, 1, 1, instructions.file);
+                MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr++, 1);
                 data = (int32)(*(int8 *)instructions.bufferPtr);
                 instructions.bufferPtr++;
             }
             else if (sign == 0b1 && instructions.width == 1)
             {
                 // read 8-bits and sign-extend to 16-bits
-                fread(instructions.bufferPtr, 1, 1, instructions.file);
+                MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr++, 1);
                 data = (int32)(*(int8 *)instructions.bufferPtr);
                 instructions.bufferPtr++;
             }
@@ -586,14 +624,15 @@ int main(int argc, char const *argv[])
             uint16 data = 0;
             if (instructions.width == 0b0)
             {
-                fread(instructions.bufferPtr, 1, 1, instructions.file);
+                MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr++, 1);
                 data = (uint16)(*(uint8 *)instructions.bufferPtr);
                 instructions.bufferPtr++;
             }
             else if (instructions.width == 0b1)
             {
-                fread(instructions.bufferPtr, 1, 2, instructions.file);
+                MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr, 2);
                 data = (uint16)(*(uint16 *)instructions.bufferPtr);
+                simMemory.ReadPtr += 2;
                 instructions.bufferPtr += 2;
             }
 
@@ -731,7 +770,7 @@ int main(int argc, char const *argv[])
             }
 
             // read 8-bit signed offset
-            bytesRead = fread(instructions.bufferPtr, 1, 1, instructions.file);
+            MemoryCopy(instructions.bufferPtr, simMemory.ReadPtr++, 1);
             int8 offset = *(int8 *)instructions.bufferPtr;
             instructions.bufferPtr++;
 
@@ -745,15 +784,7 @@ int main(int argc, char const *argv[])
 #if SIM8086_SLOW
         ClearInstructionData(&instructions);
 #endif
-
-        // read the next initial instruction byte
-        instructions.bufferPtr = instructions.buffer;
-        bytesRead = fread(instructions.bufferPtr, 1, 1, instructions.file);
-        instructions.bufferPtr++;
-        instructions.instructionCount++;
     }
-
-    fclose(instructions.file);
 
     return 0;
 }
