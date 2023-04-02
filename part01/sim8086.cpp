@@ -48,7 +48,7 @@ static register_id RegMemTables[3][8]
 };
 
 
-void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
+static void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
 {
     assert(size > 0);
 
@@ -96,6 +96,7 @@ static void DecodeRmStr(decode_context *context, sim_memory *simMemory, instruct
             }
         }
     }
+
     // memory mode, 8-bit and 16-bit displacement
     else if ((instruction->ModBits == 0b1) || (instruction->ModBits == 0b10))
     {
@@ -121,6 +122,7 @@ static void DecodeRmStr(decode_context *context, sim_memory *simMemory, instruct
 
         operand->Memory.Register = RegMemTables[2][instruction->RmBits];
     }
+
     // register mode, no displacement
     else if (instruction->ModBits == 0b11)
     {
@@ -181,6 +183,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
             result.Operands[1] = operandRm;
         }
     }
+
     // mov instruction - immediate to register/memory (0b1100011)
     else if ((context.byte0 >> 1) == 0b1100011)
     {
@@ -240,13 +243,11 @@ static instruction DecodeInstruction(sim_memory *simMemory)
                 operandDest.Memory.Flags |= Memory_IsWide;
             }
         }
-        else
-        {
-        }
 
         result.Operands[0] = operandDest;
         result.Operands[1] = operandSource;
     }
+
     // mov instruction - immediate to register (0b1011)
     else if ((context.byte0 >> 4) == 0b1011)
     {
@@ -285,6 +286,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         result.Operands[0] = operandDest;
         result.Operands[1] = operandSource;
     }
+
     // mov - memory to accumulator and accumulator to memory
     else if (((context.byte0 >> 1) == 0b1010000) || ((context.byte0 >> 1) == 0b1010001))
     {
@@ -332,6 +334,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
             assert(false);
         }
     }
+
     // add / sub / cmp - reg/memory with register to either
     else if (((context.byte0 >> 2) == 0b000000)
         || ((context.byte0 >> 2) == 0b001010)
@@ -394,6 +397,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
             result.Operands[1] = operandRm;
         }
     }
+
     // add / sub / cmp - immediate to register/memory
     else if ((context.byte0 >> 2) == 0b100000)
     {
@@ -435,7 +439,6 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         // decode r/m string
         DecodeRmStr(&context, simMemory, &result, &operandDest);
 
-        //  If an instruction has no s bit, assume it is 0
         // read data. guaranteed to be at least 8-bits.
         int32 data = 0;
         if (result.SignBit == 0b0 && result.WidthBit == 0)
@@ -491,6 +494,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         result.Operands[0] = operandDest;
         result.Operands[1] = operandSource;
     }
+
     // add / sub / cmp - immediate to/from/with accumulator
     else if (((context.byte0 >> 1) == 0b0000010)
         || ((context.byte0 >> 1) == 0b0010110)
@@ -548,6 +552,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         result.Operands[0] = operandDest;
         result.Operands[1] = operandSource;
     }
+
     // control transfer instructions
     else if ((context.byte0 == 0b01110101)     // jnz / jne
              || (context.byte0 == 0b01110100)  // je
@@ -686,6 +691,8 @@ static instruction DecodeInstruction(sim_memory *simMemory)
 
         printf("%s %i\n", instructionStr, offset);
     }
+
+    // unsupported instruction
     else
     {
         // Note (Aaron): Unsupported instruction
@@ -699,7 +706,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
 }
 
 
-void PrintInstruction(instruction *instruction)
+static void PrintInstruction(instruction *instruction)
 {
     printf("%s ", GetOpMnemonic(instruction->OpType));
     const char *Separator = "";

@@ -75,15 +75,13 @@ struct instruction
     uint8 ModBits = 0;
     uint8 RegBits = 0;
     uint8 RmBits = 0;
-
     uint8 SignBit = 0;
 };
 
 
-typedef struct decode_context
+struct decode_context
 {
     uint32 InstructionCount = 0;
-
     union
     {
         uint8 buffer[6] = {};
@@ -99,6 +97,6 @@ typedef struct decode_context
     };
 
     uint8 *bufferPtr = buffer;
-} decode_context;
+};
 
 #endif
