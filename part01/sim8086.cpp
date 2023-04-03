@@ -781,16 +781,38 @@ static void PrintInstruction(instruction *instruction)
 
 int main(int argc, char const *argv[])
 {
-    if (argc > 2)
+    if (argc < 2 ||  argc > 3)
     {
-        printf("usage: sim8086 filename\n\n");
+        printf("usage: sim8086 [--exec] filename\n\n");
         printf("disassembles 8086/88 assembly\n\n");
+
         printf("positional arguments:\n");
         printf("  filename\t\tassembly file to load\n");
+        printf("\n");
 
-        exit(EXIT_FAILURE);
+        printf("options:\n");
+        printf("  --exec, -e\t\tsimulate execution of assembly\n");
+
+        exit(1);
     }
 
+    // process command line arguments
+    bool simulateInstructions = false;
+    const char *filename;
+
+    for (int i = 1; i < argc; ++i)
+    {
+        if ((strncmp("--exec", argv[i], 6) == 0)
+            || (strncmp("-e", argv[i], 2) == 0))
+        {
+            simulateInstructions = true;
+            continue;
+        }
+
+        filename = argv[i];
+    }
+
+    // initialize memory
     sim_memory simMemory = {};
     simMemory.MaxSize = 1024;
     simMemory.Memory = (uint8 *)malloc(simMemory.MaxSize);
@@ -802,7 +824,6 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
-    const char *filename = argv[1];
     FILE *file = {};
     file = fopen(filename, "rb");
 
