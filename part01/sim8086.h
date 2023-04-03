@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-#include "sim8086_mnemonics.h"
-
 typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
@@ -23,6 +21,47 @@ struct sim_memory
     uint8 *ReadPtr;
     uint16 Size = 0;
     uint16 MaxSize = 0;
+};
+
+
+enum register_id
+{
+    Reg_unknown,
+    Reg_al,
+    Reg_cl,
+    Reg_dl,
+    Reg_bl,
+    Reg_ah,
+    Reg_ch,
+    Reg_dh,
+    Reg_bh,
+    Reg_ax,
+    Reg_cx,
+    Reg_dx,
+    Reg_bx,
+    Reg_sp,
+    Reg_bp,
+    Reg_si,
+    Reg_di,
+    Reg_bx_si,
+    Reg_bx_di,
+    Reg_bp_si,
+    Reg_bp_di,
+
+    Reg_mem_id_count,
+};
+
+
+enum operation_types
+{
+    Op_unknown,
+    Op_mov,
+    Op_add,
+    Op_sub,
+    Op_cmp,
+    Op_jmp,
+
+    Op_count,
 };
 
 

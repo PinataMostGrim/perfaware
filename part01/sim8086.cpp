@@ -48,6 +48,56 @@ static register_id RegMemTables[3][8]
 };
 
 
+// A, B, C, D, SP, BP, SI and DI
+static uint32 Registers[8] = {};
+
+
+struct register_info
+{
+    register_id Register = Reg_unknown;
+    uint8 RegisterIndex = 0;
+    uint16 Mask = 0x0;
+};
+
+
+// Note (Aaron): Order of registers must match the order defined in 'register_id'
+// in order for lookup to work
+static register_info RegisterLookup[21]
+{
+    { Reg_unknown, 0, 0x0},
+    { Reg_al, 0, 0xff00},
+    { Reg_cl, 2, 0xff00},
+    { Reg_dl, 3, 0xff00},
+    { Reg_bl, 1, 0xff00},
+    { Reg_ah, 0, 0x00ff},
+    { Reg_ch, 2, 0x00ff},
+    { Reg_dh, 3, 0x00ff},
+    { Reg_bh, 1, 0x00ff},
+    { Reg_ax, 0, 0xffff},
+    { Reg_cx, 2, 0xffff},
+    { Reg_dx, 3, 0xffff},
+    { Reg_bx, 1, 0xffff},
+    { Reg_sp, 5, 0xffff},
+    { Reg_bp, 6, 0xffff},
+    { Reg_si, 7, 0xffff},
+    { Reg_di, 8, 0xffff},
+    // Note (Aaron): We currently only simulate non-memory operations.
+    // { Reg_bx_si, 0, 0x0},
+    // { Reg_bx_di, 0, 0x0},
+    // { Reg_bp_si, 0, 0x0},
+    // { Reg_bp_di, 0, 0x0},
+};
+
+
+static void ClearRegisters()
+{
+    for (int i = 0; i < ArrayCount(Registers); ++i)
+    {
+        Registers[i] = 0;
+    }
+}
+
+
 static void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
 {
     assert(size > 0);
@@ -706,6 +756,97 @@ static instruction DecodeInstruction(sim_memory *simMemory)
 }
 
 
+int32 GetRegister(register_id targetRegister)
+{
+    uint16 result = 0;
+
+    register_info info = RegisterLookup[targetRegister];
+    result = (int32)(Registers[info.RegisterIndex] & info.Mask);
+
+    return result;
+}
+
+
+void SetRegister(register_id targetRegister, int32 value)
+{
+    register_info info = RegisterLookup[targetRegister];
+    Registers[info.RegisterIndex] = (value & info.Mask);
+}
+
+
+void ExecuteInstruction(instruction *instruction)
+{
+    switch (instruction->OpType)
+    {
+        case  Op_mov:
+        {
+            instruction_operand operandDest = instruction->Operands[0];
+            instruction_operand operandSource = instruction->Operands[1];
+
+            int32 sourceValue = 0;
+            switch (operandSource.Type)
+            {
+                case Operand_register:
+                {
+                    sourceValue = GetRegister(operandSource.Register);
+                    break;
+                }
+                case Operand_immediate:
+                {
+                    sourceValue = operandSource.ImmediateValue;
+                    break;
+                }
+                case Operand_memory:
+                {
+                    // Note (Aaron): Unsupported
+                    break;
+                }
+                default:
+                {
+                    // Note (Aaron): Invalid instruction
+                    assert(false);
+                    break;
+                }
+            }
+
+            int32 oldValue = 0;
+            switch (operandDest.Type)
+            {
+                case Operand_register:
+                {
+                    oldValue = GetRegister(operandDest.Register);
+                    SetRegister(operandDest.Register, sourceValue);
+
+                    printf(" ; %s:0x%x->0x%x",
+                           GetRegisterMnemonic(operandDest.Register),
+                           oldValue,
+                           sourceValue);
+                    break;
+                }
+                case Operand_memory:
+                {
+                    // Note (Aaron): Unsupported
+                    break;
+                }
+                case Operand_immediate:
+                default:
+                {
+                    // Note (Aaron): Invalid instruction
+                    assert(false);
+                    break;
+                }
+            }
+            break;
+        }
+
+        default:
+        {
+            // Unsupported instruction
+        }
+    }
+}
+
+
 static void PrintInstruction(instruction *instruction)
 {
     printf("%s ", GetOpMnemonic(instruction->OpType));
@@ -774,8 +915,33 @@ static void PrintInstruction(instruction *instruction)
             }
         }
     }
+}
 
-    printf("\n");
+
+static void PrintRegisters()
+{
+    register_id toDisplay[] =
+    {
+        Reg_ax,
+        Reg_bx,
+        Reg_cx,
+        Reg_dx,
+        Reg_sp,
+        Reg_bp,
+        Reg_si,
+        Reg_di,
+    };
+
+    printf("Registers:\n");
+
+    for (int i = 0; i < ArrayCount(toDisplay); ++i)
+    {
+        int32 value = GetRegister(toDisplay[i]);
+        printf("\t%s: %04x (%i)\n",
+               GetRegisterMnemonic(toDisplay[i]),
+               value,
+               value);
+    }
 }
 
 
@@ -798,7 +964,7 @@ int main(int argc, char const *argv[])
 
     // process command line arguments
     bool simulateInstructions = false;
-    const char *filename;
+    const char *filename = "";
 
     for (int i = 1; i < argc; ++i)
     {
@@ -824,6 +990,9 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
+    // initialize registers
+    ClearRegisters();
+
     FILE *file = {};
     file = fopen(filename, "rb");
 
@@ -842,11 +1011,23 @@ int main(int argc, char const *argv[])
     while (simMemory.ReadPtr < simMemory.Memory + simMemory.Size)
     {
         instruction instruction = DecodeInstruction(&simMemory);
+
         if (instruction.OpType != Op_jmp)
         {
             PrintInstruction(&instruction);
         }
+
+        if (simulateInstructions)
+        {
+            ExecuteInstruction(&instruction);
+        }
+
+        printf("\n");
     }
+
+    printf("\n");
+    PrintRegisters();
+    printf("\n");
 
     return 0;
 }
