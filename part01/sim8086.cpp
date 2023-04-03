@@ -117,7 +117,7 @@ static void DecodeRmStr(decode_context *context, sim_memory *simMemory, instruct
     // memory mode, no displacement
     if(instruction->ModBits == 0b0)
     {
-        operand->Type = Operand_memory;
+        operand->Type = Operand_Memory;
         operand->Memory = {};
 
         // general case, memory mode no displacement
@@ -150,7 +150,7 @@ static void DecodeRmStr(decode_context *context, sim_memory *simMemory, instruct
     // memory mode, 8-bit and 16-bit displacement
     else if ((instruction->ModBits == 0b1) || (instruction->ModBits == 0b10))
     {
-        operand->Type = Operand_memory;
+        operand->Type = Operand_Memory;
         operand->Memory = {};
         operand->Memory.Flags |= Memory_HasDisplacement;
 
@@ -176,7 +176,7 @@ static void DecodeRmStr(decode_context *context, sim_memory *simMemory, instruct
     // register mode, no displacement
     else if (instruction->ModBits == 0b11)
     {
-        operand->Type = Operand_register;
+        operand->Type = Operand_Register;
         operand->Register = RegMemTables[instruction->WidthBit][instruction->RmBits];
     }
 }
@@ -213,7 +213,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         result.RmBits = context.byte1 & 0b111;
 
         // decode reg string
-        operandReg.Type = Operand_register;
+        operandReg.Type = Operand_Register;
         operandReg.Register = RegMemTables[result.WidthBit][result.RegBits];
 
         // decode r/m string
@@ -240,7 +240,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         result.OpType = Op_mov;
         instruction_operand operandSource = {};
         instruction_operand operandDest = {};
-        operandSource.Type = Operand_immediate;
+        operandSource.Type = Operand_Immediate;
 
         result.WidthBit = context.byte0 & 0b1;
 
@@ -285,7 +285,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
 
         if (prependWidth)
         {
-            assert(operandDest.Type == Operand_memory);
+            assert(operandDest.Type == Operand_Memory);
 
             operandDest.Memory.Flags |= Memory_PrependWidth;
             if (result.WidthBit == 1)
@@ -304,8 +304,8 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         result.OpType = Op_mov;
         instruction_operand operandSource = {};
         instruction_operand operandDest = {};
-        operandSource.Type = Operand_immediate;
-        operandDest.Type = Operand_register;
+        operandSource.Type = Operand_Immediate;
+        operandDest.Type = Operand_Register;
 
         // parse width and reg
         result.WidthBit = (context.byte0 >> 3) & (0b1);
@@ -343,9 +343,9 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         result.OpType = Op_mov;
         instruction_operand operandAccumulator = {};
         instruction_operand operandMemory = {};
-        operandAccumulator.Type = Operand_register;
+        operandAccumulator.Type = Operand_Register;
         operandAccumulator.Register = Reg_ax;
-        operandMemory.Type = Operand_memory;
+        operandMemory.Type = Operand_Memory;
         operandMemory.Memory.Flags |= Memory_DirectAddress;
 
         result.WidthBit = context.byte0 & 0b1;
@@ -391,7 +391,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         || ((context.byte0 >> 2) == 0b001110))
     {
         instruction_operand operandReg = {};
-        operandReg.Type = Operand_register;
+        operandReg.Type = Operand_Register;
         instruction_operand operandRm = {};
 
         // decode direction and width
@@ -453,7 +453,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
     {
         instruction_operand operandSource = {};
         instruction_operand operandDest = {};
-        operandSource.Type = Operand_immediate;
+        operandSource.Type = Operand_Immediate;
 
         result.SignBit = (context.byte0 >> 1) & 0b1;
         result.WidthBit = context.byte0 & 0b1;
@@ -532,7 +532,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
 
         if (prependWidth)
         {
-            assert(operandDest.Type == Operand_memory);
+            assert(operandDest.Type == Operand_Memory);
 
             operandDest.Memory.Flags |= Memory_PrependWidth;
             if (result.WidthBit == 1)
@@ -554,8 +554,8 @@ static instruction DecodeInstruction(sim_memory *simMemory)
 
         instruction_operand operandSource = {};
         instruction_operand operandDest = {};
-        operandSource.Type = Operand_immediate;
-        operandDest.Type = Operand_register;
+        operandSource.Type = Operand_Immediate;
+        operandDest.Type = Operand_Register;
 
         // decode instruction type
         // add = 0b000
@@ -786,17 +786,17 @@ void ExecuteInstruction(instruction *instruction)
             int32 sourceValue = 0;
             switch (operandSource.Type)
             {
-                case Operand_register:
+                case Operand_Register:
                 {
                     sourceValue = GetRegister(operandSource.Register);
                     break;
                 }
-                case Operand_immediate:
+                case Operand_Immediate:
                 {
                     sourceValue = operandSource.ImmediateValue;
                     break;
                 }
-                case Operand_memory:
+                case Operand_Memory:
                 {
                     // Note (Aaron): Unsupported
                     break;
@@ -812,7 +812,7 @@ void ExecuteInstruction(instruction *instruction)
             int32 oldValue = 0;
             switch (operandDest.Type)
             {
-                case Operand_register:
+                case Operand_Register:
                 {
                     oldValue = GetRegister(operandDest.Register);
                     SetRegister(operandDest.Register, sourceValue);
@@ -823,12 +823,12 @@ void ExecuteInstruction(instruction *instruction)
                            sourceValue);
                     break;
                 }
-                case Operand_memory:
+                case Operand_Memory:
                 {
                     // Note (Aaron): Unsupported
                     break;
                 }
-                case Operand_immediate:
+                case Operand_Immediate:
                 default:
                 {
                     // Note (Aaron): Invalid instruction
@@ -860,11 +860,11 @@ static void PrintInstruction(instruction *instruction)
         instruction_operand operand = instruction->Operands[i];
         switch (operand.Type)
         {
-            case Operand_none:
+            case Operand_None:
             {
                 break;
             }
-            case Operand_memory:
+            case Operand_Memory:
             {
                 // prepend width hint if necessary
                 if (operand.Memory.Flags & Memory_PrependWidth)
@@ -899,12 +899,12 @@ static void PrintInstruction(instruction *instruction)
 
                 break;
             }
-            case Operand_register:
+            case Operand_Register:
             {
                 printf("%s", GetRegisterMnemonic(operand.Register));
                 break;
             }
-            case Operand_immediate:
+            case Operand_Immediate:
             {
                 printf("%i", operand.ImmediateValue);
                 break;

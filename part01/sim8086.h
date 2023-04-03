@@ -67,10 +67,10 @@ enum operation_types
 
 enum operand_types
 {
-    Operand_none,
-    Operand_register,
-    Operand_memory,
-    Operand_immediate,
+    Operand_None,
+    Operand_Register,
+    Operand_Memory,
+    Operand_Immediate,
 };
 
 
@@ -94,7 +94,7 @@ struct operand_memory
 
 struct instruction_operand
 {
-    operand_types Type = Operand_none;
+    operand_types Type = Operand_None;
     union
     {
         operand_memory Memory;
