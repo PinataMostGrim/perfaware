@@ -52,6 +52,26 @@ enum register_id
 };
 
 
+struct register_info
+{
+    register_id Register = Reg_unknown;
+    uint8 RegisterIndex = 0;
+    bool IsWide = true;
+    uint16 Mask = 0x0;
+};
+
+
+enum register_flags : uint8
+{
+    Register_CF = 0x1,
+    Register_PF = 0x2,
+    Register_AF = 0x4,
+    Register_ZF = 0x8,      // Did an arithmetic operation produce a value of 0?
+    Register_SF = 0x10,     // Did an arithmetic operation produce a negative value?
+    Register_OF = 0x20,
+};
+
+
 enum operation_types
 {
     Op_unknown,
@@ -99,7 +119,7 @@ struct instruction_operand
     {
         operand_memory Memory;
         register_id Register;
-        int32 ImmediateValue;
+        uint16 ImmediateValue;
     };
 };
 
@@ -120,7 +140,7 @@ struct instruction
 
 struct decode_context
 {
-    uint32 InstructionCount = 0;
+    size_t InstructionCount = 0;
     union
     {
         uint8 buffer[6] = {};

@@ -49,15 +49,17 @@ static register_id RegMemTables[3][8]
 
 
 // A, B, C, D, SP, BP, SI and DI
-static uint32 Registers[8] = {};
+static uint16 Registers[8] = {};
 
-
-struct register_info
-{
-    register_id Register = Reg_unknown;
-    uint8 RegisterIndex = 0;
-    uint16 Mask = 0x0;
-};
+// Flags:
+// OF | SF | ZF | AF | PF | CF
+//     CF - Carry flag
+//     PF - Parity flag
+//     AF - Auxiliary Carry flag
+//     ZF - Zero flag
+//     SF - Sign flag
+//     OF - Overflow flag
+static uint8 Flags = 0;
 
 
 // Note (Aaron): Order of registers must match the order defined in 'register_id'
@@ -65,22 +67,22 @@ struct register_info
 static register_info RegisterLookup[21]
 {
     { Reg_unknown, 0, 0x0},
-    { Reg_al, 0, 0xff00},
-    { Reg_cl, 2, 0xff00},
-    { Reg_dl, 3, 0xff00},
-    { Reg_bl, 1, 0xff00},
-    { Reg_ah, 0, 0x00ff},
-    { Reg_ch, 2, 0x00ff},
-    { Reg_dh, 3, 0x00ff},
-    { Reg_bh, 1, 0x00ff},
-    { Reg_ax, 0, 0xffff},
-    { Reg_cx, 2, 0xffff},
-    { Reg_dx, 3, 0xffff},
-    { Reg_bx, 1, 0xffff},
-    { Reg_sp, 5, 0xffff},
-    { Reg_bp, 6, 0xffff},
-    { Reg_si, 7, 0xffff},
-    { Reg_di, 8, 0xffff},
+    { Reg_al, 0, false, 0xff00},
+    { Reg_cl, 2, false, 0xff00},
+    { Reg_dl, 3, false, 0xff00},
+    { Reg_bl, 1, false, 0xff00},
+    { Reg_ah, 0, false, 0x00ff},
+    { Reg_ch, 2, false, 0x00ff},
+    { Reg_dh, 3, false, 0x00ff},
+    { Reg_bh, 1, false, 0x00ff},
+    { Reg_ax, 0, true, 0xffff},
+    { Reg_cx, 2, true, 0xffff},
+    { Reg_dx, 3, true, 0xffff},
+    { Reg_bx, 1, true, 0xffff},
+    { Reg_sp, 5, true, 0xffff},
+    { Reg_bp, 6, true, 0xffff},
+    { Reg_si, 7, true, 0xffff},
+    { Reg_di, 8, true, 0xffff},
     // Note (Aaron): We currently only simulate non-memory operations.
     // { Reg_bx_si, 0, 0x0},
     // { Reg_bx_di, 0, 0x0},
@@ -756,76 +758,168 @@ static instruction DecodeInstruction(sim_memory *simMemory)
 }
 
 
-int32 GetRegister(register_id targetRegister)
+uint16 GetRegister(register_id targetRegister)
 {
     uint16 result = 0;
 
     register_info info = RegisterLookup[targetRegister];
-    result = (int32)(Registers[info.RegisterIndex] & info.Mask);
+    result = (Registers[info.RegisterIndex] & info.Mask);
 
     return result;
 }
 
 
-void SetRegister(register_id targetRegister, int32 value)
+void SetRegister(register_id targetRegister, uint16 value)
 {
     register_info info = RegisterLookup[targetRegister];
     Registers[info.RegisterIndex] = (value & info.Mask);
 }
 
 
+uint8 GetRegisterFlag(register_flags flag)
+{
+    return (Flags & flag);
+}
+
+
+void SetRegisterFlag(register_flags flag, bool set)
+{
+    if (set)
+    {
+        Flags |= flag;
+        return;
+    }
+
+    Flags &= ~flag;
+}
+
+
+void UpdateSignedRegisterFlag(register_id targetRegister, uint16 value)
+{
+    register_info info = RegisterLookup[targetRegister];
+    if (info.IsWide)
+    {
+        // use 16 bit mask
+        SetRegisterFlag(Register_SF, (value >> 15) == 1);
+    }
+    else
+    {
+        // use 8 bit mask
+        SetRegisterFlag(Register_SF, (value >> 7) == 1);
+    }
+}
+
+
+uint16 GetOperandValue(instruction_operand operand)
+{
+    uint16 result = 0;
+    switch (operand.Type)
+    {
+        case Operand_Register:
+        {
+            result = GetRegister(operand.Register);
+            break;
+        }
+        case Operand_Immediate:
+        {
+            result = operand.ImmediateValue;
+            break;
+        }
+        case Operand_Memory:
+        {
+            // Note (Aaron): Unsupported
+            break;
+        }
+        default:
+        {
+            // Note (Aaron): Invalid instruction
+            assert(false);
+            break;
+        }
+    }
+
+    return result;
+}
+
+
+void PrintFlags(bool force = false)
+{
+    if (Flags == 0 && !force)
+    {
+        return;
+    }
+
+    printf(" flags:->");
+
+    if (Flags & Register_CF) { printf("C"); }
+    if (Flags & Register_PF) { printf("P"); }
+    if (Flags & Register_AF) { printf("A"); }
+    if (Flags & Register_ZF) { printf("Z"); }
+    if (Flags & Register_SF) { printf("S"); }
+    if (Flags & Register_OF) { printf("O"); }
+}
+
+
+void PrintFlagDiffs(uint8 oldFlags, uint8 newFlags)
+{
+    if (oldFlags == Flags)
+    {
+        return;
+    }
+
+    printf(" flags:");
+
+    // loop twice
+    if ((oldFlags & Register_CF) && !(newFlags & Register_CF)) { printf("C"); }
+    if ((oldFlags & Register_PF) && !(newFlags & Register_PF)) { printf("P"); }
+    if ((oldFlags & Register_AF) && !(newFlags & Register_AF)) { printf("A"); }
+    if ((oldFlags & Register_ZF) && !(newFlags & Register_ZF)) { printf("Z"); }
+    if ((oldFlags & Register_SF) && !(newFlags & Register_SF)) { printf("S"); }
+    if ((oldFlags & Register_OF) && !(newFlags & Register_OF)) { printf("O"); }
+
+    printf("->");
+
+    if (!(oldFlags & Register_CF) && (newFlags & Register_CF)) { printf("C"); }
+    if (!(oldFlags & Register_PF) && (newFlags & Register_PF)) { printf("P"); }
+    if (!(oldFlags & Register_AF) && (newFlags & Register_AF)) { printf("A"); }
+    if (!(oldFlags & Register_ZF) && (newFlags & Register_ZF)) { printf("Z"); }
+    if (!(oldFlags & Register_SF) && (newFlags & Register_SF)) { printf("S"); }
+    if (!(oldFlags & Register_OF) && (newFlags & Register_OF)) { printf("O"); }
+}
+
+
 void ExecuteInstruction(instruction *instruction)
 {
+    uint8 oldFlags = Flags;
     switch (instruction->OpType)
     {
-        case  Op_mov:
+        case Op_mov:
         {
-            instruction_operand operandDest = instruction->Operands[0];
-            instruction_operand operandSource = instruction->Operands[1];
+            instruction_operand operand0 = instruction->Operands[0];
+            instruction_operand operand1 = instruction->Operands[1];
 
-            int32 sourceValue = 0;
-            switch (operandSource.Type)
+            uint16 sourceValue = GetOperandValue(operand1);
+
+            switch (operand0.Type)
             {
                 case Operand_Register:
                 {
-                    sourceValue = GetRegister(operandSource.Register);
-                    break;
-                }
-                case Operand_Immediate:
-                {
-                    sourceValue = operandSource.ImmediateValue;
-                    break;
-                }
-                case Operand_Memory:
-                {
-                    // Note (Aaron): Unsupported
-                    break;
-                }
-                default:
-                {
-                    // Note (Aaron): Invalid instruction
-                    assert(false);
-                    break;
-                }
-            }
+                    uint16 destValue = GetRegister(operand0.Register);
+                    SetRegister(operand0.Register, sourceValue);
 
-            int32 oldValue = 0;
-            switch (operandDest.Type)
-            {
-                case Operand_Register:
-                {
-                    oldValue = GetRegister(operandDest.Register);
-                    SetRegister(operandDest.Register, sourceValue);
+                    // Note (Aaron): mov does not set the zero flag or the signed flag
 
-                    printf(" ; %s:0x%x->0x%x",
-                           GetRegisterMnemonic(operandDest.Register),
-                           oldValue,
+                    printf("%s:0x%x->0x%x ",
+                           GetRegisterMnemonic(operand0.Register),
+                           destValue,
                            sourceValue);
+
                     break;
                 }
                 case Operand_Memory:
                 {
-                    // Note (Aaron): Unsupported
+                    // Note (Aaron): Currently unsupported
+                    printf("unsupported instruction ");
                     break;
                 }
                 case Operand_Immediate:
@@ -836,14 +930,74 @@ void ExecuteInstruction(instruction *instruction)
                     break;
                 }
             }
+
+            break;
+        }
+
+        case Op_add:
+        {
+            instruction_operand operand0 = instruction->Operands[0];
+            instruction_operand operand1 = instruction->Operands[1];
+
+            uint16 value0 = GetOperandValue(operand0);
+            uint16 value1 = GetOperandValue(operand1);
+            uint16 finalValue = value1 + value0;
+
+            SetRegister(operand0.Register, finalValue);
+            SetRegisterFlag(Register_ZF, (finalValue == 0));
+            UpdateSignedRegisterFlag(operand0.Register, finalValue);
+
+            printf("%s:0x%x->0x%x ",
+                   GetRegisterMnemonic(operand0.Register),
+                   value0,
+                   finalValue);
+
+            break;
+        }
+
+        case Op_sub:
+        {
+            instruction_operand operand0 = instruction->Operands[0];
+            instruction_operand operand1 = instruction->Operands[1];
+
+            uint16 value0 = GetOperandValue(operand0);
+            uint16 value1 = GetOperandValue(operand1);
+            uint16 finalValue = value0 - value1;
+
+            SetRegister(operand0.Register, finalValue);
+            SetRegisterFlag(Register_ZF, (finalValue == 0));
+            UpdateSignedRegisterFlag(operand0.Register, finalValue);
+
+            printf("%s:0x%x->0x%x ",
+                   GetRegisterMnemonic(operand0.Register),
+                   value0,
+                   finalValue);
+
+            break;
+        }
+
+        case Op_cmp:
+        {
+            instruction_operand operand0 = instruction->Operands[0];
+            instruction_operand operand1 = instruction->Operands[1];
+
+            uint16 value0 = GetOperandValue(operand0);
+            uint16 value1 = GetOperandValue(operand1);
+            uint16 finalValue = value0 - value1;
+
+            SetRegisterFlag(Register_ZF, (finalValue == 0));
+            UpdateSignedRegisterFlag(operand0.Register, finalValue);
+
             break;
         }
 
         default:
         {
-            // Unsupported instruction
+            printf("unsupported instruction ");
         }
     }
+
+    PrintFlagDiffs(oldFlags, Flags);
 }
 
 
@@ -936,12 +1090,23 @@ static void PrintRegisters()
 
     for (int i = 0; i < ArrayCount(toDisplay); ++i)
     {
-        int32 value = GetRegister(toDisplay[i]);
+        uint16 value = GetRegister(toDisplay[i]);
+
+        // Reduce noise by omitting registers with a value of 0
+        if (value == 0)
+        {
+            continue;
+        }
+
         printf("\t%s: %04x (%i)\n",
                GetRegisterMnemonic(toDisplay[i]),
                value,
                value);
     }
+
+    // align flags with register print out
+    printf("    ");
+    PrintFlags();
 }
 
 
@@ -993,6 +1158,9 @@ int main(int argc, char const *argv[])
     // initialize registers
     ClearRegisters();
 
+    // initialize flags
+    Flags = 0;
+
     FILE *file = {};
     file = fopen(filename, "rb");
 
@@ -1019,14 +1187,19 @@ int main(int argc, char const *argv[])
 
         if (simulateInstructions)
         {
+            printf(" ; ");
             ExecuteInstruction(&instruction);
         }
 
         printf("\n");
     }
 
-    printf("\n");
-    PrintRegisters();
+    if (simulateInstructions)
+    {
+        printf("\n");
+        PrintRegisters();
+    }
+
     printf("\n");
 
     return 0;
