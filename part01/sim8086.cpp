@@ -1167,7 +1167,20 @@ int main(int argc, char const *argv[])
     if(!file)
     {
         printf("Unable to open '%s'\n", filename);
-        exit(EXIT_FAILURE);
+        exit(1);
+    }
+
+    // error handling for file read
+    if (ferror(file))
+    {
+        printf("Encountered error while reading file '%s'", filename);
+        exit(1);
+    }
+
+    if (!feof(file))
+    {
+        printf("Program size exceeds processor memory; unable to load\n\n");
+        exit(1);
     }
 
     simMemory.Size = (uint16)fread(simMemory.Memory, 1, simMemory.MaxSize, file);
