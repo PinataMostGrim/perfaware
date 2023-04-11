@@ -96,9 +96,11 @@ static uint8 *GetMemoryReadPtr(processor_8086 *processor)
 }
 
 
+// Note (Aaron): Requires width, mod and rm to be decoded in the decode_context
 static void DecodeRmStr(decode_context *context, processor_8086 *processor, instruction *instruction, instruction_operand *operand)
 {
-    // Note (Aaron): Requires width, mod and rm to be decoded
+    // TODO (Aaron): It's awkward how many parameters need to be passed into this method.
+    // See about tightening this up somehow.
 
     // memory mode, no displacement
     if(instruction->ModBits == 0b0)
@@ -117,6 +119,7 @@ static void DecodeRmStr(decode_context *context, processor_8086 *processor, inst
             operand->Memory.Flags |= Memory_DirectAddress;
 
             // read direct address
+            // TODO (Aaron): Casey said that this special case is always a 16-bit displacement in Q&A #5 (at 27m30s)
             if (instruction->WidthBit == 0)
             {
                 MemoryCopy(context->bufferPtr, GetMemoryReadPtr(processor), 1);
@@ -250,6 +253,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         DecodeRmStr(&context, processor, &result, &operandDest);
 
         // read data. guaranteed to be at least 8-bits.
+        // TODO (Aaron): Is this signed or unsigned?
         uint16 data = 0;
         if (result.WidthBit == 0b0)
         {
@@ -274,6 +278,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
 
         // prepend width hint when value is being assigned to memory
+        // TODO (Aaron): Do we prepend the width hint if we are writing to a direct address? (mod == 00 and rm == 110)
         bool prependWidth = ((result.ModBits == 0b0)
                              || (result.ModBits == 0b1)
                              || (result.ModBits == 0b10));
@@ -282,6 +287,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             assert(operandDest.Type == Operand_Memory);
 
+            // TODO (Aaron): Might need to move this up into DecodeRmStr()
             operandDest.Memory.Flags |= Memory_PrependWidth;
             if (result.WidthBit == 1)
             {
@@ -488,7 +494,12 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // decode r/m string
         DecodeRmStr(&context, processor, &result, &operandDest);
 
+        // TODO (Aaron): Casey encoded this as a table in his implementation
+        //      - If an instruction has no s bit, assume it is 0
         // read data. guaranteed to be at least 8-bits.
+        // TODO (Aaron): Move this into instruction_operand?
+        // TODO (Aaron): Using a signed 32bit int here assumes the data value is signed.
+        //  - Check to see how we determine this?
         int32 data = 0;
         if (result.SignBit == 0b0 && result.WidthBit == 0)
         {
@@ -528,6 +539,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
 
         // prepend width hint when immediate is being assigned to memory
+        // TODO (Aaron): Do we prepend the width hint if we are writing to a direct address? (mod == 00 and rm == 110)
         bool prependWidth = ((result.ModBits == 0b0)
                              || (result.ModBits == 0b1)
                              || (result.ModBits == 0b10));
@@ -536,6 +548,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             assert(operandDest.Type == Operand_Memory);
 
+            // TODO (Aaron): Might need to move this up into DecodeRmStr() so that we can be sure the flag is set only
             operandDest.Memory.Flags |= Memory_PrependWidth;
             if (result.WidthBit == 1)
             {
@@ -582,6 +595,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
 
         // read data
+        // TODO (Aaron): Is this signed or unsigned?
         uint16 data = 0;
         if (result.WidthBit == 0b0)
         {
@@ -628,6 +642,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
              || (context.byte0 == 0b11100000)  // loopnz
              || (context.byte0 == 0b11100011)) // jcxz
     {
+        // TODO (Aaron): Add missing jump types
         result.OpType = Op_jmp;
         char instructionStr[32] = "";
 
@@ -635,6 +650,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             // jnz / jne
             case 0b01110101:
+                // TODO (Aaron): Not sure what to do about 'jne'. Shares the same op code as 'jnz'
                 sprintf(instructionStr, "jnz");
                 break;
 
@@ -894,6 +910,8 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
 {
     uint8 oldFlags = processor->Flags;
 
+    // TODO (Aaron): A lot of redundant code here
+    //  - Re-write switch statement with if-statements?
     switch (instruction->OpType)
     {
         case Op_mov:
@@ -1188,6 +1206,9 @@ int main(int argc, char const *argv[])
 
     fclose(file);
 
+    // TODO (Aaron): Should I assert anything here?
+    //  - Empty program?
+
     printf("; %s:\n", filename);
     printf("bits 16\n");
 
@@ -1197,6 +1218,7 @@ int main(int argc, char const *argv[])
 
         if (instruction.OpType != Op_jmp)
         {
+            // TODO (Aaron): Handle jumps in PrintInstruction and eliminate this if statement
             PrintInstruction(&instruction);
         }
 

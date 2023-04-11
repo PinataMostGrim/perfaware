@@ -86,6 +86,7 @@ struct processor_8086
 };
 
 
+// TODO (Aaron): Define underlying type? uint8_t?
 enum operation_types
 {
     Op_unknown,
@@ -94,6 +95,7 @@ enum operation_types
     Op_sub,
     Op_cmp,
     Op_jmp,
+    // TODO (Aaron): Add all jumps
 
     Op_count,
 };
@@ -154,9 +156,15 @@ struct instruction
 
 struct decode_context
 {
+    // TODO (Aaron): Instruction count can be moved into processor_8086 and we
+    // can eliminate decode_contxt entirely
     size_t InstructionCount = 0;
+
     union
     {
+        // TODO (Aaron): Honestly, we could move this into the instruction struct
+        //  It would be useful to have access to the raw bits of any individual instruction
+        // TODO (Aaron): Ensure this buffer is large enough we will never run into overflows
         uint8 buffer[6] = {};
         struct
         {
@@ -169,7 +177,27 @@ struct decode_context
         };
     };
 
+    // TODO (Aaron): Rename this to bytePtr?
     uint8 *bufferPtr = buffer;
 };
+
+
+// TODO (Aaron): Add to instruction struct and implement
+// struct instruction_bits
+// {
+//     union
+//     {
+//         uint8 bytes[6] = {};
+//         union
+//         {
+//             uint8 byte0;
+//             uint8 byte1;
+//             uint8 byte2;
+//             uint8 byte3;
+//             uint8 byte4;
+//             uint8 byte5;
+//         };
+//     };
+// };
 
 #endif
