@@ -27,7 +27,7 @@
             {
                 "DEBUG": "0"
             },
-            "quiet": true,
+            "quiet": false,
             "variants" :
             [
                 {
