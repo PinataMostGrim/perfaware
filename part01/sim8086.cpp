@@ -48,20 +48,6 @@ static register_id RegMemTables[3][8]
 };
 
 
-// A, B, C, D, SP, BP, SI and DI
-static uint16 Registers[8] = {};
-
-// Flags:
-// OF | SF | ZF | AF | PF | CF
-//     CF - Carry flag
-//     PF - Parity flag
-//     AF - Auxiliary Carry flag
-//     ZF - Zero flag
-//     SF - Sign flag
-//     OF - Overflow flag
-static uint8 Flags = 0;
-
-
 // Note (Aaron): Order of registers must match the order defined in 'register_id'
 // in order for lookup to work
 static register_info RegisterLookup[21]
@@ -91,15 +77,6 @@ static register_info RegisterLookup[21]
 };
 
 
-static void ClearRegisters()
-{
-    for (int i = 0; i < ArrayCount(Registers); ++i)
-    {
-        Registers[i] = 0;
-    }
-}
-
-
 static void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
 {
     assert(size > 0);
@@ -112,7 +89,14 @@ static void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
 }
 
 
-static void DecodeRmStr(decode_context *context, sim_memory *simMemory, instruction *instruction, instruction_operand *operand)
+static uint8 *GetMemoryReadPtr(processor_8086 *processor)
+{
+    uint8 *result = processor->Memory + processor->IP;
+    return result;
+}
+
+
+static void DecodeRmStr(decode_context *context, processor_8086 *processor, instruction *instruction, instruction_operand *operand)
 {
     // Note (Aaron): Requires width, mod and rm to be decoded
 
@@ -135,15 +119,16 @@ static void DecodeRmStr(decode_context *context, sim_memory *simMemory, instruct
             // read direct address
             if (instruction->WidthBit == 0)
             {
-                MemoryCopy(context->bufferPtr, simMemory->ReadPtr++, 1);
+                MemoryCopy(context->bufferPtr, GetMemoryReadPtr(processor), 1);
+                processor->IP++;
                 operand->Memory.DirectAddress = (uint16)(*context->bufferPtr);
                 context->bufferPtr++;
             }
             else
             {
-                MemoryCopy(context->bufferPtr, simMemory->ReadPtr, 2);
+                MemoryCopy(context->bufferPtr, GetMemoryReadPtr(processor), 2);
                 operand->Memory.DirectAddress = (uint16)(*(uint16 *)context->bufferPtr);
-                simMemory->ReadPtr += 2;
+                processor->IP += 2;
                 context->bufferPtr += 2;
             }
         }
@@ -159,16 +144,17 @@ static void DecodeRmStr(decode_context *context, sim_memory *simMemory, instruct
         // read displacement value
         if (instruction->ModBits == 0b1)
         {
-            MemoryCopy(context->bufferPtr, simMemory->ReadPtr++, 1);
+            MemoryCopy(context->bufferPtr, GetMemoryReadPtr(processor), 1);
+            processor->IP++;
 
             operand->Memory.Displacement = (int16)(*(int8 *)context->bufferPtr);
             context->bufferPtr++;
         }
         else if (instruction->ModBits == 0b10)
         {
-            MemoryCopy(context->bufferPtr, simMemory->ReadPtr, 2);
+            MemoryCopy(context->bufferPtr, GetMemoryReadPtr(processor), 2);
             operand->Memory.Displacement = (int16)(*(int16 *)context->bufferPtr);
-            simMemory->ReadPtr += 2;
+            processor->IP += 2;
             context->bufferPtr += 2;
         }
 
@@ -184,14 +170,18 @@ static void DecodeRmStr(decode_context *context, sim_memory *simMemory, instruct
 }
 
 
-static instruction DecodeInstruction(sim_memory *simMemory)
+static instruction DecodeNextInstruction(processor_8086 *processor)
 {
+    processor->PrevIP = processor->IP;
+
     instruction result = {};
     decode_context context = {};
 
     // read initial instruction byte for parsing
     context.bufferPtr = context.buffer;
-    MemoryCopy(context.bufferPtr++, simMemory->ReadPtr++, 1);
+    MemoryCopy(context.bufferPtr++, GetMemoryReadPtr(processor), 1);
+    processor->IP++;
+
     context.InstructionCount++;
 
     // parse initial instruction byte
@@ -208,7 +198,8 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         result.WidthBit = context.byte0 & 0b1;
 
         // read second instruction byte and parse it
-        MemoryCopy(context.bufferPtr++, simMemory->ReadPtr++, 1);
+        MemoryCopy(context.bufferPtr++, GetMemoryReadPtr(processor), 1);
+        processor->IP++;
 
         result.ModBits = (context.byte1 >> 6);
         result.RegBits = (context.byte1 >> 3) & 0b111;
@@ -219,7 +210,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         operandReg.Register = RegMemTables[result.WidthBit][result.RegBits];
 
         // decode r/m string
-        DecodeRmStr(&context, simMemory, &result, &operandRm);
+        DecodeRmStr(&context, processor, &result, &operandRm);
 
         // set dest and source strings
         // destination is in RM field, source is in REG field
@@ -247,7 +238,8 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         result.WidthBit = context.byte0 & 0b1;
 
         // read second instruction byte and parse it
-        MemoryCopy(context.bufferPtr++, simMemory->ReadPtr++, 1);
+        MemoryCopy(context.bufferPtr++, GetMemoryReadPtr(processor), 1);
+        processor->IP++;
 
         result.ModBits = (context.byte1 >> 6);
         result.RmBits = (context.byte1) & 0b111;
@@ -255,23 +247,24 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         // Note (Aaron): No reg in this instruction
 
         // decode r/m string
-        DecodeRmStr(&context, simMemory, &result, &operandDest);
+        DecodeRmStr(&context, processor, &result, &operandDest);
 
         // read data. guaranteed to be at least 8-bits.
         uint16 data = 0;
         if (result.WidthBit == 0b0)
         {
-            MemoryCopy(context.bufferPtr, simMemory->ReadPtr++, 1);
+            MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 1);
+            processor->IP++;
             data = (uint16)(*context.bufferPtr);
             operandSource.ImmediateValue = (uint16)(*context.bufferPtr);
             context.bufferPtr++;
         }
         else if (result.WidthBit == 0b1)
         {
-            MemoryCopy(context.bufferPtr, simMemory->ReadPtr, 2);
+            MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 2);
             data = (uint16)(*context.bufferPtr);
             operandSource.ImmediateValue = (uint16)(*context.bufferPtr);
-            simMemory->ReadPtr += 2;
+            processor->IP += 2;
             context.bufferPtr += 2;
         }
         // unhandled case
@@ -316,16 +309,17 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         if (result.WidthBit == 0b0)
         {
             // read 8-bit data
-            MemoryCopy(context.bufferPtr, simMemory->ReadPtr++, 1);
+            MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 1);
+            processor->IP++;
             operandSource.ImmediateValue = *(uint8 *)context.bufferPtr;
             context.bufferPtr++;
         }
         else if (result.WidthBit == 0b1)
         {
             // read 16-bit data
-            MemoryCopy(context.bufferPtr, simMemory->ReadPtr, 2);
+            MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 2);
             operandSource.ImmediateValue = *(uint16 *)context.bufferPtr;
-            simMemory->ReadPtr += 2;
+            processor->IP += 2;
             context.bufferPtr += 2;
         }
         // unhandled case
@@ -353,15 +347,16 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         result.WidthBit = context.byte0 & 0b1;
         if (result.WidthBit == 0)
         {
-            MemoryCopy(context.bufferPtr, simMemory->ReadPtr++, 1);
+            MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 1);
+            processor->IP++;
             operandMemory.Memory.DirectAddress = (uint16)(*context.bufferPtr);
             context.bufferPtr++;
         }
         else if (result.WidthBit == 1)
         {
-            MemoryCopy(context.bufferPtr, simMemory->ReadPtr, 2);
+            MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 2);
             operandMemory.Memory.DirectAddress = (uint16)(*(uint16 *)context.bufferPtr);
-            simMemory->ReadPtr += 2;
+            processor->IP += 2;
             context.bufferPtr += 2;
         }
         // unhandled case
@@ -401,7 +396,8 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         result.WidthBit = context.byte0 & 0b1;
 
         // decode mod, reg and r/m
-        MemoryCopy(context.bufferPtr++, simMemory->ReadPtr++, 1);
+        MemoryCopy(context.bufferPtr++, GetMemoryReadPtr(processor), 1);
+        processor->IP++;
 
         result.ModBits = (context.byte1 >> 6) & 0b11;
         result.RegBits = (context.byte1 >> 3) & 0b111;
@@ -433,7 +429,7 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         operandReg.Register = RegMemTables[result.WidthBit][result.RegBits];
 
         // decode r/m string
-        DecodeRmStr(&context, simMemory, &result, &operandRm);
+        DecodeRmStr(&context, processor, &result, &operandRm);
 
         // set dest and source strings
         // destination is in RM field, source is in REG field
@@ -461,7 +457,8 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         result.WidthBit = context.byte0 & 0b1;
 
         // decode mod and r/m
-        MemoryCopy(context.bufferPtr++, simMemory->ReadPtr++, 1);
+        MemoryCopy(context.bufferPtr++, GetMemoryReadPtr(processor), 1);
+        processor->IP++;
 
         result.ModBits = (context.byte1 >> 6) & 0b11;
         result.RmBits = context.byte1 & 0b111;
@@ -489,14 +486,15 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         }
 
         // decode r/m string
-        DecodeRmStr(&context, simMemory, &result, &operandDest);
+        DecodeRmStr(&context, processor, &result, &operandDest);
 
         // read data. guaranteed to be at least 8-bits.
         int32 data = 0;
         if (result.SignBit == 0b0 && result.WidthBit == 0)
         {
             // read 8-bit unsigned
-            MemoryCopy(context.bufferPtr, simMemory->ReadPtr++, 1);
+            MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 1);
+            processor->IP++;
             data = (int32)(*(uint8 *)context.bufferPtr);
             operandSource.ImmediateValue = (int32)(*(uint8 *)context.bufferPtr);
             context.bufferPtr++;
@@ -504,16 +502,17 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         else if (result.SignBit == 0b0 && result.WidthBit == 1)
         {
             // read 16-bit unsigned
-            MemoryCopy(context.bufferPtr, simMemory->ReadPtr, 2);
+            MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 2);
             data = (int32)(*(uint16 *)context.bufferPtr);
             operandSource.ImmediateValue = (int32)(*(uint16 *)context.bufferPtr);
-            simMemory->ReadPtr += 2;
+            processor->IP += 2;
             context.bufferPtr += 2;
         }
         else if (result.SignBit == 0b1 && result.WidthBit == 0)
         {
             // read 8-bit signed
-            MemoryCopy(context.bufferPtr, simMemory->ReadPtr++, 1);
+            MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 1);
+            processor->IP++;
             data = (int32)(*(int8 *)context.bufferPtr);
             operandSource.ImmediateValue = (int32)(*(int8 *)context.bufferPtr);
             context.bufferPtr++;
@@ -521,7 +520,8 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         else if (result.SignBit == 0b1 && result.WidthBit == 1)
         {
             // read 8-bits and sign-extend to 16-bits
-            MemoryCopy(context.bufferPtr, simMemory->ReadPtr++, 1);
+            MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 1);
+            processor->IP++;
             data = (int32)(*(int8 *)context.bufferPtr);
             operandSource.ImmediateValue = (int32)(*(int8 *)context.bufferPtr);
             context.bufferPtr++;
@@ -585,17 +585,18 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         uint16 data = 0;
         if (result.WidthBit == 0b0)
         {
-            MemoryCopy(context.bufferPtr, simMemory->ReadPtr++, 1);
+            MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 1);
+            processor->IP++;
             data = (uint16)(*(uint8 *)context.bufferPtr);
             operandSource.ImmediateValue = (uint16)(*(uint8 *)context.bufferPtr);
             context.bufferPtr++;
         }
         else if (result.WidthBit == 0b1)
         {
-            MemoryCopy(context.bufferPtr, simMemory->ReadPtr, 2);
+            MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 2);
             data = (uint16)(*(uint16 *)context.bufferPtr);
             operandSource.ImmediateValue = (uint16)(*(uint16 *)context.bufferPtr);
-            simMemory->ReadPtr += 2;
+            processor->IP += 2;
             context.bufferPtr += 2;
         }
 
@@ -737,7 +738,8 @@ static instruction DecodeInstruction(sim_memory *simMemory)
         }
 
         // read 8-bit signed offset
-        MemoryCopy(context.bufferPtr, simMemory->ReadPtr++, 1);
+        MemoryCopy(context.bufferPtr, GetMemoryReadPtr(processor), 1);
+        processor->IP++;
         int8 offset = *(int8 *)context.bufferPtr;
         context.bufferPtr++;
 
@@ -758,66 +760,66 @@ static instruction DecodeInstruction(sim_memory *simMemory)
 }
 
 
-uint16 GetRegister(register_id targetRegister)
+uint16 GetRegister(processor_8086 *processor, register_id targetRegister)
 {
     uint16 result = 0;
 
     register_info info = RegisterLookup[targetRegister];
-    result = (Registers[info.RegisterIndex] & info.Mask);
+    result = (processor->Registers[info.RegisterIndex] & info.Mask);
 
     return result;
 }
 
 
-void SetRegister(register_id targetRegister, uint16 value)
+void SetRegister(processor_8086 *processor, register_id targetRegister, uint16 value)
 {
     register_info info = RegisterLookup[targetRegister];
-    Registers[info.RegisterIndex] = (value & info.Mask);
+    processor->Registers[info.RegisterIndex] = (value & info.Mask);
 }
 
 
-uint8 GetRegisterFlag(register_flags flag)
+uint8 GetRegisterFlag(processor_8086 *processor, register_flags flag)
 {
-    return (Flags & flag);
+    return (processor->Flags & flag);
 }
 
 
-void SetRegisterFlag(register_flags flag, bool set)
+void SetRegisterFlag(processor_8086 *processor, register_flags flag, bool set)
 {
     if (set)
     {
-        Flags |= flag;
+        processor->Flags |= flag;
         return;
     }
 
-    Flags &= ~flag;
+    processor->Flags &= ~flag;
 }
 
 
-void UpdateSignedRegisterFlag(register_id targetRegister, uint16 value)
+void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targetRegister, uint16 value)
 {
     register_info info = RegisterLookup[targetRegister];
     if (info.IsWide)
     {
         // use 16 bit mask
-        SetRegisterFlag(Register_SF, (value >> 15) == 1);
+        SetRegisterFlag(processor, Register_SF, (value >> 15) == 1);
     }
     else
     {
         // use 8 bit mask
-        SetRegisterFlag(Register_SF, (value >> 7) == 1);
+        SetRegisterFlag(processor, Register_SF, (value >> 7) == 1);
     }
 }
 
 
-uint16 GetOperandValue(instruction_operand operand)
+uint16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
 {
     uint16 result = 0;
     switch (operand.Type)
     {
         case Operand_Register:
         {
-            result = GetRegister(operand.Register);
+            result = GetRegister(processor, operand.Register);
             break;
         }
         case Operand_Immediate:
@@ -842,27 +844,27 @@ uint16 GetOperandValue(instruction_operand operand)
 }
 
 
-void PrintFlags(bool force = false)
+void PrintFlags(processor_8086 *processor, bool force = false)
 {
-    if (Flags == 0 && !force)
+    if (processor->Flags == 0 && !force)
     {
         return;
     }
 
     printf(" flags:->");
 
-    if (Flags & Register_CF) { printf("C"); }
-    if (Flags & Register_PF) { printf("P"); }
-    if (Flags & Register_AF) { printf("A"); }
-    if (Flags & Register_ZF) { printf("Z"); }
-    if (Flags & Register_SF) { printf("S"); }
-    if (Flags & Register_OF) { printf("O"); }
+    if (processor->Flags & Register_CF) { printf("C"); }
+    if (processor->Flags & Register_PF) { printf("P"); }
+    if (processor->Flags & Register_AF) { printf("A"); }
+    if (processor->Flags & Register_ZF) { printf("Z"); }
+    if (processor->Flags & Register_SF) { printf("S"); }
+    if (processor->Flags & Register_OF) { printf("O"); }
 }
 
 
 void PrintFlagDiffs(uint8 oldFlags, uint8 newFlags)
 {
-    if (oldFlags == Flags)
+    if (oldFlags == newFlags)
     {
         return;
     }
@@ -888,9 +890,10 @@ void PrintFlagDiffs(uint8 oldFlags, uint8 newFlags)
 }
 
 
-void ExecuteInstruction(instruction *instruction)
+void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
 {
-    uint8 oldFlags = Flags;
+    uint8 oldFlags = processor->Flags;
+
     switch (instruction->OpType)
     {
         case Op_mov:
@@ -898,18 +901,18 @@ void ExecuteInstruction(instruction *instruction)
             instruction_operand operand0 = instruction->Operands[0];
             instruction_operand operand1 = instruction->Operands[1];
 
-            uint16 sourceValue = GetOperandValue(operand1);
+            uint16 sourceValue = GetOperandValue(processor, operand1);
 
             switch (operand0.Type)
             {
                 case Operand_Register:
                 {
-                    uint16 destValue = GetRegister(operand0.Register);
-                    SetRegister(operand0.Register, sourceValue);
+                    uint16 destValue = GetRegister(processor, operand0.Register);
+                    SetRegister(processor, operand0.Register, sourceValue);
 
                     // Note (Aaron): mov does not set the zero flag or the signed flag
 
-                    printf("%s:0x%x->0x%x ",
+                    printf("%s:0x%x->0x%x",
                            GetRegisterMnemonic(operand0.Register),
                            destValue,
                            sourceValue);
@@ -939,15 +942,15 @@ void ExecuteInstruction(instruction *instruction)
             instruction_operand operand0 = instruction->Operands[0];
             instruction_operand operand1 = instruction->Operands[1];
 
-            uint16 value0 = GetOperandValue(operand0);
-            uint16 value1 = GetOperandValue(operand1);
+            uint16 value0 = GetOperandValue(processor, operand0);
+            uint16 value1 = GetOperandValue(processor, operand1);
             uint16 finalValue = value1 + value0;
 
-            SetRegister(operand0.Register, finalValue);
-            SetRegisterFlag(Register_ZF, (finalValue == 0));
-            UpdateSignedRegisterFlag(operand0.Register, finalValue);
+            SetRegister(processor, operand0.Register, finalValue);
+            SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
+            UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
 
-            printf("%s:0x%x->0x%x ",
+            printf("%s:0x%x->0x%x",
                    GetRegisterMnemonic(operand0.Register),
                    value0,
                    finalValue);
@@ -960,15 +963,15 @@ void ExecuteInstruction(instruction *instruction)
             instruction_operand operand0 = instruction->Operands[0];
             instruction_operand operand1 = instruction->Operands[1];
 
-            uint16 value0 = GetOperandValue(operand0);
-            uint16 value1 = GetOperandValue(operand1);
+            uint16 value0 = GetOperandValue(processor, operand0);
+            uint16 value1 = GetOperandValue(processor, operand1);
             uint16 finalValue = value0 - value1;
 
-            SetRegister(operand0.Register, finalValue);
-            SetRegisterFlag(Register_ZF, (finalValue == 0));
-            UpdateSignedRegisterFlag(operand0.Register, finalValue);
+            SetRegister(processor, operand0.Register, finalValue);
+            SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
+            UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
 
-            printf("%s:0x%x->0x%x ",
+            printf("%s:0x%x->0x%x",
                    GetRegisterMnemonic(operand0.Register),
                    value0,
                    finalValue);
@@ -981,12 +984,12 @@ void ExecuteInstruction(instruction *instruction)
             instruction_operand operand0 = instruction->Operands[0];
             instruction_operand operand1 = instruction->Operands[1];
 
-            uint16 value0 = GetOperandValue(operand0);
-            uint16 value1 = GetOperandValue(operand1);
+            uint16 value0 = GetOperandValue(processor, operand0);
+            uint16 value1 = GetOperandValue(processor, operand1);
             uint16 finalValue = value0 - value1;
 
-            SetRegisterFlag(Register_ZF, (finalValue == 0));
-            UpdateSignedRegisterFlag(operand0.Register, finalValue);
+            SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
+            UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
 
             break;
         }
@@ -997,7 +1000,8 @@ void ExecuteInstruction(instruction *instruction)
         }
     }
 
-    PrintFlagDiffs(oldFlags, Flags);
+    printf(" ip:0x%x->0x%x", processor->PrevIP, processor->IP);
+    PrintFlagDiffs(oldFlags, processor->Flags);
 }
 
 
@@ -1072,7 +1076,7 @@ static void PrintInstruction(instruction *instruction)
 }
 
 
-static void PrintRegisters()
+static void PrintRegisters(processor_8086 *processor)
 {
     register_id toDisplay[] =
     {
@@ -1090,7 +1094,7 @@ static void PrintRegisters()
 
     for (int i = 0; i < ArrayCount(toDisplay); ++i)
     {
-        uint16 value = GetRegister(toDisplay[i]);
+        uint16 value = GetRegister(processor, toDisplay[i]);
 
         // Reduce noise by omitting registers with a value of 0
         if (value == 0)
@@ -1104,9 +1108,15 @@ static void PrintRegisters()
                value);
     }
 
+    // print instruction pointer
+    printf("\t%s: %04x (%i)\n",
+           "ip",
+           processor->IP,
+           processor->IP);
+
     // align flags with register print out
     printf("    ");
-    PrintFlags();
+    PrintFlags(processor);
 }
 
 
@@ -1143,23 +1153,14 @@ int main(int argc, char const *argv[])
         filename = argv[i];
     }
 
-    // initialize memory
-    sim_memory simMemory = {};
-    simMemory.MaxSize = 1024;
-    simMemory.Memory = (uint8 *)malloc(simMemory.MaxSize);
-    simMemory.ReadPtr = simMemory.Memory;
-
-    if (!simMemory.Memory)
+    // initialize processor
+    processor_8086 processor = {};
+    processor.Memory = (uint8 *)malloc(processor.MemoryMaxSize);
+    if (!processor.Memory)
     {
         printf("ERROR: Unable to allocate main memory for 8086\n");
         exit(1);
     }
-
-    // initialize registers
-    ClearRegisters();
-
-    // initialize flags
-    Flags = 0;
 
     FILE *file = {};
     file = fopen(filename, "rb");
@@ -1170,28 +1171,29 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
+    processor.ProgramSize = (uint16)fread(processor.Memory, 1, processor.MemoryMaxSize, file);
+
     // error handling for file read
     if (ferror(file))
     {
-        printf("Encountered error while reading file '%s'", filename);
+        printf("ERROR:Encountered error while reading file '%s'", filename);
         exit(1);
     }
 
     if (!feof(file))
     {
-        printf("Program size exceeds processor memory; unable to load\n\n");
+        printf("ERROR:Program size exceeds processor memory; unable to load\n\n");
         exit(1);
     }
 
-    simMemory.Size = (uint16)fread(simMemory.Memory, 1, simMemory.MaxSize, file);
     fclose(file);
 
     printf("; %s:\n", filename);
     printf("bits 16\n");
 
-    while (simMemory.ReadPtr < simMemory.Memory + simMemory.Size)
+    while (processor.IP < processor.ProgramSize)
     {
-        instruction instruction = DecodeInstruction(&simMemory);
+        instruction instruction = DecodeNextInstruction(&processor);
 
         if (instruction.OpType != Op_jmp)
         {
@@ -1201,7 +1203,7 @@ int main(int argc, char const *argv[])
         if (simulateInstructions)
         {
             printf(" ; ");
-            ExecuteInstruction(&instruction);
+            ExecuteInstruction(&processor, &instruction);
         }
 
         printf("\n");
@@ -1210,7 +1212,7 @@ int main(int argc, char const *argv[])
     if (simulateInstructions)
     {
         printf("\n");
-        PrintRegisters();
+        PrintRegisters(&processor);
     }
 
     printf("\n");

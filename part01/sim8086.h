@@ -15,15 +15,6 @@ typedef int32_t int32;
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
 
-struct sim_memory
-{
-    uint8 *Memory;
-    uint8 *ReadPtr;
-    uint16 Size = 0;
-    uint16 MaxSize = 0;
-};
-
-
 enum register_id
 {
     Reg_unknown,
@@ -61,6 +52,14 @@ struct register_info
 };
 
 
+// Flags:
+// OF | SF | ZF | AF | PF | CF
+//     CF - Carry flag
+//     PF - Parity flag
+//     AF - Auxiliary Carry flag
+//     ZF - Zero flag
+//     SF - Sign flag
+//     OF - Overflow flag
 enum register_flags : uint8
 {
     Register_CF = 0x1,
@@ -69,6 +68,21 @@ enum register_flags : uint8
     Register_ZF = 0x8,      // Did an arithmetic operation produce a value of 0?
     Register_SF = 0x10,     // Did an arithmetic operation produce a negative value?
     Register_OF = 0x20,
+};
+
+
+struct processor_8086
+{
+    // Note (Aaron): Registers are: A, B, C, D, SP, BP, SI and DI
+    uint16 Registers[8] = {};
+    uint8 Flags = 0;
+    // Note (Aaron): Instruction pointer
+    uint32 IP = 0;
+    uint32 PrevIP = 0;
+    uint8 *Memory;
+    // Note (Aaron): The 8086 had 1MB of memory available for programs
+    uint32 MemoryMaxSize = 1024 * 1024;
+    uint32 ProgramSize = 0;
 };
 
 
