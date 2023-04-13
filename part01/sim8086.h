@@ -73,29 +73,27 @@ enum register_flags : uint8
 
 struct processor_8086
 {
-    // Note (Aaron): Registers are: A, B, C, D, SP, BP, SI and DI
-    uint16 Registers[8] = {};
-    uint8 Flags = 0;
-    // Note (Aaron): Instruction pointer
-    uint32 IP = 0;
-    uint32 PrevIP = 0;
+    uint16 Registers[8] = {};   // Note (Aaron): Registers are: A, B, C, D, SP, BP, SI and DI
+    uint8 Flags = 0;            // Note (Aaron): Register flags
+    uint32 IP = 0;              // Note (Aaron): Instruction pointer
+    uint32 PrevIP = 0;          // Note (Aaron): Previous instruction pointer
     uint8 *Memory;
-    // Note (Aaron): The 8086 had 1MB of memory available for programs
-    uint32 MemoryMaxSize = 1024 * 1024;
-    uint32 ProgramSize = 0;
+    uint32 MemoryMaxSize = 1024 * 1024;     // Note (Aaron): The 8086 had 1MB of memory available for programs
+    uint32 ProgramSize = 0;                 // Note (Aaron): Loaded program size
+    uint32 ProgramInstCount = 0;            // Note (Aaron): Number of instructions decoded from the loaded program
 };
 
 
-// TODO (Aaron): Define underlying type? uint8_t?
+// TODO (Aaron): Define underlying type? uint32_t?
 enum operation_types
 {
-    Op_unknown,
     Op_mov,
     Op_add,
     Op_sub,
     Op_cmp,
+    Op_jne,
     Op_jmp,
-    // TODO (Aaron): Add all jumps
+    Op_unknown,
 
     Op_count,
 };
@@ -110,6 +108,16 @@ enum operand_types
 };
 
 
+struct operand_memory
+{
+    register_id Register;
+    int32 Displacement;
+    uint16 DirectAddress;
+    // TODO (Aaron): Does this need to be 32-bits? We only have 4 flags currently
+    uint32 Flags;
+};
+
+
 enum operand_memory_flags : uint8
 {
     Memory_HasDisplacement = 0x1,
@@ -119,12 +127,16 @@ enum operand_memory_flags : uint8
 };
 
 
-struct operand_memory
+struct operand_immediate
 {
-    register_id Register;
-    int32 Displacement;
-    uint16 DirectAddress;
-    uint32 Flags;
+    uint16 Value;
+    uint8 Flags;
+};
+
+
+enum operand_immediate_flags : uint8
+{
+    Immediate_IsJump = 0x1,     // Immediate.Value must be interpreted as an 8-bit signed value
 };
 
 
@@ -135,8 +147,30 @@ struct instruction_operand
     {
         operand_memory Memory;
         register_id Register;
-        uint16 ImmediateValue;
+        operand_immediate Immediate;
     };
+};
+
+
+struct instruction_bits
+{
+    union
+    {
+        uint8 Bytes[6] = {};
+        struct
+        {
+            uint8 Byte0;
+            uint8 Byte1;
+            uint8 Byte2;
+            uint8 Byte3;
+            uint8 Byte4;
+            uint8 Byte5;
+        };
+    };
+    uint8 *BytePtr = Bytes;
+
+    // TODO (Aaron): Figure out how to implement this without a ton of extra boilerplate code
+    // uint8 ByteCount = 0;
 };
 
 
@@ -144,6 +178,7 @@ struct instruction
 {
     operation_types OpType = Op_unknown;
     instruction_operand Operands[2] = {};
+    instruction_bits Bits = {};
 
     uint8 DirectionBit = 0;
     uint8 WidthBit = 0;
@@ -152,52 +187,5 @@ struct instruction
     uint8 RmBits = 0;
     uint8 SignBit = 0;
 };
-
-
-struct decode_context
-{
-    // TODO (Aaron): Instruction count can be moved into processor_8086 and we
-    // can eliminate decode_contxt entirely
-    size_t InstructionCount = 0;
-
-    union
-    {
-        // TODO (Aaron): Honestly, we could move this into the instruction struct
-        //  It would be useful to have access to the raw bits of any individual instruction
-        // TODO (Aaron): Ensure this buffer is large enough we will never run into overflows
-        uint8 buffer[6] = {};
-        struct
-        {
-            uint8 byte0;
-            uint8 byte1;
-            uint8 byte2;
-            uint8 byte3;
-            uint8 byte4;
-            uint8 byte5;
-        };
-    };
-
-    // TODO (Aaron): Rename this to bytePtr?
-    uint8 *bufferPtr = buffer;
-};
-
-
-// TODO (Aaron): Add to instruction struct and implement
-// struct instruction_bits
-// {
-//     union
-//     {
-//         uint8 bytes[6] = {};
-//         union
-//         {
-//             uint8 byte0;
-//             uint8 byte1;
-//             uint8 byte2;
-//             uint8 byte3;
-//             uint8 byte4;
-//             uint8 byte5;
-//         };
-//     };
-// };
 
 #endif

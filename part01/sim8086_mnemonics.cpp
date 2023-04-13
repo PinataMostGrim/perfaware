@@ -4,11 +4,13 @@
 
 char const *OperationMnemonics[]
 {
-    "unknown",
     "mov",
     "add",
     "sub",
     "cmp",
+    "jne",
+    "unsupported jump",
+    "unknown",
 };
 
 
