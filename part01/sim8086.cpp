@@ -90,10 +90,35 @@ static void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
 }
 
 
-static uint8 *GetMemoryReadPtr(processor_8086 *processor)
+// Note (Aaron): Reads the next N bytes of the instruction stream into an instruction's bits.
+// Advances both the instruction bits pointer and the processor's instruction pointer.
+static void ReadInstructionStream(processor_8086 *processor, instruction *instruction, uint8 byteCount)
 {
-    uint8 *result = processor->Memory + processor->IP;
-    return result;
+    // Note (Aaron): Currently only support 8086 instructions that have a maximum of 6 bytes.
+    // In practice, we never read this many bytes at once.
+    assert(byteCount < 6);
+
+    // error out if we attempt to read outside of program memory
+    if ((processor->IP + byteCount) > processor->ProgramSize)
+    {
+        printf("ERROR: Attempted to read outside of program memory (%i)\n", (processor->IP + byteCount));
+        printf("\tprogram size: %i\n", processor->ProgramSize);
+        printf("\tip: 0x%x (%i)\n",
+               processor->IP,
+               processor->IP);
+        printf("\tbyteCount: %i\n", byteCount);
+
+        exit(1);
+    }
+
+    // load instruction bytes out of memory
+    uint8 *readStartPtr = processor->Memory + processor->IP;
+    MemoryCopy(instruction->Bits.BytePtr, readStartPtr, byteCount);
+
+    // advance pointers and counters
+    instruction->Bits.BytePtr += byteCount;
+    processor->IP += byteCount;
+    instruction->Bits.ByteCount++;
 }
 
 
@@ -122,17 +147,15 @@ static void DecodeRmStr(processor_8086 *processor, instruction *instruction, ins
             // TODO (Aaron): Casey said that this special case is always a 16-bit displacement in Q&A #5 (at 27m30s)
             if (instruction->WidthBit == 0)
             {
-                MemoryCopy(instruction->Bits.BytePtr, GetMemoryReadPtr(processor), 1);
-                processor->IP++;
-                operand->Memory.DirectAddress = (uint16)(*instruction->Bits.BytePtr);
-                instruction->Bits.BytePtr++;
+                uint8 *readStartPtr = instruction->Bits.BytePtr;
+                ReadInstructionStream(processor, instruction, 1);
+                operand->Memory.DirectAddress = (uint16)(*readStartPtr);
             }
             else
             {
-                MemoryCopy(instruction->Bits.BytePtr, GetMemoryReadPtr(processor), 2);
-                operand->Memory.DirectAddress = (uint16)(*(uint16 *)instruction->Bits.BytePtr);
-                processor->IP += 2;
-                instruction->Bits.BytePtr += 2;
+                uint8 *readStartPtr = instruction->Bits.BytePtr;
+                ReadInstructionStream(processor, instruction, 2);
+                operand->Memory.DirectAddress = (uint16)(*(uint16 *)readStartPtr);
             }
         }
     }
@@ -147,18 +170,15 @@ static void DecodeRmStr(processor_8086 *processor, instruction *instruction, ins
         // read displacement value
         if (instruction->ModBits == 0b1)
         {
-            MemoryCopy(instruction->Bits.BytePtr, GetMemoryReadPtr(processor), 1);
-            processor->IP++;
-
-            operand->Memory.Displacement = (int16)(*(int8 *)instruction->Bits.BytePtr);
-            instruction->Bits.BytePtr++;
+            uint8 *readStartPtr = instruction->Bits.BytePtr;
+            ReadInstructionStream(processor, instruction, 1);
+            operand->Memory.Displacement = (int16)(*(int8 *)readStartPtr);
         }
         else if (instruction->ModBits == 0b10)
         {
-            MemoryCopy(instruction->Bits.BytePtr, GetMemoryReadPtr(processor), 2);
-            operand->Memory.Displacement = (int16)(*(int16 *)instruction->Bits.BytePtr);
-            processor->IP += 2;
-            instruction->Bits.BytePtr += 2;
+            uint8 *readStartPtr = instruction->Bits.BytePtr;
+            ReadInstructionStream(processor, instruction, 2);
+            operand->Memory.Displacement = (int16)(*(int16 *)readStartPtr);
         }
 
         operand->Memory.Register = RegMemTables[2][instruction->RmBits];
@@ -179,9 +199,8 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
     instruction instruction = {};
 
     // read initial instruction byte for parsing
-    MemoryCopy(instruction.Bits.BytePtr++, GetMemoryReadPtr(processor), 1);
-    processor->IP++;
     processor->ProgramInstCount++;
+    ReadInstructionStream(processor, &instruction, 1);
 
     // parse initial instruction byte
     // mov instruction - register/memory to/from register (0b100010)
@@ -197,8 +216,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         instruction.WidthBit = instruction.Bits.Byte0 & 0b1;
 
         // read second instruction byte and parse it
-        MemoryCopy(instruction.Bits.BytePtr++, GetMemoryReadPtr(processor), 1);
-        processor->IP++;
+        ReadInstructionStream(processor, &instruction, 1);
 
         instruction.ModBits = (instruction.Bits.Byte1 >> 6);
         instruction.RegBits = (instruction.Bits.Byte1 >> 3) & 0b111;
@@ -237,8 +255,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         instruction.WidthBit = instruction.Bits.Byte0 & 0b1;
 
         // read second instruction byte and parse it
-        MemoryCopy(instruction.Bits.BytePtr++, GetMemoryReadPtr(processor), 1);
-        processor->IP++;
+        ReadInstructionStream(processor, &instruction, 1);
 
         instruction.ModBits = (instruction.Bits.Byte1 >> 6);
         instruction.RmBits = (instruction.Bits.Byte1) & 0b111;
@@ -249,25 +266,20 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         DecodeRmStr(processor, &instruction, &operandDest);
 
         // read data. guaranteed to be at least 8-bits.
-        // TODO (Aaron): Is this signed or unsigned?
+        // TODO (Aaron): Is the result signed or unsigned?
         // TODO (Aaron): The way immediate values are stored is incorrect
         // This implementation produces errors with listing 41 (cmp al, ___)
-        uint16 data = 0;
         if (instruction.WidthBit == 0b0)
         {
-            MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 1);
-            processor->IP++;
-            data = (uint16)(*instruction.Bits.BytePtr);
-            operandSource.Immediate.Value = (uint16)(*instruction.Bits.BytePtr);
-            instruction.Bits.BytePtr++;
+            uint8 *readStartPtr = instruction.Bits.BytePtr;
+            ReadInstructionStream(processor, &instruction, 1);
+            operandSource.Immediate.Value = (uint16)(*readStartPtr);
         }
         else if (instruction.WidthBit == 0b1)
         {
-            MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 2);
-            data = (uint16)(*instruction.Bits.BytePtr);
-            operandSource.Immediate.Value = (uint16)(*instruction.Bits.BytePtr);
-            processor->IP += 2;
-            instruction.Bits.BytePtr += 2;
+            uint8 *readStartPtr = instruction.Bits.BytePtr;
+            ReadInstructionStream(processor, &instruction, 2);
+            operandSource.Immediate.Value = (uint16)(*readStartPtr);
         }
         // unhandled case
         else
@@ -313,18 +325,14 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         if (instruction.WidthBit == 0b0)
         {
             // read 8-bit data
-            MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 1);
-            processor->IP++;
-            operandSource.Immediate.Value = *(uint8 *)instruction.Bits.BytePtr;
-            instruction.Bits.BytePtr++;
+            ReadInstructionStream(processor, &instruction, 1);
+            operandSource.Immediate.Value = *(uint8 *)(&instruction.Bits.Byte1);
         }
         else if (instruction.WidthBit == 0b1)
         {
             // read 16-bit data
-            MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 2);
-            operandSource.Immediate.Value = *(uint16 *)instruction.Bits.BytePtr;
-            processor->IP += 2;
-            instruction.Bits.BytePtr += 2;
+            ReadInstructionStream(processor, &instruction, 2);
+            operandSource.Immediate.Value = *(uint16 *)(&instruction.Bits.Byte1);
         }
         // unhandled case
         else
@@ -351,17 +359,13 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         instruction.WidthBit = instruction.Bits.Byte0 & 0b1;
         if (instruction.WidthBit == 0)
         {
-            MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 1);
-            processor->IP++;
-            operandMemory.Memory.DirectAddress = (uint16)(*instruction.Bits.BytePtr);
-            instruction.Bits.BytePtr++;
+            ReadInstructionStream(processor, &instruction, 1);
+            operandMemory.Memory.DirectAddress = (uint16)(*(&instruction.Bits.Byte1));
         }
         else if (instruction.WidthBit == 1)
         {
-            MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 2);
-            operandMemory.Memory.DirectAddress = (uint16)(*(uint16 *)instruction.Bits.BytePtr);
-            processor->IP += 2;
-            instruction.Bits.BytePtr += 2;
+            ReadInstructionStream(processor, &instruction, 2);
+            operandMemory.Memory.DirectAddress = (uint16)(*(uint16 *)(&instruction.Bits.Byte1));
         }
         // unhandled case
         else
@@ -400,9 +404,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         instruction.WidthBit = instruction.Bits.Byte0 & 0b1;
 
         // decode mod, reg and r/m
-        MemoryCopy(instruction.Bits.BytePtr++, GetMemoryReadPtr(processor), 1);
-        processor->IP++;
-
+        ReadInstructionStream(processor, &instruction, 1);
         instruction.ModBits = (instruction.Bits.Byte1 >> 6) & 0b11;
         instruction.RegBits = (instruction.Bits.Byte1 >> 3) & 0b111;
         instruction.RmBits = instruction.Bits.Byte1 & 0b111;
@@ -461,8 +463,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         instruction.WidthBit = instruction.Bits.Byte0 & 0b1;
 
         // decode mod and r/m
-        MemoryCopy(instruction.Bits.BytePtr++, GetMemoryReadPtr(processor), 1);
-        processor->IP++;
+        ReadInstructionStream(processor, &instruction, 1);
 
         instruction.ModBits = (instruction.Bits.Byte1 >> 6) & 0b11;
         instruction.RmBits = instruction.Bits.Byte1 & 0b111;
@@ -498,42 +499,35 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // TODO (Aaron): Move this into instruction_operand?
         // TODO (Aaron): Using a signed 32bit int here assumes the data value is signed.
         //  - Check to see how we determine this?
-        int32 data = 0;
         if (instruction.SignBit == 0b0 && instruction.WidthBit == 0)
         {
             // read 8-bit unsigned
-            MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 1);
-            processor->IP++;
-            data = (int32)(*(uint8 *)instruction.Bits.BytePtr);
-            operandSource.Immediate.Value = (int32)(*(uint8 *)instruction.Bits.BytePtr);
-            instruction.Bits.BytePtr++;
+            uint8 *readStartPtr = instruction.Bits.BytePtr;
+            ReadInstructionStream(processor, &instruction, 1);
+            // TODO (Aaron): I don't think we need to to use an int32 here
+            // Should be an int16?
+            operandSource.Immediate.Value = (int32)(*(uint8 *)readStartPtr);
         }
         else if (instruction.SignBit == 0b0 && instruction.WidthBit == 1)
         {
             // read 16-bit unsigned
-            MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 2);
-            data = (int32)(*(uint16 *)instruction.Bits.BytePtr);
-            operandSource.Immediate.Value = (int32)(*(uint16 *)instruction.Bits.BytePtr);
-            processor->IP += 2;
-            instruction.Bits.BytePtr += 2;
+            uint8 *readStartPtr = instruction.Bits.BytePtr;
+            ReadInstructionStream(processor, &instruction, 2);
+            operandSource.Immediate.Value = (int32)(*(uint16 *)readStartPtr);
         }
         else if (instruction.SignBit == 0b1 && instruction.WidthBit == 0)
         {
             // read 8-bit signed
-            MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 1);
-            processor->IP++;
-            data = (int32)(*(int8 *)instruction.Bits.BytePtr);
-            operandSource.Immediate.Value = (int32)(*(int8 *)instruction.Bits.BytePtr);
-            instruction.Bits.BytePtr++;
+            uint8 *readStartPtr = instruction.Bits.BytePtr;
+            ReadInstructionStream(processor, &instruction, 1);
+            operandSource.Immediate.Value = (int32)(*(int8 *)readStartPtr);
         }
         else if (instruction.SignBit == 0b1 && instruction.WidthBit == 1)
         {
             // read 8-bits and sign-extend to 16-bits
-            MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 1);
-            processor->IP++;
-            data = (int32)(*(int8 *)instruction.Bits.BytePtr);
-            operandSource.Immediate.Value = (int32)(*(int8 *)instruction.Bits.BytePtr);
-            instruction.Bits.BytePtr++;
+            uint8 *readStartPtr = instruction.Bits.BytePtr;
+            ReadInstructionStream(processor, &instruction, 1);
+            operandSource.Immediate.Value = (int32)(*(int8 *)readStartPtr);
         }
 
         // prepend width hint when immediate is being assigned to memory
@@ -593,23 +587,17 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
 
         // read data
-        // TODO (Aaron): Is this signed or unsigned?
-        uint16 data = 0;
+        // TODO (Aaron): Is the value supposed to be signed or unsigned?
+        // How do we determine that?
         if (instruction.WidthBit == 0b0)
         {
-            MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 1);
-            processor->IP++;
-            data = (uint16)(*(uint8 *)instruction.Bits.BytePtr);
-            operandSource.Immediate.Value = (uint16)(*(uint8 *)instruction.Bits.BytePtr);
-            instruction.Bits.BytePtr++;
+            ReadInstructionStream(processor, &instruction, 1);
+            operandSource.Immediate.Value = (uint16)(*(uint8 *)(&instruction.Bits.Byte1));
         }
         else if (instruction.WidthBit == 0b1)
         {
-            MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 2);
-            data = (uint16)(*(uint16 *)instruction.Bits.BytePtr);
-            operandSource.Immediate.Value = (uint16)(*(uint16 *)instruction.Bits.BytePtr);
-            processor->IP += 2;
-            instruction.Bits.BytePtr += 2;
+            ReadInstructionStream(processor, &instruction, 2);
+            operandSource.Immediate.Value = (uint16)(*(uint16 *)(&instruction.Bits.Byte1));
         }
 
         operandDest.Register = (instruction.WidthBit == 0b0) ? Reg_al : Reg_ax;
@@ -644,10 +632,8 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         char instructionStr[32] = "";
 
         // read 8-bit signed offset for jumps
-        MemoryCopy(instruction.Bits.BytePtr, GetMemoryReadPtr(processor), 1);
-        int8 offset = *(int8 *)instruction.Bits.BytePtr;
-        processor->IP++;
-        instruction.Bits.BytePtr++;
+        ReadInstructionStream(processor, &instruction, 1);
+        int8 offset = *(int8 *)(&instruction.Bits.Byte1);
 
         instruction_operand operand0 = {};
         operand0.Type = Operand_Immediate;
@@ -1028,7 +1014,6 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             // jump if not equal to zero
             if (!GetRegisterFlag(processor, Register_ZF))
             {
-                // extract offset from operand
                 instruction_operand operand0 = instruction->Operands[0];
                 int8 offset = (int8)(operand0.Immediate.Value & 0xff);
 
@@ -1175,8 +1160,7 @@ static void PrintRegisters(processor_8086 *processor)
     }
 
     // print instruction pointer
-    printf("\t%s: %04x (%i)\n",
-           "ip",
+    printf("\tip: %04x (%i)\n",
            processor->IP,
            processor->IP);
 
@@ -1188,6 +1172,7 @@ static void PrintRegisters(processor_8086 *processor)
 
 int main(int argc, char const *argv[])
 {
+
 #if SIM8086_SLOW
     // Note (Aaron): Ensure OperationMnemonics[] accommodates all operation_types
     assert(ArrayCount(OperationMnemonics) == Op_count);

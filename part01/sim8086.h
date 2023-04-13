@@ -168,9 +168,7 @@ struct instruction_bits
         };
     };
     uint8 *BytePtr = Bytes;
-
-    // TODO (Aaron): Figure out how to implement this without a ton of extra boilerplate code
-    // uint8 ByteCount = 0;
+    uint8 ByteCount = 0;
 };
 
 
