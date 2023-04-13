@@ -1,0 +1,51 @@
+:: Runs tests on sim8086 using listings from the Performance-Aware Programming course
+:: on Computer, Enhance (https://github.com/cmuratori/computer_enhance).
+
+:: Requires the following components be placed in the same directory as this script:
+:: - Compiled sim8068 executable
+:: - Portable version of NASM
+:: - All Performance-Aware Programming listings included in the test suite
+
+echo off
+
+echo.
+echo Running sim8068 test suite:
+echo ---------------------------
+
+: Run tests
+call :TestListing listing_0037_single_register_mov
+call :TestListing listing_0038_many_register_mov
+call :TestListing listing_0039_more_movs
+call :TestListing listing_0040_challenge_movs
+call :TestListing listing_0041_add_sub_cmp_jnz
+call :TestListing listing_0043_immediate_movs
+call :TestListing listing_0044_register_movs
+call :TestListing listing_0046_add_sub_cmp
+call :TestListing listing_0048_ip_register
+call :TestListing listing_0049_conditional_jumps
+
+:: Clean up
+del output.asm
+del output
+
+:: Exit
+goto :eof
+
+
+:: Test function
+:TestListing
+SET Listing=%~1
+echo Testing '%Listing%':
+sim8086 %Listing% > output.asm
+nasm output.asm -o output
+fc /B %Listing% output || goto :error
+echo PASSED
+echo ------------------------
+goto :eof
+
+
+:error
+echo.
+echo                   FAILED
+echo ------------------------
+exit /b %errorlevel%
