@@ -8,6 +8,9 @@
 
 echo off
 
+set /a PASSED=0
+set /a FAILED=0
+
 echo.
 echo Running sim8068 test suite:
 echo ---------------------------
@@ -24,6 +27,11 @@ call :TestListing listing_0046_add_sub_cmp
 call :TestListing listing_0048_ip_register
 call :TestListing listing_0049_conditional_jumps
 
+:: Output results
+echo.
+echo PASSED: %PASSED%
+echo FAILED: %FAILED%
+
 :: Clean up
 del output.asm
 del output
@@ -34,17 +42,19 @@ goto :eof
 
 :: Test function
 :TestListing
-SET Listing=%~1
-echo Testing '%Listing%':
-sim8086 %Listing% > output.asm
+SET LISTING=%~1
+echo Testing '%LISTING%':
+sim8086 %LISTING% > output.asm
 nasm output.asm -o output
-fc /B %Listing% output || goto :error
+fc /B %LISTING% output || goto :error
+set /a PASSED=PASSED+1
 echo PASSED
 echo ------------------------
 goto :eof
 
 
 :error
+set /a FAILED=FAILED+1
 echo.
 echo                   FAILED
 echo ------------------------
