@@ -1100,11 +1100,10 @@ static void PrintInstruction(instruction *instruction)
                 {
                     int8 offset = (int8)(operand.Immediate.Value & 0xff);
 
-                    // TODO (Aaron): Replace this with an actual calculation using the instruction's byte count
-
-                    // Note (Aaron): Offset the value to account for NASM syntax peculiarity
-                    // (it uses a value from the start of the instruction rather than the end).
-                    offset += 2;
+                    // Note (Aaron): Offset the value to accommodate a NASM syntax peculiarity.
+                    // NASM expects an offset value from the start of the instruction rather than
+                    // the end (which is how the instructions are encoded).
+                    offset += instruction->Bits.ByteCount;
 
                     printf(offset >= 0 ? "$+%i" : "$%i", offset);
                     break;
