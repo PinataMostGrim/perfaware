@@ -628,7 +628,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
              || (instruction.Bits.Byte0 == 0b11100000)  // loopnz
              || (instruction.Bits.Byte0 == 0b11100011)) // jcxz
     {
-        instruction.OpType = Op_jmp;
+        instruction.OpType = Op_unknown;
         char instructionStr[32] = "";
 
         // read 8-bit signed offset for jumps
@@ -647,121 +647,116 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         operand1.Type = Operand_None;
         instruction.Operands[1] = operand1;
 
-        // TODO (Aaron): Add execution support for more jump types
         switch(instruction.Bits.Byte0)
         {
-            // jnz / jne
-            case 0b01110101:
-                instruction.OpType = Op_jne;
-                return instruction;
-                // break;
-
-            // je
+            // je / jz
             case 0b01110100:
-                sprintf(instructionStr, "je");
+                instruction.OpType = Op_je;
                 break;
 
-            // jl
+            // jl / jnge
             case 0b01111100:
-                sprintf(instructionStr, "jl");
+                instruction.OpType = Op_jl;
                 break;
 
-            // jle
+            // jle / jng
             case 0b01111110:
-                sprintf(instructionStr, "jle");
+                instruction.OpType = Op_jle;
                 break;
 
-            // jb
+            // jb / jnae
             case 0b01110010:
-                sprintf(instructionStr, "jb");
+                instruction.OpType = Op_jb;
                 break;
 
-            // jbe
+            // jbe / jna
             case 0b01110110:
-                sprintf(instructionStr, "jbe");
+                instruction.OpType = Op_jbe;
                 break;
 
-            // jp
+            // jp / jpe
             case 0b01111010:
-                sprintf(instructionStr, "jp");
+                instruction.OpType = Op_jp;
                 break;
 
             // jo
             case 0b01110000:
-                sprintf(instructionStr, "jo");
+                instruction.OpType = Op_jo;
                 break;
 
             // js
             case 0b01111000:
-                sprintf(instructionStr, "js");
+                instruction.OpType = Op_js;
                 break;
 
-            // jnl
+            // jne / jnz
+            case 0b01110101:
+                instruction.OpType = Op_jne;
+                break;
+
+            // jnl / jge
             case 0b01111101:
-                sprintf(instructionStr, "jnl");
+                instruction.OpType = Op_jnl;
                 break;
 
-            // jg
+            // jnle / jg
             case 0b01111111:
-                sprintf(instructionStr, "jg");
+                instruction.OpType = Op_jg;
                 break;
 
-            // jnb
+            // jnb / jae
             case 0b01110011:
-                sprintf(instructionStr, "jnb");
+                instruction.OpType = Op_jnb;
                 break;
 
-            // ja
+            // jnbe / ja
             case 0b01110111:
-                sprintf(instructionStr, "ja");
+                instruction.OpType = Op_ja;
                 break;
 
-            // jnp
+            // jnp / jpo
             case 0b01111011:
-                sprintf(instructionStr, "jnp");
+                instruction.OpType = Op_jnp;
                 break;
 
             // jno
             case 0b01110001:
-                sprintf(instructionStr, "jno");
+                instruction.OpType = Op_jno;
                 break;
 
             // jns
             case 0b01111001:
-                sprintf(instructionStr, "jns");
+                instruction.OpType = Op_jns;
                 break;
 
             // loop
             case 0b11100010:
-                sprintf(instructionStr, "LOOP");
+                instruction.OpType = Op_loop;
                 break;
 
             // loopz
             case 0b11100001:
-                sprintf(instructionStr, "LOOPZ");
+                instruction.OpType = Op_loopz;
                 break;
 
             // loopnz
             case 0b11100000:
-                sprintf(instructionStr, "LOOPNZ");
+                instruction.OpType = Op_loopnz;
                 break;
 
             // jcxz
             case 0b11100011:
-                sprintf(instructionStr, "JCXZ");
+                instruction.OpType = Op_jcxz;
                 break;
             default:
                 // unhandled instruction
                 assert(false);
         }
-
-        printf("%s %i\n", instructionStr, offset);
     }
 
     // unsupported instruction
     else
     {
-        // Note (Aaron): Unsupported instruction
         instruction.OpType = Op_unknown;
         instruction_operand unknown = {};
         instruction.Operands[0] = unknown;
@@ -937,7 +932,7 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
                 case Operand_Memory:
                 {
                     // Note (Aaron): Currently unsupported
-                    printf("unsupported instruction ");
+                    printf("unsupported instruction");
                     break;
                 }
                 case Operand_Immediate:
@@ -1026,7 +1021,7 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
 
         default:
         {
-            printf("unsupported instruction ");
+            printf("unsupported instruction");
         }
     }
 
@@ -1245,7 +1240,7 @@ int main(int argc, char const *argv[])
     fclose(file);
 
     // TODO (Aaron): Should I assert anything here?
-    //  - Empty program?
+    //  - Feedback for empty program?
 
     printf("; %s:\n", filename);
     printf("bits 16\n");
@@ -1253,13 +1248,6 @@ int main(int argc, char const *argv[])
     while (processor.IP < processor.ProgramSize)
     {
         instruction instruction = DecodeNextInstruction(&processor);
-
-        // TODO (Aaron): Handle jumps in PrintInstruction and eliminate this if statement
-        if (instruction.OpType == Op_jmp)
-        {
-            continue;
-        }
-
         PrintInstruction(&instruction);
 
         if (simulateInstructions)
