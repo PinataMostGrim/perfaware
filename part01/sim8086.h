@@ -17,7 +17,6 @@ typedef int32_t int32;
 
 enum register_id
 {
-    Reg_unknown,
     Reg_al,
     Reg_cl,
     Reg_dl,
@@ -38,6 +37,7 @@ enum register_id
     Reg_bx_di,
     Reg_bp_si,
     Reg_bp_di,
+    Reg_unknown,
 
     Reg_mem_id_count,
 };
@@ -65,8 +65,8 @@ enum register_flags : uint8
     Register_CF = 0x1,
     Register_PF = 0x2,
     Register_AF = 0x4,
-    Register_ZF = 0x8,      // Did an arithmetic operation produce a value of 0?
-    Register_SF = 0x10,     // Did an arithmetic operation produce a negative value?
+    Register_ZF = 0x8,          // Did an arithmetic operation produce a value of 0?
+    Register_SF = 0x10,         // Did an arithmetic operation produce a negative value?
     Register_OF = 0x20,
 };
 
@@ -138,17 +138,16 @@ enum operand_types
 struct operand_memory
 {
     register_id Register;
-    int32 Displacement;
+    int16 Displacement;
     uint16 DirectAddress;
-    // TODO (Aaron): Does this need to be 32-bits? We only have 4 flags currently
-    uint32 Flags;
+    uint8 Flags;
 };
 
 
 enum operand_memory_flags : uint8
 {
     Memory_HasDisplacement = 0x1,
-    Memory_DirectAddress = 0x2,
+    Memory_HasDirectAddress = 0x2,
     Memory_PrependWidth = 0x4,
     Memory_IsWide = 0x8,
 };

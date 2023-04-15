@@ -34,7 +34,6 @@ char const *OperationMnemonics[]
 
 char const *RegisterMnemonics[]
 {
-    "unknown",
     "al",
     "cl",
     "dl",
@@ -55,6 +54,7 @@ char const *RegisterMnemonics[]
     "bx + di",
     "bp + si",
     "bp + di",
+    "unknown",
 };
 
 

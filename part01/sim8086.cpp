@@ -53,7 +53,6 @@ static register_id RegMemTables[3][8]
 // in order for lookup to work
 static register_info RegisterLookup[21]
 {
-    { Reg_unknown, 0, 0x0},
     { Reg_al, 0, false, 0xff00},
     { Reg_cl, 2, false, 0xff00},
     { Reg_dl, 3, false, 0xff00},
@@ -70,11 +69,13 @@ static register_info RegisterLookup[21]
     { Reg_bp, 5, true, 0xffff},
     { Reg_si, 6, true, 0xffff},
     { Reg_di, 7, true, 0xffff},
-    // Note (Aaron): We currently only simulate non-memory operations.
-    // { Reg_bx_si, 0, 0x0},
-    // { Reg_bx_di, 0, 0x0},
-    // { Reg_bp_si, 0, 0x0},
-    // { Reg_bp_di, 0, 0x0},
+    // Note (Aaron): We don't simulate the SI or DI register so only the main register
+    // is returned for the following.
+    { Reg_bx_si, 1, true, 0xffff},
+    { Reg_bx_di, 1, true, 0xffff},
+    { Reg_bp_si, 5, true, 0xffff},
+    { Reg_bp_di, 5, true, 0xffff},
+    { Reg_unknown, 0, 0x0},
 };
 
 
@@ -122,16 +123,21 @@ static void ReadInstructionStream(processor_8086 *processor, instruction *instru
 }
 
 
+// TODO (Aaron): It's still a little awkward passing all of these parameters. Try passing in operand index instead?
+
 // Note (Aaron): Requires width, mod and rm to be decoded in the decode_context
 static void DecodeRmStr(processor_8086 *processor, instruction *instruction, instruction_operand *operand)
 {
-    // TODO (Aaron): It's still a little awkward passing all of these parameters. Try passing in operand index instead?
-
     // memory mode, no displacement
     if(instruction->ModBits == 0b0)
     {
         operand->Type = Operand_Memory;
         operand->Memory = {};
+
+        if (instruction->WidthBit)
+        {
+            operand->Memory.Flags |= Memory_IsWide;
+        }
 
         // general case, memory mode no displacement
         if(instruction->RmBits != 0b110)
@@ -141,7 +147,7 @@ static void DecodeRmStr(processor_8086 *processor, instruction *instruction, ins
         // special case for direct address in memory mode with no displacement (R/M == 110)
         else
         {
-            operand->Memory.Flags |= Memory_DirectAddress;
+            operand->Memory.Flags |= Memory_HasDirectAddress;
 
             // read direct address
             if (instruction->WidthBit == 0)
@@ -164,6 +170,11 @@ static void DecodeRmStr(processor_8086 *processor, instruction *instruction, ins
         operand->Type = Operand_Memory;
         operand->Memory = {};
         operand->Memory.Flags |= Memory_HasDisplacement;
+
+        if (instruction->WidthBit)
+        {
+            operand->Memory.Flags |= Memory_IsWide;
+        }
 
         // read displacement value
         if (instruction->ModBits == 0b1)
@@ -350,7 +361,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         operandAccumulator.Type = Operand_Register;
         operandAccumulator.Register = Reg_ax;
         operandMemory.Type = Operand_Memory;
-        operandMemory.Memory.Flags |= Memory_DirectAddress;
+        operandMemory.Memory.Flags |= Memory_HasDirectAddress;
 
         instruction.WidthBit = instruction.Bits.Byte0 & 0b1;
         if (instruction.WidthBit == 0)
@@ -524,6 +535,8 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // prepend width hint when immediate is being assigned to memory
         // TODO (Aaron): Do we prepend the width hint if we are writing to a direct address? (mod == 00 and rm == 110)
         // No, direct address is always 16-bit. Update this predicate
+        // TODO (Aaron): This commented line breaks listing_0041, so I guess the direct address is not always 16-bits
+        // bool prependWidth = ((instruction.ModBits == 0b0 && instruction.RmBits != 0b110)
         bool prependWidth = ((instruction.ModBits == 0b0)
                              || (instruction.ModBits == 0b1)
                              || (instruction.ModBits == 0b10));
@@ -579,14 +592,6 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
 
         // read data
-        // TODO (Aaron): Is the value supposed to be signed or unsigned?
-        //  - How do we determine that?
-        //  - The instruction has no S bit
-        //  - Will have to look elsewhere in the manual to find out
-        //  - I think Casey made the comment "If an instruction has no s bit, assume it is 0"
-        // in one of the Q&As but I didn't record which one.
-        //      - If that's true, then it is always unsigned (like I have it here)
-
         if (instruction.WidthBit == 0b0)
         {
             ReadInstructionStream(processor, &instruction, 1);
@@ -780,6 +785,9 @@ uint16 GetRegister(processor_8086 *processor, register_id targetRegister)
 void SetRegister(processor_8086 *processor, register_id targetRegister, uint16 value)
 {
     register_info info = RegisterLookup[targetRegister];
+    // TODO (Aaron): I don't think this preserves values in a lower or higher segment of the register
+    // if you are only wanting to write to one segment.
+    //  - Can retrieve the register value first, invert the mask and then combine the values to fix this
     processor->Registers[info.RegisterIndex] = (value & info.Mask);
 }
 
@@ -818,6 +826,76 @@ void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targetRegis
 }
 
 
+uint32 CalculateEffectiveAddress(processor_8086 *processor, instruction_operand operand)
+{
+    assert(operand.Type == Operand_Memory);
+
+    uint32 effectiveAddress = 0;
+    // direct address assignment
+    if (operand.Memory.Flags & Memory_HasDirectAddress)
+    {
+        effectiveAddress = operand.Memory.DirectAddress;
+    }
+    // effective address calculation
+    else
+    {
+        effectiveAddress = GetRegister(processor, operand.Memory.Register);
+        if (operand.Memory.Flags & Memory_HasDisplacement)
+        {
+            effectiveAddress += operand.Memory.Displacement;
+        }
+    }
+
+    return effectiveAddress;
+}
+
+
+uint16 GetMemory(processor_8086 *processor, uint32 effectiveAddress, bool wide)
+{
+    if (effectiveAddress >= processor->MemorySize)
+    {
+        printf("[ERROR] Attempted to load out-of-bounds memory: 0x%x (out of 0x%x)", effectiveAddress, processor->MemorySize);
+        exit(1);
+    }
+
+    if (wide)
+    {
+        uint16 *memoryRead = (uint16 *)(processor->Memory + effectiveAddress);
+        uint16 result = *memoryRead;
+
+        return result;
+    }
+
+    uint8 *memoryRead = (processor->Memory + effectiveAddress);
+    uint16 result = (uint16)*memoryRead;
+
+    return result;
+}
+
+
+void SetMemory(processor_8086 *processor, uint32 effectiveAddress, uint16 value, bool wide)
+{
+    if (effectiveAddress >= processor->MemorySize)
+    {
+        printf("[ERROR] Attempted to set out-of-bounds memory: 0x%x (out of 0x%x)", effectiveAddress, processor->MemorySize);
+        exit(1);
+    }
+
+    // this should be valid as well but I'm not sure about the syntax
+    // processor->Memory[effectiveAddress] = value;
+
+    if (wide)
+    {
+        uint16 *memoryWrite = (uint16 *)(processor->Memory + effectiveAddress);
+        *memoryWrite = value;
+        return;
+    }
+
+    uint8 *memoryWrite = processor->Memory + effectiveAddress;
+    *memoryWrite = (uint8)value;
+}
+
+
 uint16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
 {
     uint16 result = 0;
@@ -835,7 +913,10 @@ uint16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
         }
         case Operand_Memory:
         {
-            // Note (Aaron): Unsupported
+            uint32 effectiveAddress = CalculateEffectiveAddress(processor, operand);
+            bool wide = (operand.Memory.Flags & Memory_IsWide);
+            result = GetMemory(processor, effectiveAddress, wide);
+
             break;
         }
         default:
@@ -916,22 +997,39 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             {
                 case Operand_Register:
                 {
-                    uint16 destValue = GetRegister(processor, operand0.Register);
+                    uint16 oldValue = GetRegister(processor, operand0.Register);
                     SetRegister(processor, operand0.Register, sourceValue);
 
-                    // Note (Aaron): mov does not set the zero flag or the signed flag
+                    // Note (Aaron): mov does not modify the zero flag or the signed flag
 
                     printf("%s:0x%x->0x%x",
                            GetRegisterMnemonic(operand0.Register),
-                           destValue,
+                           oldValue,
                            sourceValue);
 
                     break;
                 }
                 case Operand_Memory:
                 {
-                    // Note (Aaron): Currently unsupported
-                    printf("unsupported instruction");
+                    uint32 effectiveAddress = 0;
+                    bool wide = (operand0.Memory.Flags & Memory_IsWide);
+
+                    // direct address assignment
+                    if (operand0.Memory.Flags & Memory_HasDirectAddress)
+                    {
+                        effectiveAddress = operand0.Memory.DirectAddress;
+                        SetMemory(processor, effectiveAddress, sourceValue, wide);
+                        break;
+                    }
+
+                    // effective address calculation
+                    effectiveAddress = GetRegister(processor, operand0.Memory.Register);
+                    if (operand0.Memory.Flags & Memory_HasDisplacement)
+                    {
+                        effectiveAddress += operand0.Memory.Displacement;
+                    }
+
+                    SetMemory(processor, effectiveAddress, sourceValue, wide);
                     break;
                 }
                 case Operand_Immediate:
@@ -1062,7 +1160,7 @@ static void PrintInstruction(instruction *instruction)
                 }
 
                 // print direct address
-                if (operand.Memory.Flags & Memory_DirectAddress)
+                if (operand.Memory.Flags & Memory_HasDirectAddress)
                 {
                     printf("[%i]", operand.Memory.DirectAddress);
                     break;
@@ -1108,6 +1206,7 @@ static void PrintInstruction(instruction *instruction)
                     break;
                 }
 
+                // TODO (Aaron): Test this more
                 bool isSigned = operand.Immediate.Flags & Immediate_IsSigned;
                 printf("%i", isSigned
                        ? (int16) operand.Immediate.Value
@@ -1169,10 +1268,12 @@ static void PrintRegisters(processor_8086 *processor)
 
 int main(int argc, char const *argv[])
 {
-
 #if SIM8086_SLOW
     // Note (Aaron): Ensure OperationMnemonics[] accommodates all operation_types
     assert(ArrayCount(OperationMnemonics) == Op_count);
+
+    // Note (Aaron): Ensure RegisterLookup contains definitions all register IDs
+    assert(ArrayCount(RegisterLookup) == Reg_mem_id_count);
 #endif
 
     if (argc < 2 ||  argc > 3)
@@ -1208,7 +1309,7 @@ int main(int argc, char const *argv[])
 
     // initialize processor
     processor_8086 processor = {};
-    processor.Memory = (uint8 *)malloc(processor.MemorySize);
+    processor.Memory = (uint8 *)calloc(processor.MemorySize, sizeof(uint8));
 
     // Note (Aaron): Set program memory to the 16th (final) memory segment.
     processor.ProgramMemory = processor.Memory + (14 * 64000);
