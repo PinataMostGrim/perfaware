@@ -144,19 +144,17 @@ static void DecodeRmStr(processor_8086 *processor, instruction *instruction, ins
             operand->Memory.Flags |= Memory_DirectAddress;
 
             // read direct address
-            // TODO (Aaron): Casey said that this special case is always a 16-bit displacement in Q&A #5 (at 27m30s)
             if (instruction->WidthBit == 0)
             {
-                uint8 *readStartPtr = instruction->Bits.BytePtr;
-                ReadInstructionStream(processor, instruction, 1);
-                operand->Memory.DirectAddress = (uint16)(*readStartPtr);
+                // Note (Aaron): Casey said that this special case is always a 16-bit displacement in Q&A #5 (at 27m30s)
+                // but I think he meant the direct address value is always 16 bits. Putting an assert here to catch
+                // it in case we ever do hit a width bit of 0 in this case.
+                assert(false);
             }
-            else
-            {
-                uint8 *readStartPtr = instruction->Bits.BytePtr;
-                ReadInstructionStream(processor, instruction, 2);
-                operand->Memory.DirectAddress = (uint16)(*(uint16 *)readStartPtr);
-            }
+
+            uint8 *readStartPtr = instruction->Bits.BytePtr;
+            ReadInstructionStream(processor, instruction, 2);
+            operand->Memory.DirectAddress = (uint16)(*(uint16 *)readStartPtr);
         }
     }
 
