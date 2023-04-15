@@ -154,7 +154,8 @@ struct operand_immediate
 
 enum operand_immediate_flags : uint8
 {
-    Immediate_IsJump = 0x1,     // Immediate.Value must be interpreted as an 8-bit signed value
+    Immediate_IsSigned = 0x1,   // Is the value stored in the immediate signed?
+    Immediate_IsJump = 0x2,     // Immediate.Value must be interpreted as an 8-bit signed value
 };
 
 

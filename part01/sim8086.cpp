@@ -264,9 +264,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         DecodeRmStr(processor, &instruction, &operandDest);
 
         // read data. guaranteed to be at least 8-bits.
-        // TODO (Aaron): Is the result signed or unsigned?
-        // TODO (Aaron): The way immediate values are stored is incorrect
-        // This implementation produces errors with listing 41 (cmp al, ___)
+        // TODO (Aaron): This implementation produces errors with listing 41 (cmp al, ___)
         if (instruction.WidthBit == 0b0)
         {
             uint8 *readStartPtr = instruction.Bits.BytePtr;
@@ -491,45 +489,41 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // decode r/m string
         DecodeRmStr(processor, &instruction, &operandDest);
 
-        // TODO (Aaron): Casey encoded this as a table in his implementation
-        //      - If an instruction has no s bit, assume it is 0
-        // read data. guaranteed to be at least 8-bits.
-        // TODO (Aaron): Move this into instruction_operand?
-        // TODO (Aaron): Using a signed 32bit int here assumes the data value is signed.
-        //  - Check to see how we determine this?
+        // read data.
         if (instruction.SignBit == 0b0 && instruction.WidthBit == 0)
         {
             // read 8-bit unsigned
             uint8 *readStartPtr = instruction.Bits.BytePtr;
             ReadInstructionStream(processor, &instruction, 1);
-            // TODO (Aaron): I don't think we need to to use an int32 here
-            // Should be an int16?
-            operandSource.Immediate.Value = (int32)(*(uint8 *)readStartPtr);
+            operandSource.Immediate.Value = (uint16)(*readStartPtr);
         }
         else if (instruction.SignBit == 0b0 && instruction.WidthBit == 1)
         {
             // read 16-bit unsigned
             uint8 *readStartPtr = instruction.Bits.BytePtr;
             ReadInstructionStream(processor, &instruction, 2);
-            operandSource.Immediate.Value = (int32)(*(uint16 *)readStartPtr);
+            operandSource.Immediate.Value = (uint16)(*(uint16 *)readStartPtr);
         }
         else if (instruction.SignBit == 0b1 && instruction.WidthBit == 0)
         {
             // read 8-bit signed
             uint8 *readStartPtr = instruction.Bits.BytePtr;
             ReadInstructionStream(processor, &instruction, 1);
-            operandSource.Immediate.Value = (int32)(*(int8 *)readStartPtr);
+            operandSource.Immediate.Value = (uint16)((int8)(*readStartPtr));
+            operandSource.Immediate.Flags |= Immediate_IsSigned;
         }
         else if (instruction.SignBit == 0b1 && instruction.WidthBit == 1)
         {
             // read 8-bits and sign-extend to 16-bits
             uint8 *readStartPtr = instruction.Bits.BytePtr;
             ReadInstructionStream(processor, &instruction, 1);
-            operandSource.Immediate.Value = (int32)(*(int8 *)readStartPtr);
+            operandSource.Immediate.Value = (uint16)((int8)(*readStartPtr));
+            operandSource.Immediate.Flags |= Immediate_IsSigned;
         }
 
         // prepend width hint when immediate is being assigned to memory
         // TODO (Aaron): Do we prepend the width hint if we are writing to a direct address? (mod == 00 and rm == 110)
+        // No, direct address is always 16-bit. Update this predicate
         bool prependWidth = ((instruction.ModBits == 0b0)
                              || (instruction.ModBits == 0b1)
                              || (instruction.ModBits == 0b10));
@@ -586,7 +580,13 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
 
         // read data
         // TODO (Aaron): Is the value supposed to be signed or unsigned?
-        // How do we determine that?
+        //  - How do we determine that?
+        //  - The instruction has no S bit
+        //  - Will have to look elsewhere in the manual to find out
+        //  - I think Casey made the comment "If an instruction has no s bit, assume it is 0"
+        // in one of the Q&As but I didn't record which one.
+        //      - If that's true, then it is always unsigned (like I have it here)
+
         if (instruction.WidthBit == 0b0)
         {
             ReadInstructionStream(processor, &instruction, 1);
@@ -639,6 +639,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // Note (Aaron): A signed 8-bit value will need to be extracted from
         // the unsigned 16-bit ImmediateValue when instructions are executed.
         operand0.Immediate.Value = offset;
+        operand0.Immediate.Flags |= Immediate_IsSigned;
         instruction.Operands[0] = operand0;
 
         instruction_operand operand1 = {};
@@ -1107,7 +1108,11 @@ static void PrintInstruction(instruction *instruction)
                     break;
                 }
 
-                printf("%i", operand.Immediate.Value);
+                bool isSigned = operand.Immediate.Flags & Immediate_IsSigned;
+                printf("%i", isSigned
+                       ? (int16) operand.Immediate.Value
+                       : (uint16) operand.Immediate.Value);
+
                 break;
             }
             default:
