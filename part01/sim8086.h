@@ -77,10 +77,19 @@ struct processor_8086
     uint8 Flags = 0;            // Note (Aaron): Register flags
     uint32 IP = 0;              // Note (Aaron): Instruction pointer
     uint32 PrevIP = 0;          // Note (Aaron): Previous instruction pointer
+
+    // Note (Aaron): The 8086 had 16 memory segments of 64k bytes each. Memory segments could
+    // be slid around like windows over the entire memory surface, however I'm not replicating
+    // that here. I'm arbitrarily allocating 1 memory segment (64k bytes) for program memory
+    // and the remaining 15 memory segments for the program to make use of.
+    uint32 MemorySize = 1024 * 1024;
     uint8 *Memory;
-    uint32 MemoryMaxSize = 1024 * 1024;     // Note (Aaron): The 8086 had 1MB of memory available for programs
-    uint32 ProgramSize = 0;                 // Note (Aaron): Loaded program size
-    uint32 ProgramInstCount = 0;            // Note (Aaron): Number of instructions decoded from the loaded program
+    uint8 *ProgramMemory;
+    uint32 ProgramMemorySize = 64000;
+    uint32 ProgramSize = 0;
+
+    // Note (Aaron): Number of instructions decoded from the loaded program
+    uint32 InstructionCount = 0;
 };
 
 

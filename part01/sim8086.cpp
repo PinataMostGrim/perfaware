@@ -112,7 +112,7 @@ static void ReadInstructionStream(processor_8086 *processor, instruction *instru
     }
 
     // load instruction bytes out of memory
-    uint8 *readStartPtr = processor->Memory + processor->IP;
+    uint8 *readStartPtr = processor->ProgramMemory + processor->IP;
     MemoryCopy(instruction->Bits.BytePtr, readStartPtr, byteCount);
 
     // advance pointers and counters
@@ -197,7 +197,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
     instruction instruction = {};
 
     // read initial instruction byte for parsing
-    processor->ProgramInstCount++;
+    processor->InstructionCount++;
     ReadInstructionStream(processor, &instruction, 1);
 
     // parse initial instruction byte
@@ -1208,7 +1208,11 @@ int main(int argc, char const *argv[])
 
     // initialize processor
     processor_8086 processor = {};
-    processor.Memory = (uint8 *)malloc(processor.MemoryMaxSize);
+    processor.Memory = (uint8 *)malloc(processor.MemorySize);
+
+    // Note (Aaron): Set program memory to the 16th (final) memory segment.
+    processor.ProgramMemory = processor.Memory + (14 * 64000);
+
     if (!processor.Memory)
     {
         printf("ERROR: Unable to allocate main memory for 8086\n");
@@ -1224,7 +1228,7 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
-    processor.ProgramSize = (uint16)fread(processor.Memory, 1, processor.MemoryMaxSize, file);
+    processor.ProgramSize = (uint16)fread(processor.ProgramMemory, 1, processor.ProgramMemorySize, file);
 
     // error handling for file read
     if (ferror(file))
