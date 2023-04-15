@@ -269,13 +269,13 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             uint8 *readStartPtr = instruction.Bits.BytePtr;
             ReadInstructionStream(processor, &instruction, 1);
-            operandSource.Immediate.Value = (uint16)(*readStartPtr);
+            operandSource.Immediate.Value = (uint16)(*(uint8 *)readStartPtr);
         }
         else if (instruction.WidthBit == 0b1)
         {
             uint8 *readStartPtr = instruction.Bits.BytePtr;
             ReadInstructionStream(processor, &instruction, 2);
-            operandSource.Immediate.Value = (uint16)(*readStartPtr);
+            operandSource.Immediate.Value = (uint16)(*(uint16 *)readStartPtr);
         }
         // unhandled case
         else
