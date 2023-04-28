@@ -81,6 +81,36 @@ static register_info RegisterLookup[21]
 };
 
 
+static bool DumpMemoryToFile(processor_8086 *processor, const char *filename)
+{
+    FILE *file = {};
+    file = fopen(filename, "wb");
+
+    if(!file)
+    {
+        printf("ERROR: Unable to open '%s'\n", filename);
+        return false;
+    }
+
+    // loop over memory and write character to filestream one at a time
+    for (int i = 0; i < processor->MemorySize; ++i)
+    {
+        uint8 value = (uint8)*(processor->Memory + i);
+        fputc(value, file);
+    }
+
+    // error handling for file write
+    if (ferror(file))
+    {
+        printf("ERROR: Encountered error while writing memory to '%s'", filename);
+        return false;
+    }
+
+    fclose(file);
+    return true;
+}
+
+
 static void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
 {
     assert(size > 0);
@@ -1317,7 +1347,7 @@ int main(int argc, char const *argv[])
     assert(ArrayCount(RegisterLookup) == Reg_mem_id_count);
 #endif
 
-    if (argc < 2 ||  argc > 3)
+    if (argc < 2 ||  argc > 4)
     {
         printf("usage: sim8086 [--exec] filename\n\n");
         printf("disassembles 8086/88 assembly\n\n");
@@ -1334,6 +1364,7 @@ int main(int argc, char const *argv[])
 
     // process command line arguments
     bool simulateInstructions = false;
+    bool dumpMemoryToFile = false;
     const char *filename = "";
 
     for (int i = 1; i < argc; ++i)
@@ -1342,6 +1373,13 @@ int main(int argc, char const *argv[])
             || (strncmp("-e", argv[i], 2) == 0))
         {
             simulateInstructions = true;
+            continue;
+        }
+
+        if ((strncmp("--dump", argv[i], 6) == 0)
+            || (strncmp("-d", argv[i], 2) == 0))
+        {
+            dumpMemoryToFile = true;
             continue;
         }
 
@@ -1366,7 +1404,7 @@ int main(int argc, char const *argv[])
 
     if(!file)
     {
-        printf("Unable to open '%s'\n", filename);
+        printf("ERROR: Unable to open '%s'\n", filename);
         exit(1);
     }
 
@@ -1375,13 +1413,13 @@ int main(int argc, char const *argv[])
     // error handling for file read
     if (ferror(file))
     {
-        printf("ERROR:Encountered error while reading file '%s'", filename);
+        printf("ERROR: Encountered error while reading file '%s'", filename);
         exit(1);
     }
 
     if (!feof(file))
     {
-        printf("ERROR:Program size exceeds processor memory; unable to load\n\n");
+        printf("ERROR: Program size exceeds processor memory; unable to load\n\n");
         exit(1);
     }
 
@@ -1412,6 +1450,11 @@ int main(int argc, char const *argv[])
         printf("\n");
         PrintRegisters(&processor);
         printf("\n");
+    }
+
+    if (dumpMemoryToFile)
+    {
+        DumpMemoryToFile(&processor, "memory.dat");
     }
 
     return 0;
