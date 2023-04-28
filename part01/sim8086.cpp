@@ -49,7 +49,7 @@ static register_id RegMemTables[3][8]
 };
 
 
-// Note (Aaron): Order of registers must match the order defined in 'register_id'
+// Note (Aaron): Order of registers must match the order defined in 'register_id' enum
 // in order for lookup to work
 static register_info RegisterLookup[21]
 {
@@ -69,12 +69,14 @@ static register_info RegisterLookup[21]
     { Reg_bp, 5, true, 0xffff},
     { Reg_si, 6, true, 0xffff},
     { Reg_di, 7, true, 0xffff},
-    // Note (Aaron): We don't simulate the SI or DI register so only the main register
-    // is returned for the following.
-    { Reg_bx_si, 1, true, 0xffff},
-    { Reg_bx_di, 1, true, 0xffff},
-    { Reg_bp_si, 5, true, 0xffff},
-    { Reg_bp_di, 5, true, 0xffff},
+
+    // Note (Aaron): As these entries are a combination of multiple registers,
+    // the 'RegisterIndex' field must be handled as special cases.
+    { Reg_bx_si, 0xff, true, 0xffff},
+    { Reg_bx_di, 0xff, true, 0xffff},
+    { Reg_bp_si, 0xff, true, 0xffff},
+    { Reg_bp_di, 0xff, true, 0xffff},
+
     { Reg_unknown, 0, 0x0},
 };
 
@@ -771,18 +773,53 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
 }
 
 
-uint16 GetRegister(processor_8086 *processor, register_id targetRegister)
+uint16 GetRegisterValue(processor_8086 *processor, register_id targetRegister)
 {
     uint16 result = 0;
-
     register_info info = RegisterLookup[targetRegister];
-    result = (processor->Registers[info.RegisterIndex] & info.Mask);
+
+    switch (info.Register)
+    {
+        case (Reg_bx_si):
+        {
+            uint16 bxValue = GetRegisterValue(processor, Reg_bx);
+            uint16 siValue = GetRegisterValue(processor, Reg_si);
+            result = bxValue + siValue;
+            break;
+        }
+        case (Reg_bx_di):
+        {
+            uint16 bxValue = GetRegisterValue(processor, Reg_bx);
+            uint16 diValue = GetRegisterValue(processor, Reg_di);
+            result = bxValue + diValue;
+            break;
+        }
+        case (Reg_bp_si):
+        {
+            uint16 bpValue = GetRegisterValue(processor, Reg_bp);
+            uint16 siValue = GetRegisterValue(processor, Reg_si);
+            result = bpValue + siValue;
+            break;
+        }
+        case (Reg_bp_di):
+        {
+            uint16 bpValue = GetRegisterValue(processor, Reg_bp);
+            uint16 diValue = GetRegisterValue(processor, Reg_di);
+            result = bpValue + diValue;
+            break;
+        }
+        default:
+        {
+            result = (processor->Registers[info.RegisterIndex] & info.Mask);
+            break;
+        }
+    }
 
     return result;
 }
 
 
-void SetRegister(processor_8086 *processor, register_id targetRegister, uint16 value)
+void SetRegisterValue(processor_8086 *processor, register_id targetRegister, uint16 value)
 {
     register_info info = RegisterLookup[targetRegister];
     // TODO (Aaron): I don't think this preserves values in a lower or higher segment of the register
@@ -839,7 +876,7 @@ uint32 CalculateEffectiveAddress(processor_8086 *processor, instruction_operand 
     // effective address calculation
     else
     {
-        effectiveAddress = GetRegister(processor, operand.Memory.Register);
+        effectiveAddress = GetRegisterValue(processor, operand.Memory.Register);
         if (operand.Memory.Flags & Memory_HasDisplacement)
         {
             effectiveAddress += operand.Memory.Displacement;
@@ -903,7 +940,7 @@ uint16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
     {
         case Operand_Register:
         {
-            result = GetRegister(processor, operand.Register);
+            result = GetRegisterValue(processor, operand.Register);
             break;
         }
         case Operand_Immediate:
@@ -997,8 +1034,8 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             {
                 case Operand_Register:
                 {
-                    uint16 oldValue = GetRegister(processor, operand0.Register);
-                    SetRegister(processor, operand0.Register, sourceValue);
+                    uint16 oldValue = GetRegisterValue(processor, operand0.Register);
+                    SetRegisterValue(processor, operand0.Register, sourceValue);
 
                     // Note (Aaron): mov does not modify the zero flag or the signed flag
 
@@ -1027,7 +1064,7 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
                     }
 
                     // effective address calculation
-                    effectiveAddress = GetRegister(processor, operand0.Memory.Register);
+                    effectiveAddress = GetRegisterValue(processor, operand0.Memory.Register);
                     if (operand0.Memory.Flags & Memory_HasDisplacement)
                     {
                         effectiveAddress += operand0.Memory.Displacement;
@@ -1057,7 +1094,7 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             uint16 value1 = GetOperandValue(processor, operand1);
             uint16 finalValue = value1 + value0;
 
-            SetRegister(processor, operand0.Register, finalValue);
+            SetRegisterValue(processor, operand0.Register, finalValue);
             SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
             UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
 
@@ -1078,7 +1115,7 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             uint16 value1 = GetOperandValue(processor, operand1);
             uint16 finalValue = value0 - value1;
 
-            SetRegister(processor, operand0.Register, finalValue);
+            SetRegisterValue(processor, operand0.Register, finalValue);
             SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
             UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
 
@@ -1245,7 +1282,7 @@ static void PrintRegisters(processor_8086 *processor)
 
     for (int i = 0; i < ArrayCount(toDisplay); ++i)
     {
-        uint16 value = GetRegister(processor, toDisplay[i]);
+        uint16 value = GetRegisterValue(processor, toDisplay[i]);
 
         // Reduce noise by omitting registers with a value of 0
         if (value == 0)
