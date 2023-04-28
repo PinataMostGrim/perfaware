@@ -1002,10 +1002,14 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
 
                     // Note (Aaron): mov does not modify the zero flag or the signed flag
 
-                    printf("%s:0x%x->0x%x",
-                           GetRegisterMnemonic(operand0.Register),
-                           oldValue,
-                           sourceValue);
+                    // print register diffs (if any)
+                    if (oldValue != sourceValue)
+                    {
+                        printf(" %s:0x%x->0x%x",
+                               GetRegisterMnemonic(operand0.Register),
+                               oldValue,
+                               sourceValue);
+                    }
 
                     break;
                 }
@@ -1057,7 +1061,7 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
             UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
 
-            printf("%s:0x%x->0x%x",
+            printf(" %s:0x%x->0x%x",
                    GetRegisterMnemonic(operand0.Register),
                    value0,
                    finalValue);
@@ -1078,7 +1082,7 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
             UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
 
-            printf("%s:0x%x->0x%x",
+            printf(" %s:0x%x->0x%x",
                    GetRegisterMnemonic(operand0.Register),
                    value0,
                    finalValue);
@@ -1359,7 +1363,7 @@ int main(int argc, char const *argv[])
 
         if (simulateInstructions)
         {
-            printf(" ; ");
+            printf(" ;");
             ExecuteInstruction(&processor, &instruction);
         }
 
