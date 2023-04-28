@@ -26,9 +26,9 @@ call :TestListing listing_0044_register_movs
 call :TestListing listing_0046_add_sub_cmp
 call :TestListing listing_0048_ip_register
 call :TestListing listing_0049_conditional_jumps
-rem call :TestListing listing_0051_memory_mov
-rem call :TestListing listing_0052_memory_add_loop
-rem call :TestListing listing_0053_add_loop_challenge
+call :TestListing listing_0051_memory_mov
+call :TestListing listing_0052_memory_add_loop
+call :TestListing listing_0053_add_loop_challenge
 
 
 :: Output results
