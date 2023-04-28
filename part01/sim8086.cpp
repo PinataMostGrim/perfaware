@@ -93,7 +93,7 @@ static bool DumpMemoryToFile(processor_8086 *processor, const char *filename)
     }
 
     // loop over memory and write character to filestream one at a time
-    for (int i = 0; i < processor->MemorySize; ++i)
+    for (uint32 i = 0; i < processor->MemorySize; ++i)
     {
         uint8 value = (uint8)*(processor->Memory + i);
         fputc(value, file);
