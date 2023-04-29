@@ -158,7 +158,7 @@ static void ReadInstructionStream(processor_8086 *processor, instruction *instru
 // TODO (Aaron): It's still a little awkward passing all of these parameters. Try passing in operand index instead?
 
 // Note (Aaron): Requires width, mod and rm to be decoded in the decode_context
-static void DecodeRmStr(processor_8086 *processor, instruction *instruction, instruction_operand *operand)
+static void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand)
 {
     // memory mode, no displacement
     if(instruction->ModBits == 0b0)
@@ -262,12 +262,12 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         instruction.RegBits = (instruction.Bits.Byte1 >> 3) & 0b111;
         instruction.RmBits = instruction.Bits.Byte1 & 0b111;
 
-        // decode reg string
+        // decode reg
         operandReg.Type = Operand_Register;
         operandReg.Register = RegMemTables[instruction.WidthBit][instruction.RegBits];
 
-        // decode r/m string
-        DecodeRmStr(processor, &instruction, &operandRm);
+        // parse r/m
+        ParseRmBits(processor, &instruction, &operandRm);
 
         // set dest and source strings
         // destination is in RM field, source is in REG field
@@ -302,8 +302,8 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
 
         // Note (Aaron): No reg in this instruction
 
-        // decode r/m string
-        DecodeRmStr(processor, &instruction, &operandDest);
+        // parse r/m
+        ParseRmBits(processor, &instruction, &operandDest);
 
         // read data. guaranteed to be at least 8-bits.
         // TODO (Aaron): This implementation produces errors with listing 41 (cmp al, ___)
@@ -469,11 +469,11 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
             assert(false);
         }
 
-        // decode reg string
+        // decode reg
         operandReg.Register = RegMemTables[instruction.WidthBit][instruction.RegBits];
 
-        // decode r/m string
-        DecodeRmStr(processor, &instruction, &operandRm);
+        // parse r/m
+        ParseRmBits(processor, &instruction, &operandRm);
 
         // set dest and source strings
         // destination is in RM field, source is in REG field
@@ -528,8 +528,8 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
             assert(false);
         }
 
-        // decode r/m string
-        DecodeRmStr(processor, &instruction, &operandDest);
+        // parse r/m string
+        ParseRmBits(processor, &instruction, &operandDest);
 
         // read data.
         if (instruction.SignBit == 0b0 && instruction.WidthBit == 0)
