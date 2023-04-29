@@ -165,6 +165,7 @@ static void ParseRmBits(processor_8086 *processor, instruction *instruction, ins
     {
         operand->Type = Operand_Memory;
         operand->Memory = {};
+        operand->Memory.Flags |= Memory_PrependWidth;
 
         if (instruction->WidthBit)
         {
@@ -202,6 +203,7 @@ static void ParseRmBits(processor_8086 *processor, instruction *instruction, ins
         operand->Type = Operand_Memory;
         operand->Memory = {};
         operand->Memory.Flags |= Memory_HasDisplacement;
+        operand->Memory.Flags |= Memory_PrependWidth;
 
         if (instruction->WidthBit)
         {
@@ -306,7 +308,6 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         ParseRmBits(processor, &instruction, &operandDest);
 
         // read data. guaranteed to be at least 8-bits.
-        // TODO (Aaron): This implementation produces errors with listing 41 (cmp al, ___)
         if (instruction.WidthBit == 0b0)
         {
             uint8 *readStartPtr = instruction.Bits.BytePtr;
@@ -323,24 +324,6 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         else
         {
             assert(false);
-        }
-
-        // prepend width hint when value is being assigned to memory
-        // TODO (Aaron): Do we prepend the width hint if we are writing to a direct address? (mod == 00 and rm == 110)
-        bool prependWidth = ((instruction.ModBits == 0b0)
-                             || (instruction.ModBits == 0b1)
-                             || (instruction.ModBits == 0b10));
-
-        if (prependWidth)
-        {
-            assert(operandDest.Type == Operand_Memory);
-
-            // TODO (Aaron): Might need to move this up into DecodeRmStr()
-            operandDest.Memory.Flags |= Memory_PrependWidth;
-            if (instruction.WidthBit == 1)
-            {
-                operandDest.Memory.Flags |= Memory_IsWide;
-            }
         }
 
         instruction.Operands[0] = operandDest;
@@ -561,27 +544,6 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
             ReadInstructionStream(processor, &instruction, 1);
             operandSource.Immediate.Value = (uint16)((int8)(*readStartPtr));
             operandSource.Immediate.Flags |= Immediate_IsSigned;
-        }
-
-        // prepend width hint when immediate is being assigned to memory
-        // TODO (Aaron): Do we prepend the width hint if we are writing to a direct address? (mod == 00 and rm == 110)
-        // No, direct address is always 16-bit. Update this predicate
-        // TODO (Aaron): This commented line breaks listing_0041, so I guess the direct address is not always 16-bits
-        // bool prependWidth = ((instruction.ModBits == 0b0 && instruction.RmBits != 0b110)
-        bool prependWidth = ((instruction.ModBits == 0b0)
-                             || (instruction.ModBits == 0b1)
-                             || (instruction.ModBits == 0b10));
-
-        if (prependWidth)
-        {
-            assert(operandDest.Type == Operand_Memory);
-
-            // TODO (Aaron): Might need to move this up into DecodeRmStr() so that we can be sure the flag is set
-            operandDest.Memory.Flags |= Memory_PrependWidth;
-            if (instruction.WidthBit == 1)
-            {
-                operandDest.Memory.Flags |= Memory_IsWide;
-            }
         }
 
         instruction.Operands[0] = operandDest;
