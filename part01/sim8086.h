@@ -84,8 +84,6 @@ struct processor_8086
     // and the remaining 15 memory segments for the program to make use of.
     uint32 MemorySize = 1024 * 1024;
     uint8 *Memory;
-    uint8 *ProgramMemory;
-    uint32 ProgramMemorySize = 64000;
     uint32 ProgramSize = 0;
 
     // Note (Aaron): Number of instructions decoded from the loaded program
