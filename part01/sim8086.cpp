@@ -49,10 +49,10 @@ static register_id RegMemTables[3][8]
 };
 
 
-// Note (Aaron): Order of registers must match the order defined in 'register_id' enum
-// in order for lookup to work
 static register_info RegisterLookup[21]
 {
+    // Note (Aaron): Order of registers must match the order defined in 'register_id' enum
+    // in order for lookup to work
     { Reg_al, 0, false, 0xff00},
     { Reg_cl, 2, false, 0xff00},
     { Reg_dl, 3, false, 0xff00},
@@ -92,7 +92,7 @@ static bool DumpMemoryToFile(processor_8086 *processor, const char *filename)
         return false;
     }
 
-    // loop over memory and write character to filestream one at a time
+    // loop over memory and write character to file stream one at a time
     for (uint32 i = 0; i < processor->MemorySize; ++i)
     {
         uint8 value = (uint8)*(processor->Memory + i);
@@ -243,7 +243,6 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
     processor->InstructionCount++;
     ReadInstructionStream(processor, &instruction, 1);
 
-    // parse initial instruction byte
     // mov instruction - register/memory to/from register (0b100010)
     if ((instruction.Bits.Byte0 >> 2) == 0b100010)
     {
@@ -577,7 +576,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             assert(operandDest.Type == Operand_Memory);
 
-            // TODO (Aaron): Might need to move this up into DecodeRmStr() so that we can be sure the flag is set only
+            // TODO (Aaron): Might need to move this up into DecodeRmStr() so that we can be sure the flag is set
             operandDest.Memory.Flags |= Memory_PrependWidth;
             if (instruction.WidthBit == 1)
             {
