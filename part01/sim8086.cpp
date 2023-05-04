@@ -958,6 +958,44 @@ uint16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
     return result;
 }
 
+void SetOperandValue(processor_8086 *processor, instruction_operand *operand, uint16 value)
+{
+    // Only these two operand types are assignable
+    assert((operand->Type == Operand_Register) || operand->Type == Operand_Memory);
+
+    if (operand->Type == Operand_Register)
+    {
+        SetRegisterValue(processor, operand->Register, value);
+        return;
+    }
+
+    if (operand->Type == Operand_Memory)
+    {
+        uint32 effectiveAddress = 0;
+        bool wide = (operand->Memory.Flags & Memory_IsWide);
+
+        // direct address assignment
+        if (operand->Memory.Flags & Memory_HasDirectAddress)
+        {
+            effectiveAddress = operand->Memory.DirectAddress;
+            SetMemory(processor, effectiveAddress, value, wide);
+            return;
+        }
+
+        // effective address calculation
+        effectiveAddress = GetRegisterValue(processor, operand->Memory.Register);
+        if (operand->Memory.Flags & Memory_HasDisplacement)
+        {
+            effectiveAddress += operand->Memory.Displacement;
+        }
+
+        SetMemory(processor, effectiveAddress, value, wide);
+        return;
+    }
+
+    // We should never reach this point
+    assert(false);
+}
 
 void PrintFlags(processor_8086 *processor, bool force = false)
 {
@@ -1019,58 +1057,19 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             instruction_operand operand0 = instruction->Operands[0];
             instruction_operand operand1 = instruction->Operands[1];
 
+            uint16 oldValue = GetOperandValue(processor, operand0);
             uint16 sourceValue = GetOperandValue(processor, operand1);
 
-            switch (operand0.Type)
+            SetOperandValue(processor, &operand0, sourceValue);
+
+            // Note (Aaron): mov does not modify the zero flag or the signed flag
+
+            if (operand0.Type == Operand_Register && oldValue != sourceValue)
             {
-                case Operand_Register:
-                {
-                    uint16 oldValue = GetRegisterValue(processor, operand0.Register);
-                    SetRegisterValue(processor, operand0.Register, sourceValue);
-
-                    // Note (Aaron): mov does not modify the zero flag or the signed flag
-
-                    // print register diffs (if any)
-                    if (oldValue != sourceValue)
-                    {
-                        printf(" %s:0x%x->0x%x",
-                               GetRegisterMnemonic(operand0.Register),
-                               oldValue,
-                               sourceValue);
-                    }
-
-                    break;
-                }
-                case Operand_Memory:
-                {
-                    uint32 effectiveAddress = 0;
-                    bool wide = (operand0.Memory.Flags & Memory_IsWide);
-
-                    // direct address assignment
-                    if (operand0.Memory.Flags & Memory_HasDirectAddress)
-                    {
-                        effectiveAddress = operand0.Memory.DirectAddress;
-                        SetMemory(processor, effectiveAddress, sourceValue, wide);
-                        break;
-                    }
-
-                    // effective address calculation
-                    effectiveAddress = GetRegisterValue(processor, operand0.Memory.Register);
-                    if (operand0.Memory.Flags & Memory_HasDisplacement)
-                    {
-                        effectiveAddress += operand0.Memory.Displacement;
-                    }
-
-                    SetMemory(processor, effectiveAddress, sourceValue, wide);
-                    break;
-                }
-                case Operand_Immediate:
-                default:
-                {
-                    // Note (Aaron): Invalid instruction
-                    assert(false);
-                    break;
-                }
+                printf(" %s:0x%x->0x%x",
+                       GetRegisterMnemonic(operand0.Register),
+                       oldValue,
+                       sourceValue);
             }
 
             break;
@@ -1081,18 +1080,26 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             instruction_operand operand0 = instruction->Operands[0];
             instruction_operand operand1 = instruction->Operands[1];
 
+            uint16 oldValue = GetOperandValue(processor, operand0);
             uint16 value0 = GetOperandValue(processor, operand0);
             uint16 value1 = GetOperandValue(processor, operand1);
             uint16 finalValue = value1 + value0;
 
-            SetRegisterValue(processor, operand0.Register, finalValue);
+            SetOperandValue(processor, &operand0, finalValue);
             SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
-            UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
 
-            printf(" %s:0x%x->0x%x",
-                   GetRegisterMnemonic(operand0.Register),
-                   value0,
-                   finalValue);
+            if (operand0.Type == Operand_Register)
+            {
+                UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
+
+                if (oldValue != finalValue)
+                {
+                    printf(" %s:0x%x->0x%x",
+                           GetRegisterMnemonic(operand0.Register),
+                           value0,
+                           finalValue);
+                }
+            }
 
             break;
         }
@@ -1102,18 +1109,26 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             instruction_operand operand0 = instruction->Operands[0];
             instruction_operand operand1 = instruction->Operands[1];
 
+            uint16 oldValue = GetOperandValue(processor, operand0);
             uint16 value0 = GetOperandValue(processor, operand0);
             uint16 value1 = GetOperandValue(processor, operand1);
             uint16 finalValue = value0 - value1;
 
-            SetRegisterValue(processor, operand0.Register, finalValue);
+            SetOperandValue(processor, &operand0, finalValue);
             SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
-            UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
 
-            printf(" %s:0x%x->0x%x",
-                   GetRegisterMnemonic(operand0.Register),
-                   value0,
-                   finalValue);
+            if (operand0.Type == Operand_Register)
+            {
+                UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
+
+                if (oldValue != finalValue)
+                {
+                    printf(" %s:0x%x->0x%x",
+                           GetRegisterMnemonic(operand0.Register),
+                           value0,
+                           finalValue);
+                }
+            }
 
             break;
         }
