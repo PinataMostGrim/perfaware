@@ -73,7 +73,21 @@ enum register_flags : uint8
 
 struct processor_8086
 {
-    uint16 Registers[8] = {};   // Note (Aaron): Registers are: A, B, C, D, SP, BP, SI and DI
+    union
+    {
+        uint16 Registers[8] = {};   // Note (Aaron): Registers are: A, B, C, D, SP, BP, SI and DI
+        struct
+        {
+            uint16 RegisterAX;
+            uint16 RegisterBX;
+            uint16 RegisterCX;
+            uint16 RegisterDX;
+            uint16 RegisterSP;
+            uint16 RegisterBP;
+            uint16 RegisterSI;
+            uint16 RegisterDI;
+        };
+    };
     uint8 Flags = 0;            // Note (Aaron): Register flags
     uint32 IP = 0;              // Note (Aaron): Instruction pointer
     uint32 PrevIP = 0;          // Note (Aaron): Previous instruction pointer
