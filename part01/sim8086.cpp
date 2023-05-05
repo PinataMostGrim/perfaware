@@ -235,6 +235,47 @@ static void ParseRmBits(processor_8086 *processor, instruction *instruction, ins
     }
 }
 
+static uint8 GetOperandEffectiveAddressClocks(instruction_operand *operand)
+{
+    assert(operand->Type == Operand_Memory);
+
+    if (operand->Memory.Flags & Memory_HasDirectAddress)
+    {
+        return 6;
+    }
+
+    register_id operandRegister = operand->Memory.Register;
+    bool baseOrIndex = operandRegister ==  Reg_bx
+                    || operandRegister ==  Reg_bp
+                    || operandRegister ==  Reg_si
+                    || operandRegister ==  Reg_di;
+    bool hasDisplacement = (operand->Memory.Flags & Memory_HasDisplacement);
+
+    if (baseOrIndex)
+    {
+        // base or index with no displacement is 5 clocks
+        // base or index with displacement is 9 clocks
+        return hasDisplacement ? 9 : 5;
+    }
+
+    // base + index
+    // base + index + displacement
+    switch (operandRegister)
+    {
+        case Reg_bp_di:
+        case Reg_bx_si:
+            return hasDisplacement ? 7 : 11;
+        case Reg_bp_si:
+        case Reg_bx_di:
+            return hasDisplacement ? 8 : 12;
+        default:
+            break;
+    }
+
+    // we should never reach this case
+    assert(false);
+    return 0;
+}
 
 static instruction DecodeNextInstruction(processor_8086 *processor)
 {
@@ -284,6 +325,33 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
             instruction.Operands[0] = operandReg;
             instruction.Operands[1] = operandRm;
         }
+
+        // estimate clock cycles
+        // register to register
+        if (instruction.Operands[0].Type == Operand_Register
+            && instruction.Operands[1].Type == Operand_Register)
+        {
+            instruction.ClockCount = 2;
+        }
+        // register to memory
+        else if (instruction.Operands[0].Type == Operand_Memory
+                 && instruction.Operands[1].Type == Operand_Register)
+        {
+            instruction.ClockCount = 9;
+            instruction.EAClockCount = GetOperandEffectiveAddressClocks(&instruction.Operands[0]);
+        }
+        // memory to register
+        else if (instruction.Operands[0].Type == Operand_Register
+            && instruction.Operands[1].Type == Operand_Memory)
+        {
+            instruction.ClockCount = 8;
+            instruction.EAClockCount = GetOperandEffectiveAddressClocks(&instruction.Operands[1]);
+        }
+        else
+        {
+            // we should never reach this case
+            assert(false);
+        }
     }
 
     // mov instruction - immediate to register/memory (0b1100011)
@@ -328,6 +396,26 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
 
         instruction.Operands[0] = operandDest;
         instruction.Operands[1] = operandSource;
+
+        // estimate clock cycles
+        // immediate to register
+        if (instruction.Operands[0].Type == Operand_Register
+            && instruction.Operands[1].Type == Operand_Immediate)
+        {
+            instruction.ClockCount = 4;
+        }
+        // immediate to memory
+        else if (instruction.Operands[0].Type == Operand_Memory
+            && instruction.Operands[1].Type == Operand_Immediate)
+        {
+            instruction.ClockCount = 10;
+            instruction.EAClockCount = GetOperandEffectiveAddressClocks(&instruction.Operands[0]);
+        }
+        else
+        {
+            // we should never reach this case
+            assert(false);
+        }
     }
 
     // mov instruction - immediate to register (0b1011)
@@ -364,6 +452,19 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         operandDest.Register = RegMemTables[instruction.WidthBit][instruction.RegBits];
         instruction.Operands[0] = operandDest;
         instruction.Operands[1] = operandSource;
+
+        // estimate clock cycles
+        // immediate to register
+        if (instruction.Operands[0].Type == Operand_Register
+            && instruction.Operands[1].Type == Operand_Immediate)
+        {
+            instruction.ClockCount = 4;
+        }
+        else
+        {
+            // we should never reach this case
+            assert(false);
+        }
     }
 
     // mov - memory to accumulator and accumulator to memory
@@ -409,6 +510,11 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             assert(false);
         }
+
+        // estimate clock cycles
+        // Note (Aaron): Both memory to accumulator and accumulator to memory share
+        // the same clock count
+        instruction.ClockCount = 10;
     }
 
     // add / sub / cmp - reg/memory with register to either
@@ -470,6 +576,48 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             instruction.Operands[0] = operandReg;
             instruction.Operands[1] = operandRm;
+        }
+
+        // estimate clock cycles
+        // register to register
+        if (instruction.Operands[0].Type == Operand_Register
+            && instruction.Operands[1].Type == Operand_Register)
+        {
+            // Note (Aaron): add, sub, and cmp share the same clock count for this operation
+            instruction.ClockCount = 3;
+        }
+        // register to memory
+        else if (instruction.Operands[0].Type == Operand_Memory
+            && instruction.Operands[1].Type == Operand_Register)
+        {
+            instruction.ClockCount = 16;
+            switch (instruction.OpType)
+            {
+                case Op_add:
+                case Op_sub:
+                    instruction.ClockCount = 16;
+                    break;
+                case Op_cmp:
+                    instruction.ClockCount = 9;
+                    break;
+                default:
+                    assert(false);
+            }
+
+            instruction.EAClockCount = GetOperandEffectiveAddressClocks(&instruction.Operands[0]);
+        }
+        // memory to register
+        else if (instruction.Operands[0].Type == Operand_Register
+            && instruction.Operands[1].Type == Operand_Memory)
+        {
+            // Note (Aaron): add, sub, and cmp share the same clock count for this operation
+            instruction.ClockCount = 9;
+            instruction.EAClockCount = GetOperandEffectiveAddressClocks(&instruction.Operands[1]);
+        }
+        else
+        {
+            // we should never reach this case
+            assert(false);
         }
     }
 
@@ -548,6 +696,37 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
 
         instruction.Operands[0] = operandDest;
         instruction.Operands[1] = operandSource;
+
+        // estimate clock cycles
+        // immediate to register
+        if (instruction.Operands[0].Type == Operand_Register)
+        {
+            // Note (Aaron): add, sub, and cmp share the same clock count
+            instruction.ClockCount = 4;
+        }
+        // immediate to memory
+        else if (instruction.Operands[0].Type == Operand_Memory)
+        {
+            switch (instruction.OpType)
+            {
+                case Op_add:
+                case Op_sub:
+                    instruction.ClockCount = 17;
+                    break;
+                case Op_cmp:
+                    instruction.ClockCount = 10;
+                    break;
+                default:
+                    assert(false);
+            }
+
+            instruction.EAClockCount = GetOperandEffectiveAddressClocks(&instruction.Operands[1]);
+        }
+        else
+        {
+            // we should never reach this case
+            assert(false);
+        }
     }
 
     // add / sub / cmp - immediate to/from/with accumulator
@@ -600,6 +779,10 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
 
         instruction.Operands[0] = operandDest;
         instruction.Operands[1] = operandSource;
+
+        // estimate clock cycles
+        // Note (Aaron): add, sub, and cmp share the same clock count
+        instruction.ClockCount = 4;
     }
 
     // control transfer instructions
@@ -759,6 +942,8 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         instruction.Operands[0] = unknown;
         instruction.Operands[1] = unknown;
     }
+
+    processor->TotalClockCount += (instruction.ClockCount + instruction.EAClockCount);
 
     return instruction;
 }
@@ -1269,6 +1454,20 @@ static void PrintInstruction(instruction *instruction)
     }
 }
 
+static void PrintClocks(processor_8086 *processor, instruction *instruction)
+{
+    if (instruction->EAClockCount > 0)
+    {
+        printf(" Clocks: +%i (%i + %iea) = %i",
+               (instruction->ClockCount + instruction->EAClockCount),
+               instruction->ClockCount,
+               instruction->EAClockCount,
+               processor->TotalClockCount);
+        return;
+    }
+
+    printf(" Clocks: +%i = %i", instruction->ClockCount, processor->TotalClockCount);
+}
 
 static void PrintRegisters(processor_8086 *processor)
 {
@@ -1323,7 +1522,7 @@ int main(int argc, char const *argv[])
     assert(ArrayCount(RegisterLookup) == Reg_mem_id_count);
 #endif
 
-    if (argc < 2 ||  argc > 4)
+    if (argc < 2 ||  argc > 5)
     {
         printf("usage: sim8086 [--exec] filename\n\n");
         printf("disassembles 8086/88 assembly\n\n");
@@ -1341,6 +1540,7 @@ int main(int argc, char const *argv[])
     // process command line arguments
     bool simulateInstructions = false;
     bool dumpMemoryToFile = false;
+    bool showClocks = false;
     const char *filename = "";
 
     for (int i = 1; i < argc; ++i)
@@ -1349,6 +1549,13 @@ int main(int argc, char const *argv[])
             || (strncmp("-e", argv[i], 2) == 0))
         {
             simulateInstructions = true;
+            continue;
+        }
+
+        if ((strncmp("--show-clocks", argv[i], 13) == 0)
+            || (strncmp("-c", argv[i], 2) == 0))
+        {
+            showClocks = true;
             continue;
         }
 
@@ -1409,9 +1616,23 @@ int main(int argc, char const *argv[])
         instruction instruction = DecodeNextInstruction(&processor);
         PrintInstruction(&instruction);
 
-        if (simulateInstructions)
+        if (showClocks || simulateInstructions)
         {
             printf(" ;");
+        }
+
+        if (showClocks)
+        {
+            PrintClocks(&processor, &instruction);
+        }
+
+        if (showClocks && simulateInstructions)
+        {
+            printf(" |");
+        }
+
+        if (simulateInstructions)
+        {
             ExecuteInstruction(&processor, &instruction);
         }
 

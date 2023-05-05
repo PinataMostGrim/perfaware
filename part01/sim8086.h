@@ -102,6 +102,9 @@ struct processor_8086
 
     // Note (Aaron): Number of instructions decoded from the loaded program
     uint32 InstructionCount = 0;
+
+    // Note (Aaron): Number of clock cycles used by the loaded program
+    uint32 TotalClockCount = 0;
 };
 
 
@@ -223,6 +226,9 @@ struct instruction
     uint8 RegBits = 0;
     uint8 RmBits = 0;
     uint8 SignBit = 0;
+
+    uint8 ClockCount = 0;
+    uint8 EAClockCount = 0;
 };
 
 #endif
