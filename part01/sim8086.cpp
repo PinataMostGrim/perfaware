@@ -80,6 +80,8 @@ static register_info RegisterLookup[21]
     { Reg_unknown, 0, 0x0},
 };
 
+static const char *MemoryDumpFilename = "memory.dat";
+
 
 static bool DumpMemoryToFile(processor_8086 *processor, const char *filename)
 {
@@ -235,7 +237,7 @@ static void ParseRmBits(processor_8086 *processor, instruction *instruction, ins
     }
 }
 
-static uint8 GetOperandEffectiveAddressClocks(instruction_operand *operand)
+static uint8 CalculateEffectiveAddressClocks(instruction_operand *operand)
 {
     assert(operand->Type == Operand_Memory);
 
@@ -338,14 +340,14 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                  && instruction.Operands[1].Type == Operand_Register)
         {
             instruction.ClockCount = 9;
-            instruction.EAClockCount = GetOperandEffectiveAddressClocks(&instruction.Operands[0]);
+            instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[0]);
         }
         // memory to register
         else if (instruction.Operands[0].Type == Operand_Register
             && instruction.Operands[1].Type == Operand_Memory)
         {
             instruction.ClockCount = 8;
-            instruction.EAClockCount = GetOperandEffectiveAddressClocks(&instruction.Operands[1]);
+            instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[1]);
         }
         else
         {
@@ -409,7 +411,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
             && instruction.Operands[1].Type == Operand_Immediate)
         {
             instruction.ClockCount = 10;
-            instruction.EAClockCount = GetOperandEffectiveAddressClocks(&instruction.Operands[0]);
+            instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[0]);
         }
         else
         {
@@ -604,7 +606,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                     assert(false);
             }
 
-            instruction.EAClockCount = GetOperandEffectiveAddressClocks(&instruction.Operands[0]);
+            instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[0]);
         }
         // memory to register
         else if (instruction.Operands[0].Type == Operand_Register
@@ -612,7 +614,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             // Note (Aaron): add, sub, and cmp share the same clock count for this operation
             instruction.ClockCount = 9;
-            instruction.EAClockCount = GetOperandEffectiveAddressClocks(&instruction.Operands[1]);
+            instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[1]);
         }
         else
         {
@@ -720,7 +722,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                     assert(false);
             }
 
-            instruction.EAClockCount = GetOperandEffectiveAddressClocks(&instruction.Operands[1]);
+            instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[1]);
         }
         else
         {
@@ -1511,6 +1513,22 @@ static void PrintRegisters(processor_8086 *processor)
     PrintFlags(processor);
 }
 
+void PrintUsage()
+{
+    printf("usage: sim8086 [--exec --show-clocks --dump --help] filename\n\n");
+    printf("disassembles 8086/88 assembly and optionally simulates it. note: supports \na limited number of instructions.\n\n");
+
+    printf("positional arguments:\n");
+    printf("  filename\t\tassembly file to load\n");
+    printf("\n");
+
+    printf("options:\n");
+    printf("  --exec, -e\t\tsimulate execution of assembly\n");
+    printf("  --show-clocks, -c\tshow clock count estimate for each instruction\n");
+    printf("  --dump, -d\t\tdump simulation memory to file after execution (%s)\n", MemoryDumpFilename);
+    printf("  --help, -h\t\tshow this message\n");
+}
+
 
 int main(int argc, char const *argv[])
 {
@@ -1524,16 +1542,7 @@ int main(int argc, char const *argv[])
 
     if (argc < 2 ||  argc > 5)
     {
-        printf("usage: sim8086 [--exec] filename\n\n");
-        printf("disassembles 8086/88 assembly\n\n");
-
-        printf("positional arguments:\n");
-        printf("  filename\t\tassembly file to load\n");
-        printf("\n");
-
-        printf("options:\n");
-        printf("  --exec, -e\t\tsimulate execution of assembly\n");
-
+        PrintUsage();
         exit(1);
     }
 
@@ -1545,6 +1554,13 @@ int main(int argc, char const *argv[])
 
     for (int i = 1; i < argc; ++i)
     {
+        if ((strncmp("--help", argv[i], 6) == 0)
+            || (strncmp("-h", argv[i], 2) == 0))
+        {
+            PrintUsage();
+            exit(0);
+        }
+
         if ((strncmp("--exec", argv[i], 6) == 0)
             || (strncmp("-e", argv[i], 2) == 0))
         {
@@ -1644,11 +1660,11 @@ int main(int argc, char const *argv[])
         printf("\n");
         PrintRegisters(&processor);
         printf("\n");
-    }
 
-    if (dumpMemoryToFile)
-    {
-        DumpMemoryToFile(&processor, "memory.dat");
+        if (dumpMemoryToFile)
+        {
+            DumpMemoryToFile(&processor, MemoryDumpFilename);
+        }
     }
 
     return 0;
