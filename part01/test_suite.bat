@@ -29,6 +29,8 @@ call :TestListing listing_0049_conditional_jumps
 call :TestListing listing_0051_memory_mov
 call :TestListing listing_0052_memory_add_loop
 call :TestListing listing_0053_add_loop_challenge
+call :TestListing listing_0054_draw_rectangle
+call :TestListing listing_0056_estimating_cycles
 
 
 :: Output results
