@@ -1350,6 +1350,24 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             break;
         }
 
+        case Op_loop:
+        {
+            // decrement CX register by 1
+            uint16 cx = GetRegisterValue(processor, Reg_cx);
+            --cx;
+            SetRegisterValue(processor, Reg_cx, cx);
+
+            // jump if CX not equal to zero
+            if (cx != 0)
+            {
+                instruction_operand operand0 = instruction->Operands[0];
+                int8 offset = (int8)(operand0.Immediate.Value & 0xff);
+
+                processor->IP += offset;
+            }
+            break;
+        }
+
         default:
         {
             printf("unsupported instruction");
