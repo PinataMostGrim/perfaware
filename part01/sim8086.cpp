@@ -53,14 +53,14 @@ static register_info RegisterLookup[21]
 {
     // Note (Aaron): Order of registers must match the order defined in 'register_id' enum
     // in order for lookup to work
-    { Reg_al, 0, false, 0xff00},
-    { Reg_cl, 2, false, 0xff00},
-    { Reg_dl, 3, false, 0xff00},
-    { Reg_bl, 1, false, 0xff00},
-    { Reg_ah, 0, false, 0x00ff},
-    { Reg_ch, 2, false, 0x00ff},
-    { Reg_dh, 3, false, 0x00ff},
-    { Reg_bh, 1, false, 0x00ff},
+    { Reg_al, 0, false, 0x00ff},
+    { Reg_cl, 2, false, 0x00ff},
+    { Reg_dl, 3, false, 0x00ff},
+    { Reg_bl, 1, false, 0x00ff},
+    { Reg_ah, 0, false, 0xff00},
+    { Reg_ch, 2, false, 0xff00},
+    { Reg_dh, 3, false, 0xff00},
+    { Reg_bh, 1, false, 0xff00},
     { Reg_ax, 0, true, 0xffff},
     { Reg_cx, 2, true, 0xffff},
     { Reg_dx, 3, true, 0xffff},
