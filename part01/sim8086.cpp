@@ -251,7 +251,7 @@ static uint8 CalculateEffectiveAddressClocks(instruction_operand *operand)
                     || operandRegister ==  Reg_bp
                     || operandRegister ==  Reg_si
                     || operandRegister ==  Reg_di;
-    bool hasDisplacement = (operand->Memory.Flags & Memory_HasDisplacement);
+    bool hasDisplacement = (operand->Memory.Flags & Memory_HasDisplacement) && operand->Memory.Displacement > 0;
 
     if (baseOrIndex)
     {
