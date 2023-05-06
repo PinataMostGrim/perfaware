@@ -722,7 +722,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                     assert(false);
             }
 
-            instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[1]);
+            instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[0]);
         }
         else
         {
