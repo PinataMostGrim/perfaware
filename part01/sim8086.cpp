@@ -157,9 +157,7 @@ static void ReadInstructionStream(processor_8086 *processor, instruction *instru
 }
 
 
-// TODO (Aaron): It's still a little awkward passing all of these parameters. Try passing in operand index instead?
-
-// Note (Aaron): Requires width, mod and rm to be decoded in the decode_context
+// Note (Aaron): Requires width, mod and rm to be decoded in the instruction first
 static void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand)
 {
     // memory mode, no displacement
