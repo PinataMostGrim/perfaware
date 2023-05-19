@@ -157,6 +157,8 @@ static void ReadInstructionStream(processor_8086 *processor, instruction *instru
 }
 
 
+// TODO (Aaron): Pass in operand index rather than the operand itself
+
 // Note (Aaron): Requires width, mod and rm to be decoded in the instruction first
 static void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand)
 {
@@ -237,8 +239,15 @@ static void ParseRmBits(processor_8086 *processor, instruction *instruction, ins
 
 static uint8 CalculateEffectiveAddressClocks(instruction_operand *operand)
 {
+    // TODO (Aaron): We could just return 0 clocks instead in the event this is false
+    // if (operand->Type != Operand_Memory)
+    // {
+    //     return 0;
+    // }
     assert(operand->Type == Operand_Memory);
 
+    uint8 result = 0;
+    // TODO (Aaron): Is "Displacement Only" in table 2-20 the same thing as direct address?
     if (operand->Memory.Flags & Memory_HasDirectAddress)
     {
         return 6;
@@ -807,6 +816,8 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
              || (instruction.Bits.Byte0 == 0b11100000)  // loopnz
              || (instruction.Bits.Byte0 == 0b11100011)) // jcxz
     {
+        // TODO (Aaron): Add clock count estimation for these jumps
+
         instruction.OpType = Op_unknown;
         char instructionStr[32] = "";
 
@@ -1273,6 +1284,7 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             SetOperandValue(processor, &operand0, finalValue);
             SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
 
+            // TODO (Aaron): Does the signed flag still get set if we are assigning to memory?
             if (operand0.Type == Operand_Register)
             {
                 UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
@@ -1302,6 +1314,7 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             SetOperandValue(processor, &operand0, finalValue);
             SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
 
+            // TODO (Aaron): Does the signed flag still get set if we are assigning to memory?
             if (operand0.Type == Operand_Register)
             {
                 UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);

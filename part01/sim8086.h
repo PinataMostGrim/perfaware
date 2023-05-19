@@ -163,6 +163,7 @@ enum operand_memory_flags : uint8
 {
     Memory_HasDisplacement = 0x1,
     Memory_HasDirectAddress = 0x2,
+    // TODO (Aaron): This may not be necessary if we should ALWAYS prepend the width
     Memory_PrependWidth = 0x4,
     Memory_IsWide = 0x8,
 };
