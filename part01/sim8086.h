@@ -145,6 +145,7 @@ enum operation_types
     Op_loopnz,
     Op_jcxz,
     Op_unknown,
+    Op_ret,
 
     Op_count,
 };

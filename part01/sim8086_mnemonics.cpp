@@ -28,6 +28,7 @@ char const *OperationMnemonics[]
     "LOOPZ",
     "LOOPNZ",
     "JCXZ",
+    "ret",
     "unknown",
 };
 

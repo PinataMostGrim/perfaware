@@ -943,6 +943,28 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
     }
 
+    // return instructions
+    else if ((instruction.Bits.Byte0 == 0b11000011) // ret within segment
+        || (instruction.Bits.Byte0 == 0b11000010)   // ret with segment adding immediate to SP
+        || (instruction.Bits.Byte0 == 0b11001011)   // ret with inter-segment
+        || (instruction.Bits.Byte0 == 0b11001010))  // ret with inter-segment adding immediate to SP
+    {
+        instruction.OpType = Op_ret;
+        instruction_operand operand_none = {};
+
+        if (instruction.Bits.Byte0 == 0b11000010
+            || instruction.Bits.Byte0 == 0b11001010)
+        {
+            // Note (Aaron): Some of these instructions include additional bytes. Because we are stopping the sim
+            // on ret instructions, they do not need to be implemented at the moment.
+            ReadInstructionStream(processor, &instruction, 2);
+        }
+
+        operand_none.Type = Operand_None;
+        instruction.Operands[0] = operand_none;
+        instruction.Operands[1] = operand_none;
+    }
+
     // unsupported instruction
     else
     {
@@ -1377,6 +1399,12 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             break;
         }
 
+        case Op_ret:
+        {
+            // Note (Aaron): Not implemented. Halts execution.
+            break;
+        }
+
         default:
         {
             printf("unsupported instruction");
@@ -1475,6 +1503,7 @@ static void PrintInstruction(instruction *instruction)
 
                 break;
             }
+
             default:
             {
                 printf("?");
@@ -1571,10 +1600,13 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
+    // TODO (Aaron): Turn this into a struct
+    // TODO (Aaron): Extract this into a separate method
     // process command line arguments
     bool simulateInstructions = false;
     bool dumpMemoryToFile = false;
     bool showClocks = false;
+    bool stopOnReturn = false;
     const char *filename = "";
 
     for (int i = 1; i < argc; ++i)
@@ -1604,6 +1636,13 @@ int main(int argc, char const *argv[])
             || (strncmp("-d", argv[i], 2) == 0))
         {
             dumpMemoryToFile = true;
+            continue;
+        }
+
+        if ((strncmp("--stop-on-ret", argv[i], 13) == 0)
+            || (strncmp("-r", argv[i], 2) == 0))
+        {
+            stopOnReturn = true;
             continue;
         }
 
@@ -1678,6 +1717,13 @@ int main(int argc, char const *argv[])
         }
 
         printf("\n");
+
+        // TODO (Aaron): Test this. Will have to write an assembly specifically to do this as the listings provided
+        // contain instructions I haven't supported yet.
+        if (instruction.OpType == Op_ret && stopOnReturn)
+        {
+            break;
+        }
     }
 
     if (simulateInstructions)
