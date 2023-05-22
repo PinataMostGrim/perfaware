@@ -1,11 +1,10 @@
+#include "sim8086.h"
+#include "sim8086_mnemonics.cpp"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "sim8086.h"
-#include "sim8086_mnemonics.h"
-#include "sim8086_mnemonics.cpp"
 
 // SIM8086_SLOW:
 //     0 - No slow code allowed!
