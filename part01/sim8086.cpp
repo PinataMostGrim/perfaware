@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include "sim8086.h"
 #include "sim8086_mnemonics.h"
@@ -115,7 +114,7 @@ static bool DumpMemoryToFile(processor_8086 *processor, const char *filename)
 
 static void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
 {
-    assert(size > 0);
+    assert_8086(size > 0);
 
     unsigned char *source = (unsigned char *)sourcePtr;
     unsigned char *dest = (unsigned char *)destPtr;
@@ -131,7 +130,7 @@ static void ReadInstructionStream(processor_8086 *processor, instruction *instru
 {
     // Note (Aaron): Currently only support 8086 instructions that have a maximum of 6 bytes.
     // In practice, we never read this many bytes at once.
-    assert(byteCount < 6);
+    assert_8086(byteCount < 6);
 
     // error out if we attempt to read outside of program memory
     if ((processor->IP + byteCount) > processor->ProgramSize)
@@ -190,7 +189,7 @@ static void ParseRmBits(processor_8086 *processor, instruction *instruction, ins
                 // Note (Aaron): Casey said that this special case is always a 16-bit displacement in Q&A #5 (at 27m30s)
                 // but I think he meant the direct address value is always 16 bits. Putting an assert here to catch
                 // it in case we ever do hit a width bit of 0 in this case.
-                assert(false);
+                assert_8086(false);
             }
 
             uint8 *readStartPtr = instruction->Bits.BytePtr;
@@ -244,7 +243,7 @@ static uint8 CalculateEffectiveAddressClocks(instruction_operand *operand)
     // {
     //     return 0;
     // }
-    assert(operand->Type == Operand_Memory);
+    assert_8086(operand->Type == Operand_Memory);
 
     uint8 result = 0;
     // TODO (Aaron): Is "Displacement Only" in table 2-20 the same thing as direct address?
@@ -282,7 +281,7 @@ static uint8 CalculateEffectiveAddressClocks(instruction_operand *operand)
     }
 
     // we should never reach this case
-    assert(false);
+    assert_8086(false);
     return 0;
 }
 
@@ -359,7 +358,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         else
         {
             // we should never reach this case
-            assert(false);
+            assert_8086(false);
         }
     }
 
@@ -400,7 +399,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // unhandled case
         else
         {
-            assert(false);
+            assert_8086(false);
         }
 
         instruction.Operands[0] = operandDest;
@@ -423,7 +422,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         else
         {
             // we should never reach this case
-            assert(false);
+            assert_8086(false);
         }
     }
 
@@ -455,7 +454,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // unhandled case
         else
         {
-            assert(false);
+            assert_8086(false);
         }
 
         operandDest.Register = RegMemTables[instruction.WidthBit][instruction.RegBits];
@@ -472,7 +471,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         else
         {
             // we should never reach this case
-            assert(false);
+            assert_8086(false);
         }
     }
 
@@ -501,7 +500,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // unhandled case
         else
         {
-            assert(false);
+            assert_8086(false);
         }
 
         if ((instruction.Bits.Byte0 >> 1) == 0b1010000)
@@ -517,7 +516,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // unhandled case
         else
         {
-            assert(false);
+            assert_8086(false);
         }
 
         // estimate clock cycles
@@ -564,7 +563,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // unhandled case
         else
         {
-            assert(false);
+            assert_8086(false);
         }
 
         // decode reg
@@ -610,7 +609,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                     instruction.ClockCount = 9;
                     break;
                 default:
-                    assert(false);
+                    assert_8086(false);
             }
 
             instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[0]);
@@ -626,7 +625,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         else
         {
             // we should never reach this case
-            assert(false);
+            assert_8086(false);
         }
     }
 
@@ -665,7 +664,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // unhandled case
         else
         {
-            assert(false);
+            assert_8086(false);
         }
 
         // parse r/m string
@@ -726,7 +725,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                     instruction.ClockCount = 10;
                     break;
                 default:
-                    assert(false);
+                    assert_8086(false);
             }
 
             instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[0]);
@@ -734,7 +733,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         else
         {
             // we should never reach this case
-            assert(false);
+            assert_8086(false);
         }
     }
 
@@ -769,7 +768,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // unhandled case
         else
         {
-            assert(false);
+            assert_8086(false);
         }
 
         // read data
@@ -941,7 +940,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                 break;
             default:
                 // unhandled instruction
-                assert(false);
+                assert_8086(false);
         }
     }
 
@@ -1052,7 +1051,7 @@ void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targetRegis
 
 uint32 CalculateEffectiveAddress(processor_8086 *processor, instruction_operand operand)
 {
-    assert(operand.Type == Operand_Memory);
+    assert_8086(operand.Type == Operand_Memory);
 
     uint32 effectiveAddress = 0;
     // direct address assignment
@@ -1146,7 +1145,7 @@ uint16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
         default:
         {
             // Note (Aaron): Invalid instruction
-            assert(false);
+            assert_8086(false);
             break;
         }
     }
@@ -1157,7 +1156,7 @@ uint16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
 void SetOperandValue(processor_8086 *processor, instruction_operand *operand, uint16 value)
 {
     // Only these two operand types are assignable
-    assert((operand->Type == Operand_Register) || operand->Type == Operand_Memory);
+    assert_8086((operand->Type == Operand_Register) || operand->Type == Operand_Memory);
 
     if (operand->Type == Operand_Register)
     {
@@ -1190,7 +1189,7 @@ void SetOperandValue(processor_8086 *processor, instruction_operand *operand, ui
     }
 
     // We should never reach this point
-    assert(false);
+    assert_8086(false);
 }
 
 void PrintFlags(processor_8086 *processor, bool force = false)
@@ -1561,13 +1560,11 @@ void PrintUsage()
 
 int main(int argc, char const *argv[])
 {
-#if SIM8086_SLOW
-    // Note (Aaron): Ensure OperationMnemonics[] accommodates all operation_types
-    assert(ArrayCount(OperationMnemonics) == Op_count);
+    static_assert_8086(ArrayCount(OperationMnemonics) == Op_count,
+              "OperationMnemonics does not accommodate all operation_types");
 
-    // Note (Aaron): Ensure RegisterLookup contains definitions all register IDs
-    assert(ArrayCount(RegisterLookup) == Reg_mem_id_count);
-#endif
+    static_assert_8086(ArrayCount(RegisterLookup) == Reg_mem_id_count,
+                  "RegisterLookup does not contain definitions for all register IDs");
 
     if (argc < 2 ||  argc > 5)
     {

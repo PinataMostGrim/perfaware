@@ -2,6 +2,7 @@
 #define SIM8086_H
 
 #include <stdint.h>
+#include <assert.h>
 
 typedef uint8_t uint8;
 typedef uint16_t uint16;
@@ -13,6 +14,14 @@ typedef int32_t int32;
 
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
+#if SIM8086_SLOW
+#define assert_8086(expression) assert(expression)
+#define static_assert_8086(expression, string) static_assert(expression, string)
+#else
+#define assert_8086(expression)
+#define static_assert_8086(expression, string)
+#endif
 
 
 enum register_id
