@@ -1,5 +1,4 @@
 /* // TODO (Aaron):
-    - Save seed to JSON file
     - Use clustering for pairs
     - Figure out how to time execution time in C so I can time and compare these operations
 */
