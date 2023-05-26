@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -6,18 +7,12 @@
 
 #pragma warning(disable:4996)
 
+typedef double f64;
 
-typedef struct
-{
-    double X0;
-    double Y0;
-    double X1;
-    double Y1;
-    double Distance;
-} haversine_pair;
+#define EARTH_RADIUS 6372.8
 
 
-void PrintUsage()
+static void PrintUsage()
 {
     printf("usage: haversine-generator seed pair-count \n\n");
     printf("disassembles 8086/88 assembly and optionally simulates it. note: supports \na limited number of instructions.\n\n");
@@ -32,10 +27,51 @@ void PrintUsage()
 }
 
 
-double GetRandomFloatInRange(double minValue, double maxValue)
+static f64 GetRandomFloatInRange(f64 minValue, f64 maxValue)
 {
-    double scale = (double)rand() / (double)RAND_MAX;
+    f64 scale = (f64)rand() / (f64)RAND_MAX;
     return minValue + scale * (maxValue - minValue);
+}
+
+
+static f64 Square(f64 A)
+{
+    f64 Result = (A*A);
+    return Result;
+}
+
+
+static f64 RadiansFromDegrees(f64 Degrees)
+{
+    f64 Result = 0.01745329251994329577f * Degrees;
+    return Result;
+}
+
+
+// NOTE(casey): EarthRadius is generally expected to be 6372.8
+static f64 ReferenceHaversine(f64 X0, f64 Y0, f64 X1, f64 Y1, f64 EarthRadius)
+{
+    /* NOTE(casey): This is not meant to be a "good" way to calculate the Haversine distance.
+       Instead, it attempts to follow, as closely as possible, the formula used in the real-world
+       question on which these homework exercises are loosely based.
+    */
+
+    f64 lat1 = Y0;
+    f64 lat2 = Y1;
+    f64 lon1 = X0;
+    f64 lon2 = X1;
+
+    f64 dLat = RadiansFromDegrees(lat2 - lat1);
+    f64 dLon = RadiansFromDegrees(lon2 - lon1);
+    lat1 = RadiansFromDegrees(lat1);
+    lat2 = RadiansFromDegrees(lat2);
+
+    f64 a = Square(sin(dLat/2.0)) + cos(lat1)*cos(lat2)*Square(sin(dLon/2));
+    f64 c = 2.0*asin(sqrt(a));
+
+    f64 Result = EarthRadius * c;
+
+    return Result;
 }
 
 
@@ -72,7 +108,9 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
-    printf("[INFO] Generating %llu Haversine coordinate pairs...\n", pairCount);
+    printf("Generating Haversine distance coordinate pairs\n");
+    printf("Seed:\t\t%u\n", seed);
+    printf("Pair count:\t%llu\n\n", pairCount);
 
     char *filename = "haversine_pairs.json";
     FILE *file;
@@ -84,19 +122,27 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
+    f64 *distances = calloc(pairCount, sizeof(f64));
+    if (!distances)
+    {
+        printf("[ERROR] Unable to allocate memory to hold Haversine distances (%llu bytes)\n", pairCount * sizeof(f64));
+        return 1;
+    }
+
     fputs("{\n\t\"pairs\": [\n", file);
 
     srand(seed);
     char *line[256];
-    haversine_pair pair;
     for (int i = 0; i < pairCount; ++i)
     {
-        pair.X0 = GetRandomFloatInRange(-180, 180);
-        pair.Y0 = GetRandomFloatInRange(-180, 180);
-        pair.X1 = GetRandomFloatInRange(-180, 180);
-        pair.Y1 = GetRandomFloatInRange(-180, 180);
+        f64 x0 = GetRandomFloatInRange(-180, 180);
+        f64 y0 = GetRandomFloatInRange(-180, 180);
+        f64 x1 = GetRandomFloatInRange(-180, 180);
+        f64 y1 = GetRandomFloatInRange(-180, 180);
 
-        sprintf((char *)line, "\t\t{ \"x0\":%f, \"y0\":%f, \"x1\":%f, \"y1\":%f }", pair.X0, pair.Y0, pair.X1, pair.Y1);
+        distances[i] = ReferenceHaversine(x0, y0, x1, y1, EARTH_RADIUS);
+
+        sprintf((char *)line, "\t\t{ \"x0\":%f, \"y0\":%f, \"x1\":%f, \"y1\":%f }", x0, y0, x1, y1);
         fputs((const char *)line, file);
         fputs((i == (pairCount - 1) ? "\n" : ",\n"),
               file);
@@ -105,9 +151,7 @@ int main(int argc, char const *argv[])
     fputs("\t]\n}\n", file);
     fclose(file);
 
-    printf("[INFO] Haversine coordinate pairs saved to '%s'\n", filename);
-
-    // TODO (Aaron): Implement the haversine formula
+    printf("Haversine coordinate pairs saved to '%s'\n", filename);
 
     // TODO (Aaron): Use clustering for pairs
 
