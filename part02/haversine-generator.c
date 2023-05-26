@@ -10,6 +10,8 @@
 typedef double f64;
 
 #define EARTH_RADIUS 6372.8
+#define DATA_FILENAME "haversine_pairs.json"
+#define ANSWER_FILENAME "haversine_answer.f64"
 
 
 static void PrintUsage()
@@ -108,31 +110,34 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
-    printf("Generating Haversine distance coordinate pairs\n");
-    printf("Seed:\t\t%u\n", seed);
-    printf("Pair count:\t%llu\n\n", pairCount);
+    char *dataFilename = DATA_FILENAME;
+    FILE *dataFile;
+    dataFile = fopen(dataFilename, "w");
 
-    char *filename = "haversine_pairs.json";
-    FILE *file;
-    file = fopen(filename, "w");
-
-    if (!file)
+    if (!dataFile)
     {
-        printf("[ERROR] Unable to open '%s' for writing\n", filename);
+        printf("[ERROR] Unable to open '%s' for writing\n", dataFilename);
         return 1;
     }
 
-    f64 *distances = calloc(pairCount, sizeof(f64));
-    if (!distances)
+    char *answerFilename = ANSWER_FILENAME;
+    FILE *answerFile;
+    answerFile = fopen(answerFilename, "wb");
+
+    if (!answerFile)
     {
-        printf("[ERROR] Unable to allocate memory to hold Haversine distances (%llu bytes)\n", pairCount * sizeof(f64));
+        printf("[ERROR] Unable to open '%s' for writing\n", answerFilename);
         return 1;
     }
 
-    fputs("{\n\t\"pairs\": [\n", file);
+    printf("[INFO] Seed:\t\t%u\n", seed);
+    printf("[INFO] Pair count:\t%llu\n", pairCount);
+    printf("[INFO] Generating Haversine distance coordinate pairs...\n");
 
-    srand(seed);
+    fputs("{\n\t\"pairs\": [\n", dataFile);
+
     char *line[256];
+    srand(seed);
     for (int i = 0; i < pairCount; ++i)
     {
         f64 x0 = GetRandomFloatInRange(-180, 180);
@@ -140,26 +145,26 @@ int main(int argc, char const *argv[])
         f64 x1 = GetRandomFloatInRange(-180, 180);
         f64 y1 = GetRandomFloatInRange(-180, 180);
 
-        distances[i] = ReferenceHaversine(x0, y0, x1, y1, EARTH_RADIUS);
-
         sprintf((char *)line, "\t\t{ \"x0\":%f, \"y0\":%f, \"x1\":%f, \"y1\":%f }", x0, y0, x1, y1);
-        fputs((const char *)line, file);
+        fputs((const char *)line, dataFile);
         fputs((i == (pairCount - 1) ? "\n" : ",\n"),
-              file);
+              dataFile);
+
+        f64 distance = ReferenceHaversine(x0, y0, x1, y1, EARTH_RADIUS);
+        fwrite(&distance, sizeof(f64), 1, answerFile);
+
     }
 
-    fputs("\t]\n}\n", file);
-    fclose(file);
+    fputs("\t]\n}\n", dataFile);
 
-    printf("Haversine coordinate pairs saved to '%s'\n", filename);
+    fclose(dataFile);
+    fclose(answerFile);
+
+    printf("[INFO] Expected sum:\t%f\n", expectedSum);
 
     // TODO (Aaron): Use clustering for pairs
 
-    // TODO (Aaron): Keep track of the mean value of the distance between haversine pairs
-
-    // TODO (Aaron): Output a binary file containing the haversine solution for all pairs output in the json file
-
-    // TODO (Aaron): Try to figure out how to time execution time in C so I can time and compare these operations
+    // TODO (Aaron): Figure out how to time execution time in C so I can time and compare these operations
 
     return 0;
 }
