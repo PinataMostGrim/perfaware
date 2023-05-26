@@ -1,3 +1,9 @@
+/* // TODO (Aaron):
+    - Save seed to JSON file
+    - Use clustering for pairs
+    - Figure out how to time execution time in C so I can time and compare these operations
+*/
+
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -137,6 +143,8 @@ int main(int argc, char const *argv[])
     fputs("{\n\t\"pairs\": [\n", dataFile);
 
     char *line[256];
+    f64 expectedSum = 0;
+
     srand(seed);
     for (int i = 0; i < pairCount; ++i)
     {
@@ -146,25 +154,27 @@ int main(int argc, char const *argv[])
         f64 y1 = GetRandomFloatInRange(-180, 180);
 
         sprintf((char *)line, "\t\t{ \"x0\":%f, \"y0\":%f, \"x1\":%f, \"y1\":%f }", x0, y0, x1, y1);
-        fputs((const char *)line, dataFile);
+        fputs((char *)line, dataFile);
         fputs((i == (pairCount - 1) ? "\n" : ",\n"),
               dataFile);
 
         f64 distance = ReferenceHaversine(x0, y0, x1, y1, EARTH_RADIUS);
         fwrite(&distance, sizeof(f64), 1, answerFile);
 
+        // source: https://math.stackexchange.com/a/1153800
+        expectedSum = ((expectedSum * i) + distance) / (i + 1);
     }
 
-    fputs("\t]\n}\n", dataFile);
+    fputs("\t],\n", dataFile);
+
+    sprintf((char *)line, "\t\"expected_sum\":%f\n", expectedSum);
+    fputs((char *)line, dataFile);
+    fputs("}\n", dataFile);
 
     fclose(dataFile);
     fclose(answerFile);
 
     printf("[INFO] Expected sum:\t%f\n", expectedSum);
-
-    // TODO (Aaron): Use clustering for pairs
-
-    // TODO (Aaron): Figure out how to time execution time in C so I can time and compare these operations
 
     return 0;
 }
