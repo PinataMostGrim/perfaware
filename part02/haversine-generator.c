@@ -167,7 +167,10 @@ int main(int argc, char const *argv[])
 
     fputs("\t],\n", dataFile);
 
-    sprintf((char *)line, "\t\"expected_sum\":%f\n", expectedSum);
+    sprintf((char *)line, "\t\"expected_sum\":%f,\n", expectedSum);
+    fputs((char *)line, dataFile);
+
+    sprintf((char *)line, "\t\"seed\":%u\n", seed);
     fputs((char *)line, dataFile);
     fputs("}\n", dataFile);
 
