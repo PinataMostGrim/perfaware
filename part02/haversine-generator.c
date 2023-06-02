@@ -10,9 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "base.h"
+
 #pragma warning(disable:4996)
 
-typedef double f64;
 
 #define EARTH_RADIUS 6372.8
 #define DATA_FILENAME "haversine_pairs.json"
@@ -34,49 +35,49 @@ static void PrintUsage()
 }
 
 
-static f64 GetRandomFloatInRange(f64 minValue, f64 maxValue)
+static F64 GetRandomFloatInRange(F64 minValue, F64 maxValue)
 {
-    f64 scale = (f64)rand() / (f64)RAND_MAX;
+    F64 scale = (F64)rand() / (F64)RAND_MAX;
     return minValue + scale * (maxValue - minValue);
 }
 
 
-static f64 Square(f64 A)
+static F64 Square(F64 A)
 {
-    f64 Result = (A*A);
+    F64 Result = (A*A);
     return Result;
 }
 
 
-static f64 RadiansFromDegrees(f64 Degrees)
+static F64 RadiansFromDegrees(F64 Degrees)
 {
-    f64 Result = 0.01745329251994329577f * Degrees;
+    F64 Result = 0.01745329251994329577f * Degrees;
     return Result;
 }
 
 
 // NOTE(casey): EarthRadius is generally expected to be 6372.8
-static f64 ReferenceHaversine(f64 X0, f64 Y0, f64 X1, f64 Y1, f64 EarthRadius)
+static F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius)
 {
     /* NOTE(casey): This is not meant to be a "good" way to calculate the Haversine distance.
        Instead, it attempts to follow, as closely as possible, the formula used in the real-world
        question on which these homework exercises are loosely based.
     */
 
-    f64 lat1 = Y0;
-    f64 lat2 = Y1;
-    f64 lon1 = X0;
-    f64 lon2 = X1;
+    F64 lat1 = Y0;
+    F64 lat2 = Y1;
+    F64 lon1 = X0;
+    F64 lon2 = X1;
 
-    f64 dLat = RadiansFromDegrees(lat2 - lat1);
-    f64 dLon = RadiansFromDegrees(lon2 - lon1);
+    F64 dLat = RadiansFromDegrees(lat2 - lat1);
+    F64 dLon = RadiansFromDegrees(lon2 - lon1);
     lat1 = RadiansFromDegrees(lat1);
     lat2 = RadiansFromDegrees(lat2);
 
-    f64 a = Square(sin(dLat/2.0)) + cos(lat1)*cos(lat2)*Square(sin(dLon/2));
-    f64 c = 2.0*asin(sqrt(a));
+    F64 a = Square(sin(dLat/2.0)) + cos(lat1)*cos(lat2)*Square(sin(dLon/2));
+    F64 c = 2.0*asin(sqrt(a));
 
-    f64 Result = EarthRadius * c;
+    F64 Result = EarthRadius * c;
 
     return Result;
 }
@@ -142,23 +143,26 @@ int main(int argc, char const *argv[])
     fputs("{\n\t\"pairs\": [\n", dataFile);
 
     char *line[256];
-    f64 expectedSum = 0;
+    F64 expectedSum = 0;
 
     srand(seed);
     for (int i = 0; i < pairCount; ++i)
     {
-        f64 x0 = GetRandomFloatInRange(-180, 180);
-        f64 y0 = GetRandomFloatInRange(-180, 180);
-        f64 x1 = GetRandomFloatInRange(-180, 180);
-        f64 y1 = GetRandomFloatInRange(-180, 180);
+        V2F64 point0 = v2f64(
+            GetRandomFloatInRange(-180, 180),
+            GetRandomFloatInRange(-180, 180));
 
-        sprintf((char *)line, "\t\t{ \"x0\":%f, \"y0\":%f, \"x1\":%f, \"y1\":%f }", x0, y0, x1, y1);
+        V2F64 point1 = v2f64(
+            GetRandomFloatInRange(-180, 180),
+            GetRandomFloatInRange(-180, 180));
+
+        sprintf((char *)line, "\t\t{ \"x0\":%f, \"y0\":%f, \"x1\":%f, \"y1\":%f }", point0.x, point0.y, point1.x, point1.y);
         fputs((char *)line, dataFile);
         fputs((i == (pairCount - 1) ? "\n" : ",\n"),
               dataFile);
 
-        f64 distance = ReferenceHaversine(x0, y0, x1, y1, EARTH_RADIUS);
-        fwrite(&distance, sizeof(f64), 1, answerFile);
+        F64 distance = ReferenceHaversine(point0.x, point0.y, point1.x, point1.y, EARTH_RADIUS);
+        fwrite(&distance, sizeof(F64), 1, answerFile);
 
         // source: https://math.stackexchange.com/a/1153800
         expectedSum = ((expectedSum * i) + distance) / (i + 1);
