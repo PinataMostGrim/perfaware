@@ -168,9 +168,9 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
+    printf("[INFO] Generating Haversine distance coordinate pairs...\n");
     printf("[INFO] Seed:\t\t%u\n", seed);
     printf("[INFO] Pair count:\t%llu\n", pairCount);
-    printf("[INFO] Generating Haversine distance coordinate pairs...\n");
 
     fputs("{\n\t\"pairs\": [\n", dataFile);
 
@@ -252,6 +252,10 @@ int main(int argc, char const *argv[])
     fclose(answerFile);
 
     printf("[INFO] Expected sum:\t%f\n", expectedSum);
+
+    printf("\n");
+    printf("[INFO] Data file: \t%s\n", dataFilename);
+    printf("[INFO] Answer file: \t%s\n", answerFilename);
 
     return 0;
 }
