@@ -1,5 +1,4 @@
 /* // TODO (Aaron):
-    - Use clustering for pairs
     - Figure out how to time execution time in C so I can time and compare these operations
 */
 
@@ -15,6 +14,7 @@
 #include "base.h"
 
 #define EARTH_RADIUS 6372.8
+#define CLUSTER_PROXIMITY 20
 #define DATA_FILENAME "haversine-pairs.json"
 #define ANSWER_FILENAME "haversine-answer.f64"
 
@@ -34,21 +34,52 @@ static void PrintUsage()
 }
 
 
-static F64 GetRandomFloatInRange(F64 minValue, F64 maxValue)
+function S64 GetRandomS64InRange(S64 minValue, S64 maxValue)
+{
+    F64 scale = (F64)rand() / (F64)RAND_MAX;
+    return minValue + (S64)(scale * (maxValue - minValue));
+}
+
+
+function F64 GetRandomF64InRange(F64 minValue, F64 maxValue)
 {
     F64 scale = (F64)rand() / (F64)RAND_MAX;
     return minValue + scale * (maxValue - minValue);
 }
 
 
-static F64 Square(F64 A)
+// Perform modulo operation on values so they fall within the range (-180, 180)
+function F64 CanonicalizeCoordinate(F64 value)
+{
+    value += 180;
+    if (value > 360)
+    {
+        while (value > 360)
+        {
+            value -= 360;
+        }
+    }
+    else
+    {
+        while (value < 0)
+        {
+            value += 360;
+        }
+    }
+    value -= 180;
+
+    return value;
+}
+
+
+function F64 Square(F64 A)
 {
     F64 Result = (A*A);
     return Result;
 }
 
 
-static F64 RadiansFromDegrees(F64 Degrees)
+function F64 RadiansFromDegrees(F64 Degrees)
 {
     F64 Result = 0.01745329251994329577f * Degrees;
     return Result;
@@ -56,7 +87,7 @@ static F64 RadiansFromDegrees(F64 Degrees)
 
 
 // NOTE(casey): EarthRadius is generally expected to be 6372.8
-static F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius)
+function F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius)
 {
     /* NOTE(casey): This is not meant to be a "good" way to calculate the Haversine distance.
        Instead, it attempts to follow, as closely as possible, the formula used in the real-world
@@ -115,6 +146,7 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
+    // Open data file
     char *dataFilename = DATA_FILENAME;
     FILE *dataFile;
     dataFile = fopen(dataFilename, "w");
@@ -125,6 +157,7 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
+    // Open answer file
     char *answerFilename = ANSWER_FILENAME;
     FILE *answerFile;
     answerFile = fopen(answerFilename, "wb");
@@ -141,19 +174,41 @@ int main(int argc, char const *argv[])
 
     fputs("{\n\t\"pairs\": [\n", dataFile);
 
+    srand(seed);
+
+    // Generate cluster points
+    V2F64 clusters[64];
+    for (int i = 0; i < ArrayCount(clusters); ++i)
+    {
+        V2F64 cluster = v2f64(
+            GetRandomF64InRange(-180, 180),
+            GetRandomF64InRange(-180, 180));
+
+        clusters[i] = cluster;
+    }
+
     char *line[256];
     F64 expectedSum = 0;
 
-    srand(seed);
+    // Generate Haversine distance pairs
     for (int i = 0; i < pairCount; ++i)
     {
+        S64 clusterIndex0 = GetRandomS64InRange(0, ArrayCount(clusters));
+        V2F64 clusterPoint0 = clusters[clusterIndex0];
         V2F64 point0 = v2f64(
-            GetRandomFloatInRange(-180, 180),
-            GetRandomFloatInRange(-180, 180));
+            GetRandomF64InRange(clusterPoint0.x - CLUSTER_PROXIMITY, clusterPoint0.x + CLUSTER_PROXIMITY),
+            GetRandomF64InRange(clusterPoint0.y - CLUSTER_PROXIMITY, clusterPoint0.y + CLUSTER_PROXIMITY));
 
+        S64 clusterIndex1 = GetRandomS64InRange(0, ArrayCount(clusters));
+        V2F64 clusterPoint1 = clusters[clusterIndex1];
         V2F64 point1 = v2f64(
-            GetRandomFloatInRange(-180, 180),
-            GetRandomFloatInRange(-180, 180));
+            GetRandomF64InRange(clusterPoint1.x - CLUSTER_PROXIMITY, clusterPoint1.x + CLUSTER_PROXIMITY),
+            GetRandomF64InRange(clusterPoint1.y - CLUSTER_PROXIMITY, clusterPoint1.y + CLUSTER_PROXIMITY));
+
+        point0.x = CanonicalizeCoordinate(point0.x);
+        point0.y = CanonicalizeCoordinate(point0.y);
+        point1.x = CanonicalizeCoordinate(point1.x);
+        point1.y = CanonicalizeCoordinate(point1.y);
 
         sprintf((char *)line, "\t\t{ \"x0\":%f, \"y0\":%f, \"x1\":%f, \"y1\":%f }", point0.x, point0.y, point1.x, point1.y);
         fputs((char *)line, dataFile);
