@@ -231,7 +231,24 @@ int main(int argc, char const *argv[])
     fputs((char *)line, dataFile);
     fputs("}\n", dataFile);
 
+    if (ferror(dataFile))
+    {
+        fclose(dataFile);
+        Assert(false);
+
+        printf("[ERROR] Error writing file %s\n", dataFilename);
+        exit(1);
+    }
     fclose(dataFile);
+
+    if (ferror(answerFile))
+    {
+        fclose(answerFile);
+        Assert(false);
+
+        printf("[ERROR] Error writing file %s\n", answerFilename);
+        exit(1);
+    }
     fclose(answerFile);
 
     printf("[INFO] Expected sum:\t%f\n", expectedSum);
