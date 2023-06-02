@@ -219,7 +219,7 @@ int main(int argc, char const *argv[])
         fwrite(&distance, sizeof(F64), 1, answerFile);
 
         // source: https://math.stackexchange.com/a/1153800
-        expectedSum = ((expectedSum * i) + distance) / (i + 1);
+        expectedSum = ((expectedSum * (F64)i) + distance) / (F64)(i + 1);
     }
 
     fputs("\t],\n", dataFile);
