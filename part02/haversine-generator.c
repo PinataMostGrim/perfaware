@@ -3,6 +3,8 @@
     - Figure out how to time execution time in C so I can time and compare these operations
 */
 
+#pragma warning(disable:4996)
+
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -12,12 +14,9 @@
 
 #include "base.h"
 
-#pragma warning(disable:4996)
-
-
 #define EARTH_RADIUS 6372.8
-#define DATA_FILENAME "haversine_pairs.json"
-#define ANSWER_FILENAME "haversine_answer.f64"
+#define DATA_FILENAME "haversine-pairs.json"
+#define ANSWER_FILENAME "haversine-answer.f64"
 
 
 static void PrintUsage()
