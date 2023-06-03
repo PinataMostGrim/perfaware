@@ -35,6 +35,9 @@
 #define c_linkage_end }
 #define c_linkage extern "C"
 
+#define TRUE 1
+#define FALSE 0
+
 
 // +------------------------------+
 // Note (Aaron): Typedefs
