@@ -31,12 +31,12 @@
 #define global static
 #define function static
 
+#define TRUE 1
+#define FALSE 0
+
 #define c_linkage_begin extern "C"{
 #define c_linkage_end }
 #define c_linkage extern "C"
-
-#define TRUE 1
-#define FALSE 0
 
 
 // +------------------------------+
@@ -155,37 +155,37 @@ typedef struct
 
 function V2F32 v2f32(F32 x, F32 y)
 {
-    V2F32 r = { x = x, y = y };
+    V2F32 r = { .x = x, .y = y };
     return r;
 }
 
 function V2F64 v2f64(F64 x, F64 y)
 {
-    V2F64 r = { x = x, y = y };
+    V2F64 r = { .x = x, .y = y };
     return r;
 }
 
 function V3F32 v3f32(F32 x, F32 y, F32 z)
 {
-    V3F32 r = { x = x, y = y, z = z };
+    V3F32 r = { .x = x, .y = y, .z = z };
     return r;
 }
 
 function V3F64 v3f64(F64 x, F64 y, F64 z)
 {
-    V3F64 r = { x = x, y = y, z = z };
+    V3F64 r = { .x = x, .y = y, .z = z };
     return r;
 }
 
 function V4F32 v4f32(F32 x, F32 y, F32 z, F32 w)
 {
-    V4F32 r = { x = x, y = y, z = z, w = w };
+    V4F32 r = { .x = x, .y = y, .z = z, .w = w };
     return r;
 }
 
 function V4F64 v4f64(F64 x, F64 y, F64 z, F64 w)
 {
-    V4F64 r = { x = x, y = y, z = z, w = w };
+    V4F64 r = { .x = x, .y = y, .z = z, .w = w };
     return r;
 }
 
