@@ -4,11 +4,12 @@
 
 #pragma warning(disable:4996)
 
-#include <stdlib.h>
+#include <assert.h>
 #include <ctype.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "base.h"
@@ -16,6 +17,49 @@
 #define EARTH_RADIUS 6372.8
 #define DATA_FILENAME "haversine-pairs.json"
 #define ANSWER_FILENAME "haversine-answer.f64"
+
+// TODO (Aaron): Consider how to best pick this size
+#define MAX_TOKEN_LENGTH 256
+
+
+// TODO (Aaron): Specify an int size for enum?
+typedef enum
+{
+    Token_unknown,          //
+    Token_identifier,       // string
+    Token_value,            // signed int
+    Token_assignment,       // :
+    Token_delimiter,        // ,
+    Token_scope_open,       // {
+    Token_scope_close,      // }
+    Token_array_start,      // [
+    Token_array_end,        // ]
+    Token_EOF,              //
+
+    Token_type_count,
+} token_type;
+
+
+static char *TokenMnemonics[] =
+{
+    "Token_unknown",
+    "Token_identifier",
+    "Token_value",
+    "Token_assignment",
+    "Token_delimiter",
+    "Token_scope_open",
+    "Token_scope_close",
+    "Token_array_start",
+    "Token_array_end",
+    "Token_EOF",
+};
+
+
+typedef struct
+{
+    token_type Type;
+    char String[MAX_TOKEN_LENGTH];
+} token;
 
 
 function F64 Square(F64 A)
@@ -59,6 +103,17 @@ function F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius)
 }
 
 
+static void *MemorySet(uint8_t *destPtr, int c, size_t count)
+{
+    Assert(count > 0);
+
+    unsigned char *dest = (unsigned char *)destPtr;
+    while(count--) *dest++ = (unsigned char)c;
+
+    return destPtr;
+}
+
+
 // Eat characters from a file stream until we get a non-whitespace character or reach EOF
 int EatNextCharacter(FILE *file)
 {
@@ -84,6 +139,90 @@ int EatNextCharacter(FILE *file)
 }
 
 
+char *GetTokenMenemonic(token_type tokenType)
+{
+    static_assert(ArrayCount(TokenMnemonics) == Token_type_count,
+        "'TokenMnemonics' count does not match 'Token_type_count'");
+
+    return TokenMnemonics[tokenType];
+}
+
+
+// Extracts next JSON token from file stream
+token GetNextToken(FILE *file)
+{
+    token token;
+    token.Type = Token_unknown;
+    MemorySet((U8 *)token.String, 0, sizeof(token.String));
+
+    for (int i = 0; i < MAX_TOKEN_LENGTH; ++i)
+    {
+        char nextChar = (char)EatNextCharacter(file);
+        token.String[i] = nextChar;
+
+        if (nextChar == 0)
+        {
+            token.Type = Token_EOF;
+            return token;
+        }
+
+        if (token.Type == Token_unknown && nextChar == '{')
+        {
+            token.Type = Token_scope_open;
+            return token;
+        }
+
+        if (token.Type == Token_unknown && nextChar == '}')
+        {
+            token.Type = Token_scope_close;
+            return token;
+        }
+
+        if (token.Type == Token_unknown && nextChar == ':')
+        {
+            token.Type = Token_assignment;
+            return token;
+        }
+
+        if (token.Type == Token_unknown && nextChar == '[')
+        {
+            token.Type = Token_array_start;
+            return token;
+        }
+
+        if (token.Type == Token_unknown && nextChar == ']')
+        {
+            token.Type = Token_array_end;
+            return token;
+        }
+
+        if (token.Type == Token_unknown && nextChar == ',')
+        {
+            token.Type = Token_delimiter;
+            return token;
+        }
+
+        if (token.Type == Token_unknown && nextChar == '"')
+        {
+            token.Type = Token_identifier;
+            continue;
+        }
+
+        if (token.Type == Token_identifier)
+        {
+            if (nextChar != '"')
+            {
+                continue;
+            }
+
+            return token;
+        }
+    }
+
+    return token;
+}
+
+
 // int main(int argc, char const *argv[])
 int main()
 {
@@ -99,24 +238,20 @@ int main()
         return 1;
     }
 
-    // walk through entire file one char at a time
-    // for (int i = 0; i < 100; ++i)
     for (;;)
     {
-        int nextChar = EatNextCharacter(dataFile);
-        if (nextChar == 0)
+        token nextToken = GetNextToken(dataFile);
+
+        printf("Token type: %s, token value: %s\n",
+               GetTokenMenemonic(nextToken.Type),
+               nextToken.String);
+
+        if (nextToken.Type == Token_EOF)
         {
             printf("\n");
             printf("[INFO] Reached end of file\n");
             break;
         }
-
-        printf("%c", nextChar);
-        // printf("%i ", nextChar);
-
-        // TODO (Aaron): Do processing on the char
-
-        // TODO (Aaron): parsing "pairs"
     }
 
     if (ferror(dataFile))
