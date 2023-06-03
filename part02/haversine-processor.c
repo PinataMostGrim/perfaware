@@ -19,7 +19,7 @@
 #define ANSWER_FILENAME "haversine-answer.f64"
 
 // TODO (Aaron): Consider how to best pick this size
-#define MAX_TOKEN_LENGTH 256
+#define MAX_TOKEN_LENGTH 32
 
 
 // TODO (Aaron): Specify an int size for enum?
@@ -44,6 +44,7 @@ typedef struct
 {
     token_type Type;
     char String[MAX_TOKEN_LENGTH];
+    U32 Length;
 } token;
 
 
@@ -178,11 +179,13 @@ token GetNextToken(FILE *file)
     token token;
     token.Type = Token_unknown;
     MemorySet((U8 *)token.String, 0, sizeof(token.String));
+    token.Length = 0;
 
     for (int i = 0; i < MAX_TOKEN_LENGTH; ++i)
     {
         char nextChar = (char)PeekNextCharacter(file);
         token.String[i] = nextChar;
+        token.Length++;
 
         if (nextChar == 0)
         {
@@ -264,6 +267,7 @@ token GetNextToken(FILE *file)
             }
 
             token.String[i] = 0;
+            token.Length--;
             return token;
         }
 
@@ -271,6 +275,8 @@ token GetNextToken(FILE *file)
         Assert(false);
     }
 
+    // Note (Aaron): If we reach this code path, we've exceeded the maximum token size and the token is invalid
+    Assert(false);
     return token;
 }
 
@@ -290,13 +296,20 @@ int main()
         return 1;
     }
 
+    S64 maxTokenLength = 0;
+
     for (;;)
     {
         token nextToken = GetNextToken(dataFile);
 
-        printf("Token type: %s, token value: %s\n",
+        printf("Token type: %s \t|  Token value: %s \t\t|  Token length: %i\n",
                GetTokenMenemonic(nextToken.Type),
-               nextToken.String);
+               nextToken.String,
+               nextToken.Length);
+
+        maxTokenLength = nextToken.Length > maxTokenLength
+            ? nextToken.Length
+            : maxTokenLength;
 
         if (nextToken.Type == Token_EOF)
         {
@@ -316,6 +329,8 @@ int main()
     }
 
     fclose(dataFile);
+
+    printf("[INFO] Max token length: '%lli'\n", maxTokenLength);
 
     return 0;
 }
