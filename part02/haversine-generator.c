@@ -1,4 +1,5 @@
-/* // TODO (Aaron):
+/*  TODO (Aaron):
+    - Make seed an optional argument
     - Figure out how to time execution time in C so I can time and compare these operations
 */
 
