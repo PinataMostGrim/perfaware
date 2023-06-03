@@ -4,6 +4,7 @@
         {
             "path": ".",
             "index_exclude_patterns": [".cache/*", ".git/*", "*.exe", "*.obj", "*.ilk", "*.pdb"],
+            "binary_file_patterns": ["*.exe", "*.ilk", "*.obj", "*.pdb"],
         }
     ],
     "build_systems":
@@ -21,6 +22,30 @@
                 // file_regex for clang
                 "file_regex": "^(..[^:\\n]*):([0-9]+):?([0-9]+)?:? (.*)$",
                 "shell_cmd": "./build-sim8086.sh"
+            },
+            "working_dir": "${project_path}",
+            "env":
+            {
+                "DEBUG": "0"
+            },
+            "quiet": false,
+            "variants" :
+            [
+                {
+                    "name": "Debug",
+                    "env":
+                    {
+                        "DEBUG": "1"
+                    },
+                },
+            ],
+        },
+        {
+            "name": "Build haversine generator",
+            "windows":
+            {
+                "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
+                "shell_cmd": "call vcvarsall.bat x64 && build-haversine-gen.bat",
             },
             "working_dir": "${project_path}",
             "env":

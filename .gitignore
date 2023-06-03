@@ -1,3 +1,8 @@
+# Build files
+*.exe
+*.ilk
+*.obj
+*.pdb
 *.cache
 
 # Sublime Text files
