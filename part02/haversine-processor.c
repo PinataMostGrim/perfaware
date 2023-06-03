@@ -25,7 +25,7 @@
 // TODO (Aaron): Specify an int size for enum?
 typedef enum
 {
-    Token_unknown,          //
+    Token_invalid,          //
     Token_identifier,       // string
     Token_value,            // signed int
     Token_assignment,       // :
@@ -50,7 +50,7 @@ typedef struct
 
 global const char *TokenMnemonics[] =
 {
-    "Token_unknown",
+    "Token_invalid",
     "Token_identifier",
     "Token_value",
     "Token_assignment",
@@ -177,7 +177,7 @@ bool IsFloatingPointChar(char character)
 token GetNextToken(FILE *file)
 {
     token token;
-    token.Type = Token_unknown;
+    token.Type = Token_invalid;
     MemorySet((U8 *)token.String, 0, sizeof(token.String));
     token.Length = 0;
 
@@ -194,7 +194,7 @@ token GetNextToken(FILE *file)
             return token;
         }
 
-        if (token.Type == Token_unknown)
+        if (token.Type == Token_invalid)
         {
             EatNextCharacter(file);
 
