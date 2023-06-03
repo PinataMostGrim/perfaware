@@ -1,5 +1,9 @@
 /*  TODO (Aaron):
-    - Parse JSON
+    - Use a token stack to parse through the "pairs" array
+    - Load and consume the binary "answers" file for validation
+    - Create a struct for stats (max token length, number of tokens, etc)
+    - Extract Haversine lexing into its own file
+    - Extract file names into 'haversine.h'
 */
 
 #pragma warning(disable:4996)
@@ -318,7 +322,7 @@ int main()
             break;
         }
 
-        // TODO (Aaron): Parse tokens
+        // TODO (Aaron): Parse!
     }
 
     if (ferror(dataFile))
