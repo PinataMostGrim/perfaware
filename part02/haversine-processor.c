@@ -1,8 +1,6 @@
 /*  TODO (Aaron):
     - Use a token stack to parse through the "pairs" array
-    - Load and consume the binary "answers" file for validation
-    - Create a struct for stats (max token length, number of tokens, etc)
-    - Extract file names into 'haversine.h'
+    - Optionally load and consume the binary "answers" file for validation
 */
 
 #pragma warning(disable:4996)
@@ -19,7 +17,22 @@
 #include <string.h>
 
 
-// int main(int argc, char const *argv[])
+typedef struct
+{
+    S64 TokenCount;
+    S64 MaxTokenLength;
+} processor_stats;
+
+
+function void PrintStats(processor_stats stats)
+{
+    printf("[INFO] Stats:\n");
+    printf("[INFO]  Tokens processed: '%lli'\n", stats.TokenCount);
+    printf("[INFO]  Max token length: '%lli'\n", stats.MaxTokenLength);
+    printf("\n");
+}
+
+
 int main()
 {
     char *dataFilename = DATA_FILENAME;
@@ -34,20 +47,25 @@ int main()
         return 1;
     }
 
-    S64 maxTokenLength = 0;
+    processor_stats stats =
+    {
+        .TokenCount = 0,
+        .MaxTokenLength = 0,
+    };
 
     for (;;)
     {
         token nextToken = GetNextToken(dataFile);
+        stats.TokenCount++;
 
         printf("Token type: %s \t|  Token value: %s \t\t|  Token length: %i\n",
                GetTokenMenemonic(nextToken.Type),
                nextToken.String,
                nextToken.Length);
 
-        maxTokenLength = nextToken.Length > maxTokenLength
+        stats.MaxTokenLength = nextToken.Length > stats.MaxTokenLength
             ? nextToken.Length
-            : maxTokenLength;
+            : stats.MaxTokenLength;
 
         if (nextToken.Type == Token_EOF)
         {
@@ -68,7 +86,7 @@ int main()
 
     fclose(dataFile);
 
-    printf("[INFO] Max token length: '%lli'\n", maxTokenLength);
+    PrintStats(stats);
 
     return 0;
 }
