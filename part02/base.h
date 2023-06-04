@@ -189,4 +189,18 @@ function V4F64 v4f64(F64 x, F64 y, F64 z, F64 w)
     return r;
 }
 
+
+// +------------------------------+
+// Note (Aaron): Helper Functions
+
+static void *MemorySet(uint8_t *destPtr, int c, size_t count)
+{
+    Assert(count > 0);
+
+    unsigned char *dest = (unsigned char *)destPtr;
+    while(count--) *dest++ = (unsigned char)c;
+
+    return destPtr;
+}
+
 #endif // BASE_H
