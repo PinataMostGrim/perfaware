@@ -38,13 +38,13 @@ typedef struct
     token_type Type;
     char String[MAX_TOKEN_LENGTH];
     U32 Length;
-} token;
+} haversine_token;
 
 
 function const char *GetTokenMenemonic(token_type tokenType);
 function int EatNextCharacter(FILE *file);
 function int PeekNextCharacter(FILE *file);
 function B8 IsFloatingPointChar(char character);
-function token GetNextToken(FILE *file);
+function haversine_token GetNextToken(FILE *file);
 
 #endif // HAVERSINE_LEXER_H

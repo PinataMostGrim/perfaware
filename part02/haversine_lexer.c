@@ -79,9 +79,9 @@ function B8 IsFloatingPointChar(char character)
 
 
 // Extracts next JSON token from file stream
-function token GetNextToken(FILE *file)
+function haversine_token GetNextToken(FILE *file)
 {
-    token token;
+    haversine_token token;
     token.Type = Token_invalid;
     MemorySet((U8 *)token.String, 0, sizeof(token.String));
     token.Length = 0;

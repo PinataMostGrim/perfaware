@@ -70,10 +70,10 @@ function void *PopSize_(memory_arena *arena, memory_index size)
 #define PopSize(arena, type) (type *)PopSize_(arena, sizeof(type))
 
 
-function token *PushToken(memory_arena *tokenStack, token value)
+function haversine_token *PushToken(memory_arena *tokenStack, haversine_token value)
 {
-    token *tokenPtr = PushSize(tokenStack, token);
-    memcpy(tokenPtr, &value, sizeof(token));
+    haversine_token *tokenPtr = PushSize(tokenStack, haversine_token);
+    memcpy(tokenPtr, &value, sizeof(haversine_token));
 
     // TODO (Aaron): Error handling?
 
@@ -81,15 +81,15 @@ function token *PushToken(memory_arena *tokenStack, token value)
 }
 
 
-function token PopToken(memory_arena *arena)
+function haversine_token PopToken(memory_arena *arena)
 {
-    token result;
-    token *tokenPtr = PopSize(arena, token);
+    haversine_token result;
+    haversine_token *tokenPtr = PopSize(arena, haversine_token);
 
-    memcpy(&result, tokenPtr, sizeof(token));
+    memcpy(&result, tokenPtr, sizeof(haversine_token));
 
 #if HAVERSINE_SLOW
-    MemorySet((U8 *)tokenPtr, 0xff, sizeof(token));
+    MemorySet((U8 *)tokenPtr, 0xff, sizeof(haversine_token));
 #endif
 
     // TODO (Aaron): Error handling?
@@ -144,7 +144,7 @@ int main()
 
     for (;;)
     {
-        token nextToken = GetNextToken(dataFile);
+        haversine_token nextToken = GetNextToken(dataFile);
         stats.TokenCount++;
 
         printf("Token type: %s \t|  Token value: %s \t\t|  Token length: %i\n",
@@ -165,8 +165,8 @@ int main()
 
         // TODO (Aaron): Parse tokens
 
-        token *tokenPtr = PushToken(&tokenStack, nextToken);
-        token poppedToken = PopToken(&tokenStack);
+        haversine_token *tokenPtr = PushToken(&tokenStack, nextToken);
+        haversine_token poppedToken = PopToken(&tokenStack);
     }
 
     if (ferror(dataFile))
