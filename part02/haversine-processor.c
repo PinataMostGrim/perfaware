@@ -2,6 +2,7 @@
     - Use a token stack to parse through the "pairs" array
     - Optionally load and consume the binary "answers" file for validation
     - Replace memcpy with hand-rolled version in base.h
+    - Consider making a stack typedef instead of using memory_arena directly
 */
 
 #pragma warning(disable:4996)
@@ -9,6 +10,7 @@
 #include "base.h"
 #include "haversine.c"
 #include "haversine_lexer.c"
+#include "memory_arena.c"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,54 +22,6 @@ typedef struct
     S64 TokenCount;
     S64 MaxTokenLength;
 } processor_stats;
-
-
-typedef size_t memory_index;
-
-typedef struct
-{
-    U8 *BasePtr;
-    U8 *PosPtr;
-    memory_index Size;
-    memory_index Used;
-} memory_arena;
-
-
-function void InitializeArena(memory_arena *arena, memory_index size, U8 *basePtr)
-{
-    arena->BasePtr = basePtr;
-    arena->PosPtr = basePtr;
-    arena->Size = size;
-    arena->Used = 0;
-}
-
-
-function void *PushSize_(memory_arena *arena, memory_index size)
-{
-    Assert((arena->Used + size) <= arena->Size);
-
-    void *result = arena->BasePtr + arena->Used;
-    arena->Used += size;
-    arena->PosPtr = arena->BasePtr + arena->Used;
-
-    return result;
-}
-
-
-function void *PopSize_(memory_arena *arena, memory_index size)
-{
-    Assert(arena->Used >= size);
-
-    arena->Used -= size;
-    arena->PosPtr = arena->BasePtr + arena->Used;
-
-    void *result = arena->BasePtr + arena->Used;
-    return result;
-}
-
-
-#define PushSize(arena, type) (type *)PushSize_(arena, sizeof(type))
-#define PopSize(arena, type) (type *)PopSize_(arena, sizeof(type))
 
 
 function haversine_token *PushToken(memory_arena *tokenStack, haversine_token value)
