@@ -74,7 +74,7 @@ function int PeekNextCharacter(FILE *file)
 }
 
 // Returns whether or not the character belong to the set of characters used by floating point values
-function bool IsFloatingPointChar(char character)
+function B8 IsFloatingPointChar(char character)
 {
     return (isdigit(character) || character == '.' || character == '-');
 }
@@ -179,10 +179,10 @@ function token GetNextToken(FILE *file)
         }
 
         // Note (Aaron): If we reach this code path, we've failed to identify the token
-        Assert(false);
+        Assert(FALSE);
     }
 
     // Note (Aaron): If we reach this code path, we've exceeded the maximum token size and the token is invalid
-    Assert(false);
+    Assert(FALSE);
     return token;
 }

@@ -8,7 +8,6 @@
 
 #include "base.h"
 
-#include <stdbool.h>
 #include <stdio.h>
 
 #define MAX_TOKEN_LENGTH 32
@@ -42,7 +41,7 @@ typedef struct
 function const char *GetTokenMenemonic(token_type tokenType);
 function int EatNextCharacter(FILE *file);
 function int PeekNextCharacter(FILE *file);
-function bool IsFloatingPointChar(char character);
+function B8 IsFloatingPointChar(char character);
 function token GetNextToken(FILE *file);
 
 #endif // HAVERSINE_LEXER_H
