@@ -4,9 +4,6 @@
 
 #include "haversine_lexer.h"
 
-#include <assert.h>
-#include <ctype.h>
-
 
 global const char *TokenMnemonics[] =
 {

@@ -8,7 +8,10 @@
 
 #include "base.h"
 
+#include <assert.h>
+#include <ctype.h>
 #include <stdio.h>
+
 
 #define MAX_TOKEN_LENGTH 32
 
