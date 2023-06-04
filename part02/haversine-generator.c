@@ -6,6 +6,8 @@
 #pragma warning(disable:4996)
 
 #include "base.h"
+#include "haversine.h"
+
 #include "haversine.c"
 
 #include <stdio.h>

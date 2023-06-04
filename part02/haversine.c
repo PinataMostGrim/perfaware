@@ -1,4 +1,7 @@
+#include "base.h"
 #include "haversine.h"
+
+#include <math.h>
 
 
 function F64 Square(F64 A)

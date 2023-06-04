@@ -3,7 +3,12 @@
     - Consider eliminating quotes from identifier token strings
 */
 
+#include "base.h"
 #include "haversine_lexer.h"
+
+#include <assert.h>
+#include <ctype.h>
+#include <stdio.h>
 
 
 global const char *TokenMnemonics[] =

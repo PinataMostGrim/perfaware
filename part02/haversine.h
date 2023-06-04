@@ -3,8 +3,6 @@
 
 #include "base.h"
 
-#include <math.h>
-
 #define EARTH_RADIUS 6372.8
 #define DATA_FILENAME "haversine-pairs.json"
 #define ANSWER_FILENAME "haversine-answer.f64"
