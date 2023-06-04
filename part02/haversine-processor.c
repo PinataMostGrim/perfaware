@@ -18,14 +18,36 @@
 
 typedef struct
 {
+    memory_arena *Arena;
+    S64 TokenCount;
+} token_stack;
+
+
+typedef struct
+{
     S64 TokenCount;
     S64 MaxTokenLength;
 } processor_stats;
 
 
-function haversine_token *PushToken(memory_arena *tokenStack, haversine_token value)
+function void InitializeTokenStack(token_stack *stack, memory_arena *arena)
 {
-    haversine_token *tokenPtr = PushSize(tokenStack, haversine_token);
+    stack->Arena = arena;
+    stack->TokenCount = 0;
+}
+
+
+function void InitializeProcessorStats(processor_stats *stats)
+{
+    stats->TokenCount = 0;
+    stats->MaxTokenLength = 0;
+}
+
+
+function haversine_token *PushToken(token_stack *tokenStack, haversine_token value)
+{
+    haversine_token *tokenPtr = PushSize(tokenStack->Arena, haversine_token);
+    tokenStack->TokenCount++;
     MemoryCopy(tokenPtr, &value, sizeof(haversine_token));
 
     // TODO (Aaron): Error handling?
@@ -34,10 +56,11 @@ function haversine_token *PushToken(memory_arena *tokenStack, haversine_token va
 }
 
 
-function haversine_token PopToken(memory_arena *arena)
+function haversine_token PopToken(token_stack *tokenStack)
 {
     haversine_token result;
-    haversine_token *tokenPtr = PopSize(arena, haversine_token);
+    haversine_token *tokenPtr = PopSize(tokenStack->Arena, haversine_token);
+    tokenStack->TokenCount--;
 
     MemoryCopy(&result, tokenPtr, sizeof(haversine_token));
 
@@ -75,39 +98,40 @@ int main()
     }
 
     // allocate memory arena for token stack
-    memory_arena tokenStack;
+    memory_arena tokenArena;
     U8 *memoryPtr = calloc(1, Megabytes(1));
     if (!memoryPtr)
     {
         printf("[ERROR] Unable to allocate memory for token stack");
         exit(1);
     }
+    InitializeArena(&tokenArena, Megabytes(1), memoryPtr);
 
-    InitializeArena(&tokenStack, Megabytes(1), memoryPtr);
 #if HAVERSINE_SLOW
     // Note (Aaron): Fill memory with 1s for debug purposes
     MemorySet(memoryPtr, 0xff, Megabytes(1));
 #endif
 
-    processor_stats stats =
-    {
-        .TokenCount = 0,
-        .MaxTokenLength = 0,
-    };
+    token_stack tokenStack;
+    InitializeTokenStack(&tokenStack, &tokenArena);
+
+    processor_stats stats;
+    InitializeProcessorStats(&stats);
 
     for (;;)
     {
         haversine_token nextToken = GetNextToken(dataFile);
+
         stats.TokenCount++;
+        stats.MaxTokenLength = nextToken.Length > stats.MaxTokenLength
+            ? nextToken.Length
+            : stats.MaxTokenLength;
 
         printf("Token type: %s \t|  Token value: %s \t\t|  Token length: %i\n",
                GetTokenMenemonic(nextToken.Type),
                nextToken.String,
                nextToken.Length);
 
-        stats.MaxTokenLength = nextToken.Length > stats.MaxTokenLength
-            ? nextToken.Length
-            : stats.MaxTokenLength;
 
         if (nextToken.Type == Token_EOF)
         {
