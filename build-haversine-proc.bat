@@ -5,10 +5,10 @@
 :: NOTE: Set %DEBUG% to 1 for debug build
 IF [%DEBUG%] == [1] (
     :: Making debug build
-    set CompilerFlags=-nologo -Od -Gm- -MT -W4 -FC -wd4996 -wd4201 -DSIM8086_SLOW=1 -Zi -DEBUG:FULL
+    set CompilerFlags=-nologo -Od -Gm- -MT -W4 -FC -wd4996 -wd4201 -DHAVERSINE_SLOW=1 -Zi -DEBUG:FULL
 ) ELSE (
     :: Making release build
-    set CompilerFlags=-nologo -Od -Gm- -MT -W4 -FC -DSIM8086_SLOW=0
+    set CompilerFlags=-nologo -Od -Gm- -MT -W4 -FC -DHAVERSINE_SLOW=0
 )
 
 set BuildFolder=part02
