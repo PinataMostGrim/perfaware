@@ -1,5 +1,6 @@
 /* TODO (Aaron):
     - Figure out the correct EOF return value and apply it in _NextCharacter()
+    - Consider eliminating quotes from identifier token strings
 */
 
 #include "haversine_lexer.h"

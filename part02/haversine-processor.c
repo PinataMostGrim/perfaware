@@ -1,6 +1,7 @@
 /*  TODO (Aaron):
     - Use a token stack to parse through the "pairs" array
     - Optionally load and consume the binary "answers" file for validation
+    - Replace memcpy with hand-rolled version in base.h
 */
 
 #pragma warning(disable:4996)
