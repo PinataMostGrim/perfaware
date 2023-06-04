@@ -14,7 +14,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 
 typedef struct
@@ -27,7 +26,7 @@ typedef struct
 function haversine_token *PushToken(memory_arena *tokenStack, haversine_token value)
 {
     haversine_token *tokenPtr = PushSize(tokenStack, haversine_token);
-    memcpy(tokenPtr, &value, sizeof(haversine_token));
+    MemoryCopy(tokenPtr, &value, sizeof(haversine_token));
 
     // TODO (Aaron): Error handling?
 
@@ -40,7 +39,7 @@ function haversine_token PopToken(memory_arena *arena)
     haversine_token result;
     haversine_token *tokenPtr = PopSize(arena, haversine_token);
 
-    memcpy(&result, tokenPtr, sizeof(haversine_token));
+    MemoryCopy(&result, tokenPtr, sizeof(haversine_token));
 
 #if HAVERSINE_SLOW
     MemorySet((U8 *)tokenPtr, 0xff, sizeof(haversine_token));

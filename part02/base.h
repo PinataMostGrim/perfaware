@@ -203,4 +203,16 @@ static void *MemorySet(uint8_t *destPtr, int c, size_t count)
     return destPtr;
 }
 
+
+static void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
+{
+    Assert(size > 0);
+
+    unsigned char *source = (unsigned char *)sourcePtr;
+    unsigned char *dest = (unsigned char *)destPtr;
+    while(size--) *dest++ = *source++;
+
+    return destPtr;
+}
+
 #endif // BASE_H
