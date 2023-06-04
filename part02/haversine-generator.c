@@ -8,8 +8,6 @@
 #include "base.h"
 #include "haversine.c"
 
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -191,7 +189,7 @@ int main(int argc, char const *argv[])
     if (ferror(dataFile))
     {
         fclose(dataFile);
-        Assert(false);
+        Assert(FALSE);
 
         printf("[ERROR] Error writing file %s\n", dataFilename);
         exit(1);
@@ -201,7 +199,7 @@ int main(int argc, char const *argv[])
     if (ferror(answerFile))
     {
         fclose(answerFile);
-        Assert(false);
+        Assert(FALSE);
 
         printf("[ERROR] Error writing file %s\n", answerFilename);
         exit(1);
