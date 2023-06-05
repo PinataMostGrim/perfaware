@@ -1,8 +1,7 @@
 /*  TODO (Aaron):
-    - Use a token stack to parse through the "pairs" array
     - Optionally load and consume the binary "answers" file for validation
-    - Replace memcpy with hand-rolled version in base.h
-    - Consider making a stack typedef instead of using memory_arena directly
+        - Compare the distance value calculated to the value read out of the answers file
+        - Compare expected sum with value read out of the answers file
 */
 
 #pragma warning(disable:4996)
@@ -18,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 typedef struct
@@ -31,7 +31,27 @@ typedef struct
 {
     S64 TokenCount;
     S64 MaxTokenLength;
+    S64 PairsProcessed;
+    F64 ExpectedSum;
 } processor_stats;
+
+
+typedef struct
+{
+    haversine_token *PairsToken;
+
+    haversine_token *ArrayStartToken;
+    haversine_token *ArrayEndToken;
+
+    haversine_token *ScopeEnterToken;
+    haversine_token *ScopeExitToken;
+
+    haversine_token *X0Token;
+    haversine_token *Y0Token;
+    haversine_token *X1Token;
+    haversine_token *Y1Token;
+
+} pairs_context;
 
 
 function void InitializeTokenStack(token_stack *stack, memory_arena *arena)
@@ -45,6 +65,21 @@ function void InitializeProcessorStats(processor_stats *stats)
 {
     stats->TokenCount = 0;
     stats->MaxTokenLength = 0;
+    stats->PairsProcessed = 0;
+}
+
+
+function void InitializePairsContext(pairs_context *context)
+{
+    context->PairsToken = 0;
+    context->ArrayStartToken = 0;
+    context->ArrayEndToken = 0;
+    context->ScopeEnterToken = 0;
+    context->ScopeExitToken = 0;
+    context->X0Token = 0;
+    context->Y0Token = 0;
+    context->X1Token = 0;
+    context->Y1Token = 0;
 }
 
 
@@ -78,12 +113,43 @@ function haversine_token PopToken(token_stack *tokenStack)
 }
 
 
-function void PrintStats(processor_stats stats)
+function V2F64 GetVectorFromCoordinateTokens(haversine_token xValue, haversine_token yValue)
 {
-    printf("[INFO] Stats:\n");
-    printf("[INFO]  Tokens processed: '%lli'\n", stats.TokenCount);
-    printf("[INFO]  Max token length: '%lli'\n", stats.MaxTokenLength);
-    printf("\n");
+    V2F64 result = { .x = 0, .y = 0};
+
+    char *xStartPtr = xValue.String;
+    char *xEndPtr = xStartPtr + strlen(xValue.String);
+    result.x = strtod(xValue.String, &xEndPtr);
+
+    char *yStartPtr = yValue.String;
+    char *yEndPtr = yStartPtr + strlen(yValue.String);
+    result.y = strtod(yValue.String, &yEndPtr);
+
+    // TODO (Aaron): Error handling?
+
+    return result;
+}
+
+
+function void PrintStats(processor_stats *stats)
+{
+    printf("[INFO] Tokens processed: %lli\n", stats->TokenCount);
+    printf("[INFO] Max token length: %lli\n", stats->MaxTokenLength);
+    printf("[INFO] Pairs processed:  %lli\n", stats->PairsProcessed);
+}
+
+
+function void PrintToken(haversine_token *token)
+{
+    printf("%s:\t\t%s\n",
+           GetTokenMenemonic(token->Type),
+           token->String);
+}
+
+
+function void PrintHaversineDistance(V2F64 point0, V2F64 point1, F64 distance)
+{
+    printf("[INFO] Haversine distance: (%f, %f) -> (%f, %f) = %f\n", point0.x, point0.y, point1.x, point1.y, distance);
 }
 
 
@@ -122,6 +188,9 @@ int main()
     processor_stats stats;
     InitializeProcessorStats(&stats);
 
+    pairs_context context;
+    InitializePairsContext(&context);
+
     for (;;)
     {
         haversine_token nextToken = GetNextToken(dataFile);
@@ -131,23 +200,147 @@ int main()
             ? nextToken.Length
             : stats.MaxTokenLength;
 
-        printf("Token type: %s \t|  Token value: %s \t\t|  Token length: %i\n",
-               GetTokenMenemonic(nextToken.Type),
-               nextToken.String,
-               nextToken.Length);
-
+#if 0
+        printf("[INFO] %lli: ", stats.TokenCount);
+        PrintToken(&nextToken);
+#endif
 
         if (nextToken.Type == Token_EOF)
         {
+#if 0
             printf("\n");
-            printf("[INFO] Reached end of file\n");
+            printf("[INFO] EOF reached\n");
+#endif
             break;
         }
 
-        // TODO (Aaron): Parse tokens
+        // skip tokens we aren't (currently) interested in
+        if (nextToken.Type == Token_assignment
+            || nextToken.Type == Token_delimiter
+            || nextToken.Type == Token_scope_open
+            || nextToken.Type == Token_scope_close)
+        {
+            continue;
+        }
 
         haversine_token *tokenPtr = PushToken(&tokenStack, nextToken);
-        haversine_token poppedToken = PopToken(&tokenStack);
+
+        if (!context.PairsToken
+            && nextToken.Type == Token_identifier
+            && strcmp(nextToken.String, "\"pairs\"") == 0)
+        {
+            context.PairsToken = tokenPtr;
+        }
+
+        // parse the pairs token
+        if (context.PairsToken)
+        {
+            // parse until we reach the pairs array start token
+            if (!context.ArrayStartToken && nextToken.Type == Token_array_start)
+            {
+                context.ArrayStartToken = tokenPtr;
+                continue;
+            }
+
+            if (!context.ArrayStartToken)
+            {
+                continue;
+            }
+
+            // clean up context and token stack when we reach the end of the pairs array
+            if (tokenPtr->Type == Token_array_end)
+            {
+                PopToken(&tokenStack);
+                PopToken(&tokenStack);
+
+                context.ArrayStartToken = 0;
+                context.PairsToken = 0;
+                continue;
+            }
+
+            // load up token pointers in the context until we fill all required tokens
+            if (tokenPtr->Type == Token_identifier
+                && strcmp(tokenPtr->String, "\"x0\"") == 0)
+            {
+                if (context.X0Token)
+                {
+                    printf("[ERROR] Duplicate x0 identifier encountered in Haversine pair (%lli)\n", stats.PairsProcessed);
+                    exit(1);
+                }
+                context.X0Token = tokenPtr;
+                continue;
+            }
+
+            if (tokenPtr->Type == Token_identifier
+                && strcmp(tokenPtr->String, "\"y0\"") == 0)
+            {
+                if (context.Y0Token)
+                {
+                    printf("[ERROR] Duplicate y0 identifier encountered in Haversine pair (%lli)\n", stats.PairsProcessed);
+                    exit(1);
+                }
+                context.Y0Token = tokenPtr;
+                continue;
+            }
+
+            if (tokenPtr->Type == Token_identifier
+                && strcmp(tokenPtr->String, "\"x1\"") == 0)
+            {
+                if (context.X1Token)
+                {
+                    printf("[ERROR] Duplicate x1 identifier encountered in Haversine pair (%lli)\n", stats.PairsProcessed);
+                    exit(1);
+                }
+                context.X1Token = tokenPtr;
+                continue;
+            }
+
+            if (tokenPtr->Type == Token_identifier
+                && strcmp(tokenPtr->String, "\"y1\"") == 0)
+            {
+                if (context.Y1Token)
+                {
+                    printf("[ERROR] Duplicate y1 identifier encountered in Haversine pair (%lli)\n", stats.PairsProcessed);
+                    exit(1);
+                }
+                context.Y1Token = tokenPtr;
+                continue;
+            }
+
+            // process a Haversine point pair once we have parsed its values
+            if (context.X0Token && context.Y0Token && context.X1Token && context.Y1Token)
+            {
+                haversine_token y1Value = PopToken(&tokenStack);
+                PopToken(&tokenStack);
+                haversine_token x1Value = PopToken(&tokenStack);
+                PopToken(&tokenStack);
+                haversine_token y0Value = PopToken(&tokenStack);
+                PopToken(&tokenStack);
+                haversine_token x0Value = PopToken(&tokenStack);
+                PopToken(&tokenStack);
+
+                Assert(x0Value.Type == Token_value
+                       && y0Value.Type == Token_value
+                       && x1Value.Type == Token_value
+                       && y1Value.Type == Token_value);
+
+                context.X0Token = 0;
+                context.Y0Token = 0;
+                context.X1Token = 0;
+                context.Y1Token = 0;
+
+                V2F64 point0 = GetVectorFromCoordinateTokens(x0Value, y0Value);
+                V2F64 point1 = GetVectorFromCoordinateTokens(x1Value, y1Value);
+
+                F64 distance = ReferenceHaversine(point0.x, point0.y, point1.x, point1.y, EARTH_RADIUS);
+                PrintHaversineDistance(point0, point1, distance);
+
+                stats.ExpectedSum = ((stats.ExpectedSum * (F64)stats.PairsProcessed) + distance) / (F64)(stats.PairsProcessed + 1);
+                stats.PairsProcessed++;
+
+                continue;
+            }
+        }
     }
 
     if (ferror(dataFile))
@@ -159,7 +352,9 @@ int main()
 
     fclose(dataFile);
 
-    PrintStats(stats);
+    printf("\n");
+    PrintStats(&stats);
+    printf("\n");
 
     return 0;
 }
