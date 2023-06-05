@@ -1,6 +1,8 @@
 /* TODO (Aaron):
     - Figure out the correct EOF return value and apply it in _NextCharacter()
     - Consider eliminating quotes from identifier token strings
+    - Handle escape characters before '"' when parsing identifiers
+        - This isn't going to be a general JSON parser (I have no interst in doing this) so this is a waste of time
 */
 
 #include "base.h"
@@ -160,6 +162,8 @@ function haversine_token GetNextToken(FILE *file)
         if (token.Type == Token_identifier)
         {
             EatNextCharacter(file);
+
+            // Note (Aaron): If we were going to do a more serious job, we'd check for escape characters here
             if (nextChar != '"')
             {
                 continue;

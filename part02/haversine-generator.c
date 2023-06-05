@@ -1,6 +1,8 @@
 /*  TODO (Aaron):
     - Make seed an optional argument
     - Figure out how to time execution time in C so I can time and compare these operations
+    - Move seed into binary answers file
+    - Move expected sum into binary answers file
 */
 
 #pragma warning(disable:4996)
