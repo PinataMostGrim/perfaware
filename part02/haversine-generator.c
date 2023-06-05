@@ -89,13 +89,13 @@ int main(int argc, char const *argv[])
 
     const char *seedPtr = argv[1];
     size_t seedLength = strlen(seedPtr);
-    const char **seedEndPtr = (&seedPtr + seedLength);
-    unsigned seed = (unsigned int)strtoll(seedPtr, (char **)seedEndPtr, 10);
+    const char *seedEndPtr = seedPtr + seedLength;
+    unsigned seed = (unsigned int)strtoll(seedPtr, (char **)&seedEndPtr, 10);
 
     const char *pairCountPtr = argv[2];
     size_t pairCountLength = strlen(pairCountPtr);
-    const char **pairCountEndPtr = (&pairCountPtr + pairCountLength);
-    int64_t pairCount = strtoll(pairCountPtr, (char **)pairCountEndPtr, 10);
+    const char *pairCountEndPtr = pairCountPtr + pairCountLength;
+    int64_t pairCount = strtoll(pairCountPtr, (char **)&pairCountEndPtr, 10);
 
     if (pairCount <= 0)
     {
