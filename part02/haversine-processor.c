@@ -1,6 +1,5 @@
 /*  TODO (Aaron):
     - Optionally load and consume the binary "answers" file for validation
-        - Compare the distance value calculated to the value read out of the answers file
         - Compare expected sum with value read out of the answers file
 */
 
@@ -20,6 +19,9 @@
 #include <string.h>
 
 
+#define EPSILON_FLOAT 0.01
+
+
 typedef struct
 {
     memory_arena *Arena;
@@ -32,6 +34,7 @@ typedef struct
     S64 TokenCount;
     S64 MaxTokenLength;
     S64 PairsProcessed;
+    U64 CalculationErrors;
     F64 ExpectedSum;
 } processor_stats;
 
@@ -133,9 +136,10 @@ function V2F64 GetVectorFromCoordinateTokens(haversine_token xValue, haversine_t
 
 function void PrintStats(processor_stats *stats)
 {
-    printf("[INFO] Tokens processed: %lli\n", stats->TokenCount);
-    printf("[INFO] Max token length: %lli\n", stats->MaxTokenLength);
-    printf("[INFO] Pairs processed:  %lli\n", stats->PairsProcessed);
+    printf("[INFO] Tokens processed:    %lli\n", stats->TokenCount);
+    printf("[INFO] Max token length:    %lli\n", stats->MaxTokenLength);
+    printf("[INFO] Pairs processed:     %lli\n", stats->PairsProcessed);
+    printf("[INFO] Calculation errors:  %lli\n", stats->CalculationErrors);
 }
 
 
@@ -155,6 +159,7 @@ function void PrintHaversineDistance(V2F64 point0, V2F64 point1, F64 distance)
 
 int main()
 {
+    // open data file
     char *dataFilename = DATA_FILENAME;
     FILE *dataFile;
     dataFile = fopen(dataFilename, "r");
@@ -162,6 +167,17 @@ int main()
     printf("[INFO] Processing file '%s'\n", dataFilename);
 
     if (!dataFile)
+    {
+        perror("[ERROR] ");
+        return 1;
+    }
+
+    // open answer file
+    char *answerFilename = ANSWER_FILENAME;
+    FILE *answerFile;
+    answerFile = fopen(answerFilename, "rb");
+
+    if (!answerFile)
     {
         perror("[ERROR] ");
         return 1;
@@ -335,6 +351,17 @@ int main()
                 F64 distance = ReferenceHaversine(point0.x, point0.y, point1.x, point1.y, EARTH_RADIUS);
                 PrintHaversineDistance(point0, point1, distance);
 
+                F64 answerDistance;
+                fread(&answerDistance, sizeof(F64), 1, answerFile);
+
+                F64 difference = answerDistance - distance;
+                difference = difference > 0 ? difference : difference * -1;
+                if (difference > EPSILON_FLOAT)
+                {
+                    stats.CalculationErrors++;
+                    printf("[WARN] Calculated distance diverges from answer value significantly (calculated: %f vs. answer: %f)\n", distance, answerDistance);
+                }
+
                 stats.ExpectedSum = ((stats.ExpectedSum * (F64)stats.PairsProcessed) + distance) / (F64)(stats.PairsProcessed + 1);
                 stats.PairsProcessed++;
 
@@ -347,10 +374,21 @@ int main()
     {
         fclose(dataFile);
         perror("[ERROR] ");
+        Assert(FALSE);
+
         return 1;
     }
-
     fclose(dataFile);
+
+    if (ferror(answerFile))
+    {
+        fclose(answerFile);
+        perror("[ERROR] ");
+        Assert(FALSE);
+
+        exit(1);
+    }
+    fclose(answerFile);
 
     printf("\n");
     PrintStats(&stats);

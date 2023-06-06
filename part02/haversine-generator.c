@@ -47,7 +47,7 @@ function F64 GetRandomF64InRange(F64 minValue, F64 maxValue)
 }
 
 
-// Perform modulo operation on values so they fall within the range (-180, 180)
+// perform modulo operation on values so they fall within the range (-180, 180)
 function F64 CanonicalizeCoordinate(F64 value)
 {
     value += 180;
@@ -91,7 +91,7 @@ int main(int argc, char const *argv[])
     const char *seedPtr = argv[1];
     size_t seedLength = strlen(seedPtr);
     const char *seedEndPtr = seedPtr + seedLength;
-    unsigned seed = (unsigned int)strtoll(seedPtr, (char **)&seedEndPtr, 10);
+    unsigned int seed = (unsigned int)strtoll(seedPtr, (char **)&seedEndPtr, 10);
 
     const char *pairCountPtr = argv[2];
     size_t pairCountLength = strlen(pairCountPtr);
@@ -104,7 +104,7 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
-    // Open data file
+    // open data file
     char *dataFilename = DATA_FILENAME;
     FILE *dataFile;
     dataFile = fopen(dataFilename, "w");
@@ -115,7 +115,7 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    // Open answer file
+    // open answer file
     char *answerFilename = ANSWER_FILENAME;
     FILE *answerFile;
     answerFile = fopen(answerFilename, "wb");
