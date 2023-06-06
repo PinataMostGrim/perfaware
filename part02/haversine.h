@@ -20,6 +20,12 @@ typedef struct
 }answers_file_header;
 
 
+// typedef struct
+// {
+//     U8 EOF_MARKER;
+// }answers_file_footer;
+
+
 function F64 Square(F64 A);
 function F64 RadiansFromDegrees(F64 Degrees);
 function F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius);

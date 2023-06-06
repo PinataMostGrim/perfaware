@@ -203,6 +203,10 @@ int main(int argc, char const *argv[])
     }
     fclose(dataFile);
 
+    // add footer to answer file
+    // answers_file_footer footer = { .EOF_MARKER = 0xff };
+    // fwrite(&footer, sizeof(answers_file_footer), 1, answerFile);
+
     // set correct values in answer file header
     answersHeader.Seed = seed;
     answersHeader.ExpectedSum = expectedSum;

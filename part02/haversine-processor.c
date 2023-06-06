@@ -361,6 +361,14 @@ int main()
 
                 F64 answerDistance;
                 fread(&answerDistance, sizeof(F64), 1, answerFile);
+                // TODO (Aaron): This doesn't seem to be necessary?
+                // int eof = feof(answerFile);
+                // if(eof)
+                // {
+                //     printf("[ERROR] Reached end of '%s' early; does not match length of '%s'\n", answerFilename, dataFilename);
+                //     Assert(FALSE);
+                //     exit(1);
+                // }
 
                 F64 difference = answerDistance - distance;
                 difference = difference > 0 ? difference : difference * -1;
@@ -388,6 +396,9 @@ int main()
     }
     fclose(dataFile);
 
+    // // read out the EOF marker
+    // answers_file_footer answerFooter = { .EOF_MARKER = 0 };
+    // fread(&answerFooter, sizeof(answers_file_footer), 1, answerFile);
     if (ferror(answerFile))
     {
         fclose(answerFile);
