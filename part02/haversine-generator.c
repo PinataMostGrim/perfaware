@@ -169,7 +169,7 @@ int main(int argc, char const *argv[])
         point1.x = CanonicalizeCoordinate(point1.x);
         point1.y = CanonicalizeCoordinate(point1.y);
 
-        sprintf((char *)line, "\t\t{ \"x0\":%f, \"y0\":%f, \"x1\":%f, \"y1\":%f }", point0.x, point0.y, point1.x, point1.y);
+        sprintf((char *)line, "\t\t{ \"x0\":%.16f, \"y0\":%.16f, \"x1\":%.16f, \"y1\":%.16f }", point0.x, point0.y, point1.x, point1.y);
         fputs((char *)line, dataFile);
         fputs((i == (pairCount - 1) ? "\n" : ",\n"),
               dataFile);
@@ -183,7 +183,7 @@ int main(int argc, char const *argv[])
 
     fputs("\t],\n", dataFile);
 
-    sprintf((char *)line, "\t\"expected_sum\":%f,\n", expectedSum);
+    sprintf((char *)line, "\t\"expected_sum\":%.16f,\n", expectedSum);
     fputs((char *)line, dataFile);
 
     sprintf((char *)line, "\t\"seed\":%u\n", seed);
