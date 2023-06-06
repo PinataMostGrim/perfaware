@@ -1,8 +1,7 @@
 /*  TODO (Aaron):
     - Make seed an optional argument
-    - Figure out how to time execution time in C so I can time and compare these operations
-    - Move seed into binary answers file
-    - Move expected sum into binary answers file
+    - Move seed into binary answers file?
+    - Move expected sum into binary answers file?
 */
 
 #pragma warning(disable:4996)
@@ -131,9 +130,13 @@ int main(int argc, char const *argv[])
     printf("[INFO] Seed:\t\t%u\n", seed);
     printf("[INFO] Pair count:\t%llu\n", pairCount);
 
-    fputs("{\n\t\"pairs\": [\n", dataFile);
-
     srand(seed);
+
+    char *line[256];
+    F64 expectedSum = 0;
+
+    sprintf((char *)line, "{\n\t\"seed\":%u,\n", seed);
+    fputs((char *)line, dataFile);
 
     // Generate cluster points
     V2F64 clusters[64];
@@ -146,8 +149,7 @@ int main(int argc, char const *argv[])
         clusters[i] = cluster;
     }
 
-    char *line[256];
-    F64 expectedSum = 0;
+    fputs("\t\"pairs\": [\n", dataFile);
 
     // Generate Haversine distance pairs
     for (int i = 0; i < pairCount; ++i)
@@ -183,11 +185,9 @@ int main(int argc, char const *argv[])
 
     fputs("\t],\n", dataFile);
 
-    sprintf((char *)line, "\t\"expected_sum\":%.16f,\n", expectedSum);
+    sprintf((char *)line, "\t\"expected_sum\":%.16f\n", expectedSum);
     fputs((char *)line, dataFile);
 
-    sprintf((char *)line, "\t\"seed\":%u\n", seed);
-    fputs((char *)line, dataFile);
     fputs("}\n", dataFile);
 
     if (ferror(dataFile))
