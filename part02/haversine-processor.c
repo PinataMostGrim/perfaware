@@ -36,6 +36,7 @@ typedef struct
     S64 PairsProcessed;
     U64 CalculationErrors;
     F64 ExpectedSum;
+    F64 CalcualtedSum;
 } processor_stats;
 
 
@@ -140,6 +141,9 @@ function void PrintStats(processor_stats *stats)
     printf("[INFO] Max token length:    %lli\n", stats->MaxTokenLength);
     printf("[INFO] Pairs processed:     %lli\n", stats->PairsProcessed);
     printf("[INFO] Calculation errors:  %lli\n", stats->CalculationErrors);
+    printf("\n");
+    printf("[INFO] Expected sum:        %.16f\n", stats->ExpectedSum);
+    printf("[INFO] Calculated sum:      %.16f\n", stats->CalcualtedSum);
 }
 
 
@@ -183,6 +187,9 @@ int main()
         return 1;
     }
 
+    answers_file_header answerHeader = { .Seed = 0, .ExpectedSum = 0 };
+    fread(&answerHeader, sizeof(answers_file_header), 1, answerFile);
+
     // allocate memory arena for token stack
     memory_arena tokenArena;
     U8 *memoryPtr = calloc(1, Megabytes(1));
@@ -203,6 +210,7 @@ int main()
 
     processor_stats stats;
     InitializeProcessorStats(&stats);
+    stats.ExpectedSum = answerHeader.ExpectedSum;
 
     pairs_context context;
     InitializePairsContext(&context);
@@ -362,7 +370,7 @@ int main()
                     printf("[WARN] Calculated distance diverges from answer value significantly (calculated: %f vs. answer: %f)\n", distance, answerDistance);
                 }
 
-                stats.ExpectedSum = ((stats.ExpectedSum * (F64)stats.PairsProcessed) + distance) / (F64)(stats.PairsProcessed + 1);
+                stats.CalcualtedSum = ((stats.CalcualtedSum * (F64)stats.PairsProcessed) + distance) / (F64)(stats.PairsProcessed + 1);
                 stats.PairsProcessed++;
 
                 continue;
