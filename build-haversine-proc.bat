@@ -19,5 +19,5 @@ IF NOT EXIST %BuildFolder% mkdir %BuildFolder%
 pushd %BuildFolder%
 
 :: Compile test runner
-cl %CompilerFlags% "haversine-generator.c"
+cl %CompilerFlags% "haversine-processor.c"
 popd

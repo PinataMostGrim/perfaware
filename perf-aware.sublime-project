@@ -64,6 +64,30 @@
                 },
             ],
         },
+        {
+            "name": "Build haversine processor",
+            "windows":
+            {
+                "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
+                "shell_cmd": "call vcvarsall.bat x64 && build-haversine-proc.bat",
+            },
+            "working_dir": "${project_path}",
+            "env":
+            {
+                "DEBUG": "0"
+            },
+            "quiet": false,
+            "variants" :
+            [
+                {
+                    "name": "Debug",
+                    "env":
+                    {
+                        "DEBUG": "1"
+                    },
+                },
+            ],
+        },
     ],
     "settings":
     {

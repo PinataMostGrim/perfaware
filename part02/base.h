@@ -31,6 +31,9 @@
 #define global static
 #define function static
 
+#define TRUE 1
+#define FALSE 0
+
 #define c_linkage_begin extern "C"{
 #define c_linkage_end }
 #define c_linkage extern "C"
@@ -152,38 +155,64 @@ typedef struct
 
 function V2F32 v2f32(F32 x, F32 y)
 {
-    V2F32 r = { x = x, y = y };
+    V2F32 r = { .x = x, .y = y };
     return r;
 }
 
 function V2F64 v2f64(F64 x, F64 y)
 {
-    V2F64 r = { x = x, y = y };
+    V2F64 r = { .x = x, .y = y };
     return r;
 }
 
 function V3F32 v3f32(F32 x, F32 y, F32 z)
 {
-    V3F32 r = { x = x, y = y, z = z };
+    V3F32 r = { .x = x, .y = y, .z = z };
     return r;
 }
 
 function V3F64 v3f64(F64 x, F64 y, F64 z)
 {
-    V3F64 r = { x = x, y = y, z = z };
+    V3F64 r = { .x = x, .y = y, .z = z };
     return r;
 }
 
 function V4F32 v4f32(F32 x, F32 y, F32 z, F32 w)
 {
-    V4F32 r = { x = x, y = y, z = z, w = w };
+    V4F32 r = { .x = x, .y = y, .z = z, .w = w };
     return r;
 }
 
 function V4F64 v4f64(F64 x, F64 y, F64 z, F64 w)
 {
-    V4F64 r = { x = x, y = y, z = z, w = w };
+    V4F64 r = { .x = x, .y = y, .z = z, .w = w };
     return r;
+}
+
+
+// +------------------------------+
+// Note (Aaron): Helper Functions
+
+static void *MemorySet(uint8_t *destPtr, int c, size_t count)
+{
+    Assert(count > 0);
+
+    unsigned char *dest = (unsigned char *)destPtr;
+    while(count--) *dest++ = (unsigned char)c;
+
+    return destPtr;
+}
+
+
+static void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
+{
+    Assert(size > 0);
+
+    unsigned char *source = (unsigned char *)sourcePtr;
+    unsigned char *dest = (unsigned char *)destPtr;
+    while(size--) *dest++ = *source++;
+
+    return destPtr;
 }
 
 #endif // BASE_H

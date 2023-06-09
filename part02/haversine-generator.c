@@ -1,23 +1,20 @@
 /*  TODO (Aaron):
     - Make seed an optional argument
-    - Figure out how to time execution time in C so I can time and compare these operations
+    - Add "pairs_count" to JSON and answers file for easy validation
 */
 
 #pragma warning(disable:4996)
 
-#include <math.h>
-#include <stdbool.h>
-#include <stdint.h>
+#include "base.h"
+#include "haversine.h"
+
+#include "haversine.c"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "base.h"
-
-#define EARTH_RADIUS 6372.8
 #define CLUSTER_PROXIMITY 20
-#define DATA_FILENAME "haversine-pairs.json"
-#define ANSWER_FILENAME "haversine-answer.f64"
 
 
 static void PrintUsage()
@@ -49,7 +46,7 @@ function F64 GetRandomF64InRange(F64 minValue, F64 maxValue)
 }
 
 
-// Perform modulo operation on values so they fall within the range (-180, 180)
+// perform modulo operation on values so they fall within the range (-180, 180)
 function F64 CanonicalizeCoordinate(F64 value)
 {
     value += 180;
@@ -73,47 +70,6 @@ function F64 CanonicalizeCoordinate(F64 value)
 }
 
 
-function F64 Square(F64 A)
-{
-    F64 Result = (A*A);
-    return Result;
-}
-
-
-function F64 RadiansFromDegrees(F64 Degrees)
-{
-    F64 Result = 0.01745329251994329577f * Degrees;
-    return Result;
-}
-
-
-// NOTE(casey): EarthRadius is generally expected to be 6372.8
-function F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius)
-{
-    /* NOTE(casey): This is not meant to be a "good" way to calculate the Haversine distance.
-       Instead, it attempts to follow, as closely as possible, the formula used in the real-world
-       question on which these homework exercises are loosely based.
-    */
-
-    F64 lat1 = Y0;
-    F64 lat2 = Y1;
-    F64 lon1 = X0;
-    F64 lon2 = X1;
-
-    F64 dLat = RadiansFromDegrees(lat2 - lat1);
-    F64 dLon = RadiansFromDegrees(lon2 - lon1);
-    lat1 = RadiansFromDegrees(lat1);
-    lat2 = RadiansFromDegrees(lat2);
-
-    F64 a = Square(sin(dLat/2.0)) + cos(lat1)*cos(lat2)*Square(sin(dLon/2));
-    F64 c = 2.0*asin(sqrt(a));
-
-    F64 Result = EarthRadius * c;
-
-    return Result;
-}
-
-
 int main(int argc, char const *argv[])
 {
     if (argc != 3)
@@ -133,13 +89,13 @@ int main(int argc, char const *argv[])
 
     const char *seedPtr = argv[1];
     size_t seedLength = strlen(seedPtr);
-    const char **seedEndPtr = (&seedPtr + seedLength);
-    unsigned seed = (unsigned int)strtoll(seedPtr, (char **)seedEndPtr, 10);
+    const char *seedEndPtr = seedPtr + seedLength;
+    unsigned int seed = (unsigned int)strtoll(seedPtr, (char **)&seedEndPtr, 10);
 
     const char *pairCountPtr = argv[2];
     size_t pairCountLength = strlen(pairCountPtr);
-    const char **pairCountEndPtr = (&pairCountPtr + pairCountLength);
-    int64_t pairCount = strtoll(pairCountPtr, (char **)pairCountEndPtr, 10);
+    const char *pairCountEndPtr = pairCountPtr + pairCountLength;
+    int64_t pairCount = strtoll(pairCountPtr, (char **)&pairCountEndPtr, 10);
 
     if (pairCount <= 0)
     {
@@ -147,7 +103,7 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
-    // Open data file
+    // open data file
     char *dataFilename = DATA_FILENAME;
     FILE *dataFile;
     dataFile = fopen(dataFilename, "w");
@@ -158,7 +114,7 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    // Open answer file
+    // open answer file
     char *answerFilename = ANSWER_FILENAME;
     FILE *answerFile;
     answerFile = fopen(answerFilename, "wb");
@@ -169,13 +125,22 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
+    // write placeholder header to answers file
+    // (we won't know the expected sum until generation has finished)
+    answers_file_header answersHeader = { .Seed = 0, .ExpectedSum = 0 };
+    fwrite(&answersHeader, sizeof(answers_file_header), 1, answerFile);
+
     printf("[INFO] Generating Haversine distance coordinate pairs...\n");
     printf("[INFO] Seed:\t\t%u\n", seed);
     printf("[INFO] Pair count:\t%llu\n", pairCount);
 
-    fputs("{\n\t\"pairs\": [\n", dataFile);
-
     srand(seed);
+
+    char *line[256];
+    F64 expectedSum = 0;
+
+    sprintf((char *)line, "{\n\t\"seed\":%u,\n", seed);
+    fputs((char *)line, dataFile);
 
     // Generate cluster points
     V2F64 clusters[64];
@@ -188,8 +153,7 @@ int main(int argc, char const *argv[])
         clusters[i] = cluster;
     }
 
-    char *line[256];
-    F64 expectedSum = 0;
+    fputs("\t\"pairs\": [\n", dataFile);
 
     // Generate Haversine distance pairs
     for (int i = 0; i < pairCount; ++i)
@@ -211,7 +175,7 @@ int main(int argc, char const *argv[])
         point1.x = CanonicalizeCoordinate(point1.x);
         point1.y = CanonicalizeCoordinate(point1.y);
 
-        sprintf((char *)line, "\t\t{ \"x0\":%f, \"y0\":%f, \"x1\":%f, \"y1\":%f }", point0.x, point0.y, point1.x, point1.y);
+        sprintf((char *)line, "\t\t{ \"x0\":%.16f, \"y0\":%.16f, \"x1\":%.16f, \"y1\":%.16f }", point0.x, point0.y, point1.x, point1.y);
         fputs((char *)line, dataFile);
         fputs((i == (pairCount - 1) ? "\n" : ",\n"),
               dataFile);
@@ -225,27 +189,31 @@ int main(int argc, char const *argv[])
 
     fputs("\t],\n", dataFile);
 
-    sprintf((char *)line, "\t\"expected_sum\":%f,\n", expectedSum);
+    sprintf((char *)line, "\t\"expected_sum\":%.16f\n", expectedSum);
     fputs((char *)line, dataFile);
 
-    sprintf((char *)line, "\t\"seed\":%u\n", seed);
-    fputs((char *)line, dataFile);
     fputs("}\n", dataFile);
 
     if (ferror(dataFile))
     {
         fclose(dataFile);
-        Assert(false);
+        Assert(FALSE);
 
         printf("[ERROR] Error writing file %s\n", dataFilename);
         exit(1);
     }
     fclose(dataFile);
 
+    // set correct values in answer file header
+    answersHeader.Seed = seed;
+    answersHeader.ExpectedSum = expectedSum;
+    fseek(answerFile, 0, SEEK_SET);
+    fwrite(&answersHeader, sizeof(answersHeader), 1, answerFile);
+
     if (ferror(answerFile))
     {
         fclose(answerFile);
-        Assert(false);
+        Assert(FALSE);
 
         printf("[ERROR] Error writing file %s\n", answerFilename);
         exit(1);
