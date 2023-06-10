@@ -1,6 +1,7 @@
 /*  TODO (Aaron):
     - Make seed an optional argument
     - Add "pairs_count" to JSON and answers file for easy validation
+    - Move "seed" value to bottom of JSON output. I think I like it better at the bottom.
 */
 
 #pragma warning(disable:4996)
