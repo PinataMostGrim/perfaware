@@ -11,7 +11,7 @@ IF [%DEBUG%] == [1] (
     set CompilerFlags=-nologo -Od -Gm- -MT -W4 -FC -DSIM8086_SLOW=0
 )
 
-set BuildFolder=part01
+set BuildFolder=sim8086\build
 :: set LinkerFlags=-opt:ref -incremental:no
 
 :: Create build folder if it doesn't exist and change working directory
@@ -19,5 +19,5 @@ IF NOT EXIST %BuildFolder% mkdir %BuildFolder%
 pushd %BuildFolder%
 
 :: Compile test runner
-cl %CompilerFlags% "sim8086.cpp"
+cl %CompilerFlags% "..\src\sim8086.cpp"
 popd

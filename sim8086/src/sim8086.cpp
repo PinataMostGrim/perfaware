@@ -244,7 +244,6 @@ static uint8 CalculateEffectiveAddressClocks(instruction_operand *operand)
     // }
     assert_8086(operand->Type == Operand_Memory);
 
-    uint8 result = 0;
     // TODO (Aaron): Is "Displacement Only" in table 2-20 the same thing as direct address?
     if (operand->Memory.Flags & Memory_HasDirectAddress)
     {

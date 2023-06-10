@@ -11,7 +11,7 @@ IF [%DEBUG%] == [1] (
     set CompilerFlags=-nologo -Od -Gm- -MT -W4 -FC -DHAVERSINE_SLOW=0
 )
 
-set BuildFolder=part02
+set BuildFolder=haversine\build
 :: set LinkerFlags=-opt:ref -incremental:no
 
 :: Create build folder if it doesn't exist and change working directory
@@ -19,5 +19,5 @@ IF NOT EXIST %BuildFolder% mkdir %BuildFolder%
 pushd %BuildFolder%
 
 :: Compile test runner
-cl %CompilerFlags% "haversine-generator.c"
+cl %CompilerFlags% "..\src\haversine-generator.c"
 popd

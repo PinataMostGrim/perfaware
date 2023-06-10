@@ -1,6 +1,7 @@
 /*  TODO (Aaron):
     - Make seed an optional argument
     - Add "pairs_count" to JSON and answers file for easy validation
+    - Move "seed" value to bottom of JSON output. I think I like it better at the bottom.
 */
 
 #pragma warning(disable:4996)
@@ -20,7 +21,7 @@
 static void PrintUsage()
 {
     printf("usage: haversine-generator seed pair-count \n\n");
-    printf("disassembles 8086/88 assembly and optionally simulates it. note: supports \na limited number of instructions.\n\n");
+    printf("produces a JSON formatted file containing a variable number of coordinate pairs\nused for calculating Haversine distances.\n\n");
 
     printf("positional arguments:\n");
     printf("  seed\t\t\tvalue to use for random seed\n");

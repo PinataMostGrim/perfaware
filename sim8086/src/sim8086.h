@@ -118,6 +118,7 @@ struct processor_8086
 
 
 // TODO (Aaron): Define underlying type? uint32_t?
+// TODO (Aaron): Move Op_unknown to position 0 so that it is the default value (initialize to 0)
 enum operation_types
 {
     Op_mov,
