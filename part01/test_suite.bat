@@ -50,7 +50,7 @@ goto :eof
 :TestListing
 SET LISTING=%~1
 echo Testing '%LISTING%':
-sim8086 %LISTING% > output.asm
+..\sim8086\build\sim8086 %LISTING% > output.asm
 nasm output.asm -o output
 fc /B %LISTING% output || goto :error
 set /a PASSED=PASSED+1

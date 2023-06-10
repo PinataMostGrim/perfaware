@@ -19,14 +19,15 @@ else
     CompilerFlags="-DSIM8086_SLOW=0"
 fi
 
-BuildFolder="part01"
+BUILD_FOLDER="sim8086/build"
+SRC_FOLDER="sim8086/src"
 
 # Create build folder if it doesn't exist
-mkdir -p "$SCRIPT_DIR/$BuildFolder"
+mkdir -p "$SCRIPT_DIR/$BUILD_FOLDER"
 
 # Change to the build folder (and redirect stdout to /dev/null and the redirect stderr to stdout)
-pushd $BuildFolder > /dev/null 2>&1
+pushd $BUILD_FOLDER > /dev/null 2>&1
 
 # Compile sim8086
-clang $CompilerFlags "$SCRIPT_DIR/part01/sim8086.cpp" -o "sim8086"
+clang $CompilerFlags "$SCRIPT_DIR/$SRC_FOLDER/sim8086.cpp" -o "sim8086"
 popd > /dev/null 2>&1
