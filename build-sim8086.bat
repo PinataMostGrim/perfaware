@@ -1,23 +1,23 @@
-:: IMPORTANT: "vcvarsall.bat x64" must be executed in the shell first. Must be run from project root folder.
+:: :: IMPORTANT: "vcvarsall.bat x64" must be executed in the shell first. Must be run from project root folder.
 
-@echo off
+:: @echo off
 
-:: NOTE: Set %DEBUG% to 1 for debug build
-IF [%DEBUG%] == [1] (
-    :: Making debug build
-    set CompilerFlags=-nologo -Od -Gm- -MT -W4 -FC -wd4996 -wd4201 -DSIM8086_SLOW=1 -Zi -DEBUG:FULL
-) ELSE (
-    :: Making release build
-    set CompilerFlags=-nologo -Od -Gm- -MT -W4 -FC -DSIM8086_SLOW=0
-)
+:: :: NOTE: Set %DEBUG% to 1 for debug build
+:: IF [%DEBUG%] == [1] (
+::     :: Making debug build
+::     set CompilerFlags=-nologo -Od -Gm- -MT -W4 -FC -wd4996 -wd4201 -DSIM8086_SLOW=1 -Zi -DEBUG:FULL
+:: ) ELSE (
+::     :: Making release build
+::     set CompilerFlags=-nologo -Od -Gm- -MT -W4 -FC -DSIM8086_SLOW=0
+:: )
 
-set BuildFolder=sim8086\build
-:: set LinkerFlags=-opt:ref -incremental:no
+:: set BuildFolder=sim8086\build
+:: :: set LinkerFlags=-opt:ref -inc::ental:no
 
-:: Create build folder if it doesn't exist and change working directory
-IF NOT EXIST %BuildFolder% mkdir %BuildFolder%
-pushd %BuildFolder%
+:: :: Create build folder if it doesn't exist and change working directory
+:: IF NOT EXIST %BuildFolder% mkdir %BuildFolder%
+:: pushd %BuildFolder%
 
-:: Compile test runner
-cl %CompilerFlags% "..\src\sim8086.cpp"
-popd
+:: :: Compile test runner
+:: cl %CompilerFlags% "..\src\sim8086.cpp"
+:: popd

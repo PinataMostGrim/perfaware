@@ -46,7 +46,7 @@
             {
                 // file_regex for cl
                 "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
-                "shell_cmd": "call vcvarsall.bat x64 && build-win32-sim8086.bat",
+                "shell_cmd": "build-win32-sim8086.bat",
             },
             "linux":
             {
