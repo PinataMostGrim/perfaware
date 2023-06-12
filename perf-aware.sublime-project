@@ -15,7 +15,7 @@
             {
                 // file_regex for cl
                 "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
-                "shell_cmd": "call vcvarsall.bat x64 && build-sim8086.bat",
+                "shell_cmd": "build-sim8086.bat",
             },
             "linux":
             {
@@ -76,7 +76,7 @@
             "windows":
             {
                 "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
-                "shell_cmd": "call vcvarsall.bat x64 && build-haversine-gen.bat",
+                "shell_cmd": "build-haversine-gen.bat",
             },
             "working_dir": "${project_path}",
             "env":
@@ -100,7 +100,7 @@
             "windows":
             {
                 "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
-                "shell_cmd": "call vcvarsall.bat x64 && build-haversine-proc.bat",
+                "shell_cmd": "build-haversine-proc.bat",
             },
             "working_dir": "${project_path}",
             "env":
