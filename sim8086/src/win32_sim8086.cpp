@@ -1,6 +1,10 @@
 /* TODO (Aaron):
     - Adjust the per-frame sleep behaviour
-    - Figure out WM_CLOSE and WM_QUIT
+    - Add a file menu to open / load files
+    - Add a screen to display loaded instructions
+    - Add a screen to display registers
+    - Add a screen to display memory
+    - Add hotkeys for step forward through assembly
 */
 
 #include "imgui.h"
@@ -17,10 +21,6 @@
 
 #include "base.h"
 
-
-global B32 GlobalRunning;
-
-
 struct WGL_WindowData { HDC hDC; };
 
 static HGLRC            g_hRC;
@@ -32,16 +32,19 @@ static int              g_Height;
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
-#if 0
-LRESULT CALLBACK Win32MainWindowCallback(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+// Win32 message handler
+// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
+// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
+// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
+// Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
+LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
     {
         return true;
     }
 
-    LRESULT Result = 0;
-    switch(message)
+    switch (msg)
     {
         case WM_SIZE:
         {
@@ -52,7 +55,6 @@ LRESULT CALLBACK Win32MainWindowCallback(HWND hWnd, UINT message, WPARAM wParam,
             }
             return 0;
         }
-
         case WM_SYSCOMMAND:
         {
             if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
@@ -61,89 +63,17 @@ LRESULT CALLBACK Win32MainWindowCallback(HWND hWnd, UINT message, WPARAM wParam,
             }
             break;
         }
-
         case WM_DESTROY:
         {
-            ::PostQuitMessage(0);
+            PostQuitMessage(0);
             return 0;
         }
-
-        case WM_CLOSE:
-        // case WM_QUIT: ?
-        {
-            GlobalRunning = FALSE;
-            // TODO (Aaron): Change this to return 0
-            break;
-        }
-        default:
-        {
-            // TODO (Aaron): Move this out of the switch statement to the bottom
-            Result = DefWindowProcA(hWnd, message, wParam, lParam);
-            break;
-        }
     }
 
-    return(Result);
-}
-
-
-function void Win32ProcessPendingMessages()
-{
-    MSG Message;
-    while(PeekMessage(&Message, 0, 0, 0, PM_REMOVE))
-    {
-        switch(Message.message)
-        {
-            case WM_QUIT:
-            // case WM_CLOSE: ?
-            {
-                GlobalRunning = FALSE;
-                break;
-            }
-            default:
-            {
-                TranslateMessage(&Message);
-                DispatchMessageA(&Message);
-                break;
-            }
-        }
-    }
-}
-#endif
-
-
-// Win32 message handler
-// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
-// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
-// Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-        return true;
-
-    switch (msg)
-    {
-    case WM_SIZE:
-        if (wParam != SIZE_MINIMIZED)
-        {
-            g_Width = LOWORD(lParam);
-            g_Height = HIWORD(lParam);
-        }
-        return 0;
-    case WM_SYSCOMMAND:
-        if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
-            return 0;
-        break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
-    }
     return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
 
-// Helper functions
 bool CreateDeviceWGL(HWND hWnd, WGL_WindowData* data)
 {
     HDC hDc = GetDC(hWnd);
@@ -182,27 +112,26 @@ int CALLBACK WinMain(
     int ShowCode)
 {
 
-#if 0
     // create window and register
-    WNDCLASSA WindowClass = {};
+    WNDCLASSA windowClass = {};
 
-    WindowClass.style = CS_HREDRAW|CS_VREDRAW;
-    WindowClass.lpfnWndProc = Win32MainWindowCallback;
-    WindowClass.hInstance = Instance;
-    WindowClass.hCursor = LoadCursor(0, IDC_ARROW);
-    // WindowClass.hIcon = ;
-    WindowClass.lpszClassName = "win32sim8086";
+    windowClass.style = CS_HREDRAW|CS_VREDRAW;
+    windowClass.lpfnWndProc = WndProc;
+    windowClass.hInstance = Instance;
+    windowClass.hCursor = LoadCursor(0, IDC_ARROW);
+    // windowClass.hIcon = ;
+    windowClass.lpszClassName = "win32sim8086";
 
-    if (!RegisterClassA(&WindowClass))
+    if (!RegisterClassA(&windowClass))
     {
         // TODO (Aaron): Log error and exit
         return 1;
     }
 
-    HWND Window =
+    HWND window =
         CreateWindowExA(
             0,
-            WindowClass.lpszClassName,
+            windowClass.lpszClassName,
             "win32sim8086",
             WS_OVERLAPPEDWINDOW | WS_VISIBLE,
             CW_USEDEFAULT,
@@ -214,37 +143,18 @@ int CALLBACK WinMain(
             Instance,
             0);
 
-    if (!Window)
+    if (!window)
     {
         // TODO (Aaron): Log error and exit
         return 1;
-        // exit(1);
     }
-
-    GlobalRunning = TRUE;
-
-    // program initialization
-
-
-    // main loop
-    while(GlobalRunning)
-    {
-        Win32ProcessPendingMessages();
-        Sleep(20);
-    }
-
-#endif
-
-    WNDCLASSEXW windowClass = {sizeof(windowClass), CS_OWNDC, WndProc,  0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, L"ImGui Example", NULL };
-    RegisterClassExW(&windowClass);
-    HWND hwnd = CreateWindowW(windowClass.lpszClassName, L"Dear ImGui Win32+OpenGL3 Example", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, windowClass.hInstance, NULL);
 
     // initialize OpenGL
-    if (!CreateDeviceWGL(hwnd, &g_MainWindow))
+    if (!CreateDeviceWGL(window, &g_MainWindow))
     {
-        CleanupDeviceWGL(hwnd, &g_MainWindow);
-        DestroyWindow(hwnd);
-        UnregisterClassW(windowClass.lpszClassName, windowClass.hInstance);
+        CleanupDeviceWGL(window, &g_MainWindow);
+        DestroyWindow(window);
+        UnregisterClassA(windowClass.lpszClassName, windowClass.hInstance);
 
         return 1;
     }
@@ -252,21 +162,21 @@ int CALLBACK WinMain(
     wglMakeCurrent(g_MainWindow.hDC, g_hRC);
 
     // show the window
-    ShowWindow(hwnd, SW_SHOWDEFAULT);
+    ShowWindow(window, SW_SHOWDEFAULT);
 
     // setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;   // Enable Keyboard Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;    // Enable Gamepad Controlls
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;    // Enable Gamepad Controls
 
     // Setup Dear ImGui Style
     ImGui::StyleColorsDark();
     // ImGui::StyleColorsClassic();
 
     // Setup Platform/Renderer backends
-    ImGui_ImplWin32_InitForOpenGL(hwnd);
+    ImGui_ImplWin32_InitForOpenGL(window);
     ImGui_ImplOpenGL3_Init();
 
     // Load Fonts
@@ -296,10 +206,21 @@ int CALLBACK WinMain(
     while (!done)
     {
         // Poll and handle messages (inputs, window resize, etc.)
-        // See the WndProc() function below for our to dispatch events to the Win32 backend.
         MSG msg;
-        while (PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
+        while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
         {
+// Note (Aaron): Debug hotkey for closing the window
+#if 1
+            if (msg.message == WM_KEYUP)
+            {
+                U32 vKCode = (U32)msg.wParam;
+                if (vKCode == VK_ESCAPE)
+                {
+                    done = true;
+                }
+            }
+#endif
+
             TranslateMessage(&msg);
             DispatchMessage(&msg);
             if (msg.message == WM_QUIT)
@@ -376,10 +297,10 @@ int CALLBACK WinMain(
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 
-    CleanupDeviceWGL(hwnd, &g_MainWindow);
+    CleanupDeviceWGL(window, &g_MainWindow);
     wglDeleteContext(g_hRC);
-    DestroyWindow(hwnd);
-    UnregisterClassW(windowClass.lpszClassName, windowClass.hInstance);
+    DestroyWindow(window);
+    UnregisterClassA(windowClass.lpszClassName, windowClass.hInstance);
 
     return 0;
 }
