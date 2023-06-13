@@ -41,7 +41,7 @@
             ],
         },
         {
-            "name": "Build win32 sim8086",
+            "name": "Build win32_sim8086",
             "windows":
             {
                 // file_regex for cl

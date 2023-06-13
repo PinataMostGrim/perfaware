@@ -1,6 +1,7 @@
 /* TODO (Aaron):
     - Adjust the per-frame sleep behaviour
     - Add a file menu to open / load files
+        - Use CLI argument for now?
     - Add a screen to display loaded instructions
     - Add a screen to display registers
     - Add a screen to display memory
