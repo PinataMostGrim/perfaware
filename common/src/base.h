@@ -28,8 +28,9 @@
 #   define Assert(c)
 #endif
 
-#define global static
-#define function static
+#define global_variable static
+#define global_function static
+#define local_persist static
 
 #define TRUE 1
 #define FALSE 0
@@ -153,37 +154,37 @@ typedef struct
 // +------------------------------+
 // Note (Aaron): Compound Type Functions
 
-function V2F32 v2f32(F32 x, F32 y)
+global_function V2F32 v2f32(F32 x, F32 y)
 {
     V2F32 r = { r.x = x, r.y = y };
     return r;
 }
 
-function V2F64 v2f64(F64 x, F64 y)
+global_function V2F64 v2f64(F64 x, F64 y)
 {
     V2F64 r = { r.x = x, r.y = y };
     return r;
 }
 
-function V3F32 v3f32(F32 x, F32 y, F32 z)
+global_function V3F32 v3f32(F32 x, F32 y, F32 z)
 {
     V3F32 r = { r.x = x, r.y = y, r.z = z };
     return r;
 }
 
-function V3F64 v3f64(F64 x, F64 y, F64 z)
+global_function V3F64 v3f64(F64 x, F64 y, F64 z)
 {
     V3F64 r = { r.x = x, r.y = y, r.z = z };
     return r;
 }
 
-function V4F32 v4f32(F32 x, F32 y, F32 z, F32 w)
+global_function V4F32 v4f32(F32 x, F32 y, F32 z, F32 w)
 {
     V4F32 r = { r.x = x, r.y = y, r.z = z, r.w = w };
     return r;
 }
 
-function V4F64 v4f64(F64 x, F64 y, F64 z, F64 w)
+global_function V4F64 v4f64(F64 x, F64 y, F64 z, F64 w)
 {
     V4F64 r = { r.x = x, r.y = y, r.z = z, r.w = w };
     return r;
@@ -193,7 +194,7 @@ function V4F64 v4f64(F64 x, F64 y, F64 z, F64 w)
 // +------------------------------+
 // Note (Aaron): Helper Functions
 
-static void *MemorySet(uint8_t *destPtr, int c, size_t count)
+global_function void *MemorySet(uint8_t *destPtr, int c, size_t count)
 {
     Assert(count > 0);
 
@@ -204,7 +205,7 @@ static void *MemorySet(uint8_t *destPtr, int c, size_t count)
 }
 
 
-static void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
+global_function void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
 {
     // TODO (Aaron): Return instead? Or does this assert catch cases we want to know about?
     Assert(size > 0 && "Attempted to copy 0 bytes");

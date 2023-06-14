@@ -6,19 +6,19 @@
 
 #pragma warning(disable:4996)
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "base.h"
 #include "haversine.h"
 
 #include "haversine.c"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #define CLUSTER_PROXIMITY 20
 
 
-static void PrintUsage()
+global_function void PrintUsage()
 {
     printf("usage: haversine-generator seed pair-count \n\n");
     printf("produces a JSON formatted file containing a variable number of coordinate pairs\nused for calculating Haversine distances.\n\n");
@@ -33,14 +33,14 @@ static void PrintUsage()
 }
 
 
-function S64 GetRandomS64InRange(S64 minValue, S64 maxValue)
+global_function S64 GetRandomS64InRange(S64 minValue, S64 maxValue)
 {
     F64 scale = (F64)rand() / (F64)RAND_MAX;
     return minValue + (S64)(scale * (maxValue - minValue));
 }
 
 
-function F64 GetRandomF64InRange(F64 minValue, F64 maxValue)
+global_function F64 GetRandomF64InRange(F64 minValue, F64 maxValue)
 {
     F64 scale = (F64)rand() / (F64)RAND_MAX;
     return minValue + scale * (maxValue - minValue);
@@ -48,7 +48,7 @@ function F64 GetRandomF64InRange(F64 minValue, F64 maxValue)
 
 
 // perform modulo operation on values so they fall within the range (-180, 180)
-function F64 CanonicalizeCoordinate(F64 value)
+global_function F64 CanonicalizeCoordinate(F64 value)
 {
     value += 180;
     if (value > 360)

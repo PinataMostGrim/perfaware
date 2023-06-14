@@ -6,7 +6,7 @@
 #include "memory_arena.h"
 
 
-function void InitializeArena(memory_arena *arena, memory_index size, U8 *basePtr)
+global_function void InitializeArena(memory_arena *arena, memory_index size, U8 *basePtr)
 {
     arena->BasePtr = basePtr;
     arena->PositionPtr = basePtr;
@@ -15,7 +15,7 @@ function void InitializeArena(memory_arena *arena, memory_index size, U8 *basePt
 }
 
 
-function void *PushSize_(memory_arena *arena, memory_index size)
+global_function void *PushSize_(memory_arena *arena, memory_index size)
 {
     Assert((arena->Used + size) <= arena->Size);
 
@@ -27,7 +27,7 @@ function void *PushSize_(memory_arena *arena, memory_index size)
 }
 
 
-function void *PopSize_(memory_arena *arena, memory_index size)
+global_function void *PopSize_(memory_arena *arena, memory_index size)
 {
     Assert(arena->Used >= size);
 
