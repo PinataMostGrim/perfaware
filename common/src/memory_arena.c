@@ -1,5 +1,6 @@
 /* TODO (Aaron):
     - Add string literals to assert expressions to give context
+    - Add PushSizeZero_ to ensure memory is zeroed out
 */
 #include "base.h"
 #include "memory_arena.h"
