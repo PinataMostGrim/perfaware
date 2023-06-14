@@ -66,6 +66,9 @@ global_function void InitializeProcessorStats(processor_stats *stats)
     stats->TokenCount = 0;
     stats->MaxTokenLength = 0;
     stats->PairsProcessed = 0;
+    stats->CalculationErrors = 0;
+    stats->ExpectedSum = 0;
+    stats->CalcualtedSum = 0;
 }
 
 
