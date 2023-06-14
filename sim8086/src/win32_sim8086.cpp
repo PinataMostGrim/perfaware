@@ -1,5 +1,4 @@
 /* TODO (Aaron):
-    - Move base.h, memory_arena.h, etc into a 'common' src folder
     - Add support for hot-reload of GUI code
         - Place it in a separate translation unit
         - Compile out to a DLL

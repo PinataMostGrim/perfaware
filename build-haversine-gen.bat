@@ -4,7 +4,7 @@
 @echo off
 
 :: NOTE: Configure these variables
-set INCLUDES=
+set INCLUDES=-I..\..\common\src
 set SOURCES=..\src\haversine-generator.c
 set LINKER_FLAGS=-incremental:no -opt:ref
 set LIBS=

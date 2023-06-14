@@ -206,7 +206,8 @@ static void *MemorySet(uint8_t *destPtr, int c, size_t count)
 
 static void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
 {
-    Assert(size > 0);
+    // TODO (Aaron): Return instead? Or does this assert catch cases we want to know about?
+    Assert(size > 0 && "Attempted to copy 0 bytes");
 
     unsigned char *source = (unsigned char *)sourcePtr;
     unsigned char *dest = (unsigned char *)destPtr;

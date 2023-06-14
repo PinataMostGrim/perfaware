@@ -4,7 +4,7 @@
 @echo off
 
 :: NOTE: Configure these variables
-set INCLUDES=-I..\src\imgui -I..\src\imgui\backends
+set INCLUDES=-I..\..\common\src -I..\src\imgui -I..\src\imgui\backends
 set SOURCES=..\src\win32_sim8086.cpp ..\src\imgui\imgui*.cpp ..\src\imgui\backends\imgui_impl_opengl3.cpp ..\src\imgui\backends\imgui_impl_win32.cpp
 set LINKER_FLAGS=-incremental:no -opt:ref
 set LIBS=User32.lib gdi32.lib winmm.lib opengl32.lib
