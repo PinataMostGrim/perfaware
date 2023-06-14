@@ -1,4 +1,5 @@
 /* TODO (Aaron):
+    - Move base.h, memory_arena.h, etc into a 'common' src folder
     - Add support for hot-reload of GUI code
         - Place it in a separate translation unit
         - Compile out to a DLL
@@ -24,12 +25,15 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <windows.h>
 #include <GL/GL.h>
 #include <tchar.h>
-#include <corecrt_malloc.h>
 
 #include "base.h"
+#include "memory.h"
+#include "memory_arena.c"
+#include "sim8086_platform.h"
 #include "sim8086.cpp"
 #include "sim8086_gui.cpp"
 
@@ -43,7 +47,9 @@ static int              g_Height;
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+// Note (Aaron): Consider these these values for adjustment
 static const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
+static U32 PERMANENT_MEMORY_SIZE = Megabytes(2);
 
 
 // Win32 message handler
@@ -214,9 +220,21 @@ int CALLBACK WinMain(
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00);
 
+    // allocate memory for a memory arena
+    sim8086_memory memory = {};
+    memory.Size = PERMANENT_MEMORY_SIZE;
+    memory.BackingStore = VirtualAlloc(0, memory.Size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+    if (!memory.BackingStore)
+    {
+        Assert(FALSE && "Unable to allocate permanent memory");
+        return 1;
+    }
+    InitializeArena(&memory.Arena, memory.Size, (U8 *)memory.BackingStore);
+    memory.IsInitialized = TRUE;
+
     // initialize processor
     processor_8086 processor = {};
-    processor.Memory = (U8 *)calloc(processor.MemorySize, sizeof(U8));
+    processor.Memory = (U8 *)PushSize_(&memory.Arena, processor.MemorySize);
     if (!processor.Memory)
     {
         Assert(FALSE && "Unable to allocate main memory for 8086");

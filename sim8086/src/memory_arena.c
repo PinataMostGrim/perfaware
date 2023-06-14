@@ -1,3 +1,6 @@
+/* TODO (Aaron):
+    - Add string literals to assert expressions to give context
+*/
 #include "base.h"
 #include "memory_arena.h"
 
