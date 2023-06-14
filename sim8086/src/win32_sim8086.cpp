@@ -1,5 +1,10 @@
 /* TODO (Aaron):
-    - Separate GUI rendering into its own translation unit so we can hot-reload it for quicker iteration
+    - Add support for hot-reload of GUI code
+        - Place it in a separate translation unit
+        - Compile out to a DLL
+        - Setup function pointers
+        - Include all the code required for renaming the original DLL, etc
+        - Update the batch script to create a lock file and then delete it
     - Add a screen to display loaded instructions
     - Add a screen to display registers
     - Add a screen to display memory
@@ -18,13 +23,15 @@
 #endif
 
 #include <stdio.h>
-#include <corecrt_malloc.h>
+#include <stdbool.h>
 #include <windows.h>
 #include <GL/GL.h>
 #include <tchar.h>
+#include <corecrt_malloc.h>
 
 #include "base.h"
 #include "sim8086.cpp"
+#include "sim8086_gui.cpp"
 
 struct WGL_WindowData { HDC hDC; };
 
@@ -81,7 +88,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 }
 
 
-bool CreateDeviceWGL(HWND hWnd, WGL_WindowData* data)
+static bool CreateDeviceWGL(HWND hWnd, WGL_WindowData* data)
 {
     HDC hDc = GetDC(hWnd);
     PIXELFORMATDESCRIPTOR pfd = { 0 };
@@ -105,7 +112,7 @@ bool CreateDeviceWGL(HWND hWnd, WGL_WindowData* data)
 }
 
 
-void CleanupDeviceWGL(HWND hWnd, WGL_WindowData* data)
+static void CleanupDeviceWGL(HWND hWnd, WGL_WindowData* data)
 {
     wglMakeCurrent(NULL, NULL);
     ReleaseDC(hWnd, data->hDC);
@@ -216,7 +223,7 @@ int CALLBACK WinMain(
         return 1;
     }
 
-    // load assembly into processor
+    // load program into the processor
     FILE *file = {};
     file = fopen(ASSEMBLY_FILE, "rb");
     if (!file)
@@ -249,7 +256,7 @@ int CALLBACK WinMain(
         MSG msg;
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
         {
-// Note (Aaron): Debug hotkey for closing the window
+// Note (Aaron): Debug hotkey for closing the application
 #if 1
             if (msg.message == WM_KEYUP)
             {
@@ -279,48 +286,7 @@ int CALLBACK WinMain(
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-        {
-            ImGui::ShowDemoWindow(&show_demo_window);
-        }
-
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-        {
-            static float f = 0.0f;
-            static int counter = 0;
-
-            ImGui::Begin("Hello, world!");
-
-            ImGui::Text("This is some useful text.");
-            ImGui::Checkbox("Demo Window", &show_demo_window);
-            ImGui::Checkbox("Another Window", &show_another_window);
-
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-            ImGui::ColorEdit3("clear color", (float *)&clear_color);
-
-            if (ImGui::Button("Button"))
-            {
-                counter++;
-            }
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
-
-            ImGui::Text("Application average %.3f  ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-            ImGui::End();
-        }
-
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-            {
-                show_another_window = false;
-            }
-            ImGui::End();
-        }
+        DrawGui(&io, &show_demo_window, &show_another_window, &clear_color);
 
         // Rendering
         ImGui::Render();
