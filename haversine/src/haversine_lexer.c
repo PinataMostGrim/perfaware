@@ -48,9 +48,10 @@ function int _NextCharacter(FILE *file, B8 peek)
         }
 
         // skip white space characters
-        if (nextChar == 0x20        // space
-            || nextChar == 0x09     // horizontal tab
-            || nextChar == 0xa)     // newline
+        if (nextChar == '\t'
+            || nextChar == '\n'
+            || nextChar == '\r'
+            || nextChar == ' ')
         {
             continue;
         }

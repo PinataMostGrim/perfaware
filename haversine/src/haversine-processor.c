@@ -1,5 +1,4 @@
 /*  TODO (Aaron):
-    - Add carriage return (\r) to the list of white space we ignore from the JSON
     - Add usage printout
 */
 
