@@ -235,4 +235,11 @@ struct instruction
     U8 EAClockCount = 0;
 };
 
-#endif
+
+static B32 DumpMemoryToFile(processor_8086 *processor, const char *filename);
+static void ReadInstructionStream(processor_8086 *processor, instruction *instruction, U8 byteCount);
+static void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand);
+static U8 CalculateEffectiveAddressClocks(instruction_operand *operand);
+static instruction DecodeNextInstruction(processor_8086 *processor);
+
+#endif //SIM8086_H
