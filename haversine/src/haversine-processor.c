@@ -369,7 +369,7 @@ int main()
                 fread(&answerDistance, sizeof(F64), 1, answerFile);
 
                 F64 difference = answerDistance - distance;
-                difference = difference > 0 ? difference : difference * -1;
+                difference = difference >= 0 ? difference : difference * -1;
                 if (difference > EPSILON_FLOAT)
                 {
                     stats.CalculationErrors++;
