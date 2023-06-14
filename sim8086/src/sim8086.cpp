@@ -272,8 +272,7 @@ static U8 CalculateEffectiveAddressClocks(instruction_operand *operand)
             break;
     }
 
-    // we should never reach this case
-    assert_8086(false);
+    assert_8086(FALSE && "Unreachable case");
     return 0;
 }
 
@@ -350,8 +349,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
         else
         {
-            // we should never reach this case
-            assert_8086(false);
+            assert_8086(FALSE && "Unreachable case");
         }
     }
 
@@ -389,10 +387,9 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
             ReadInstructionStream(processor, &instruction, 2);
             operandSource.Immediate.Value = (U16)(*(U16 *)readStartPtr);
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         instruction.Operands[0] = operandDest;
@@ -414,8 +411,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
         else
         {
-            // we should never reach this case
-            assert_8086(false);
+            assert_8086(FALSE && "Unreachable case");
         }
     }
 
@@ -444,10 +440,9 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
             ReadInstructionStream(processor, &instruction, 2);
             operandSource.Immediate.Value = *(U16 *)(&instruction.Bits.Byte1);
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         operandDest.Register = RegMemTables[instruction.WidthBit][instruction.RegBits];
@@ -463,8 +458,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
         else
         {
-            // we should never reach this case
-            assert_8086(false);
+            assert_8086(FALSE && "Unreachable case");
         }
     }
 
@@ -490,10 +484,9 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
             ReadInstructionStream(processor, &instruction, 2);
             operandMemory.Memory.DirectAddress = (U16)(*(U16 *)(&instruction.Bits.Byte1));
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         if ((instruction.Bits.Byte0 >> 1) == 0b1010000)
@@ -506,10 +499,9 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
             instruction.Operands[0] = operandMemory;
             instruction.Operands[1] = operandAccumulator;
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         // estimate clock cycles
@@ -553,10 +545,9 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             instruction.OpType = Op_cmp;
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         // decode reg
@@ -602,7 +593,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                     instruction.ClockCount = 9;
                     break;
                 default:
-                    assert_8086(false);
+                    assert_8086(FALSE && "Unhandled case");
             }
 
             instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[0]);
@@ -617,8 +608,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
         else
         {
-            // we should never reach this case
-            assert_8086(false);
+            assert_8086(FALSE && "Unreachable case");
         }
     }
 
@@ -654,10 +644,9 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             instruction.OpType = Op_cmp;
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         // parse r/m string
@@ -718,15 +707,14 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                     instruction.ClockCount = 10;
                     break;
                 default:
-                    assert_8086(false);
+                    assert_8086(FALSE && "Unhandled case");
             }
 
             instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[0]);
         }
         else
         {
-            // we should never reach this case
-            assert_8086(false);
+            assert_8086(FALSE && "Unreachable case");
         }
     }
 
@@ -758,10 +746,9 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             instruction.OpType = Op_cmp;
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         // read data
@@ -932,8 +919,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                 instruction.OpType = Op_jcxz;
                 break;
             default:
-                // unhandled instruction
-                assert_8086(false);
+                assert_8086(FALSE && "Unhandled instruction");
         }
     }
 
@@ -1159,8 +1145,7 @@ U16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
         }
         default:
         {
-            // Note (Aaron): Invalid instruction
-            assert_8086(false);
+            assert_8086(FALSE && "Invalid instruction");
             break;
         }
     }
@@ -1204,8 +1189,7 @@ void SetOperandValue(processor_8086 *processor, instruction_operand *operand, U1
         return;
     }
 
-    // We should never reach this point
-    assert_8086(false);
+    assert_8086(FALSE && "Unreachable case");
 }
 
 
