@@ -1,11 +1,12 @@
 /* TODO (Aaron):
-    - Adjust the per-frame sleep behaviour
-    - Add a file menu to open / load files
-        - Use CLI argument for now?
     - Add a screen to display loaded instructions
     - Add a screen to display registers
     - Add a screen to display memory
     - Add hotkeys for step forward through assembly
+    - Give processor or file error feedback via GUI
+    - Separate GUI rendering into its own translation unit so we can hot-reload it for quicker iteration
+    - Add a file menu to open / load files
+        - Use hard-coded value for now
 */
 
 #include "imgui.h"

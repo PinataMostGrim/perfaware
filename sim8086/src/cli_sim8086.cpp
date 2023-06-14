@@ -91,7 +91,7 @@ static void PrintInstruction(instruction *instruction)
             {
                 if (operand.Immediate.Flags & Immediate_IsJump)
                 {
-                    int8 offset = (int8)(operand.Immediate.Value & 0xff);
+                    S8 offset = (S8)(operand.Immediate.Value & 0xff);
 
                     // Note (Aaron): Offset the value to accommodate a NASM syntax peculiarity.
                     // NASM expects an offset value from the start of the instruction rather than
@@ -105,8 +105,8 @@ static void PrintInstruction(instruction *instruction)
                 // TODO (Aaron): Test this more
                 bool isSigned = operand.Immediate.Flags & Immediate_IsSigned;
                 printf("%i", isSigned
-                       ? (int16) operand.Immediate.Value
-                       : (uint16) operand.Immediate.Value);
+                       ? (S16) operand.Immediate.Value
+                       : (U16) operand.Immediate.Value);
 
                 break;
             }
@@ -152,7 +152,7 @@ static void PrintRegisters(processor_8086 *processor)
 
     for (int i = 0; i < ArrayCount(toDisplay); ++i)
     {
-        uint16 value = GetRegisterValue(processor, toDisplay[i]);
+        U16 value = GetRegisterValue(processor, toDisplay[i]);
 
         // Reduce noise by omitting registers with a value of 0
         if (value == 0)
@@ -258,7 +258,7 @@ int main(int argc, char const *argv[])
 
     // initialize processor
     processor_8086 processor = {};
-    processor.Memory = (uint8 *)calloc(processor.MemorySize, sizeof(uint8));
+    processor.Memory = (U8 *)calloc(processor.MemorySize, sizeof(U8));
 
     if (!processor.Memory)
     {
@@ -275,7 +275,7 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
-    processor.ProgramSize = (uint16)fread(processor.Memory, 1, processor.MemorySize, file);
+    processor.ProgramSize = (U16)fread(processor.Memory, 1, processor.MemorySize, file);
 
     // error handling for file read
     if (ferror(file))
