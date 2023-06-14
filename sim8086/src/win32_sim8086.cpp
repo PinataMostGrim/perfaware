@@ -1,10 +1,10 @@
 /* TODO (Aaron):
+    - Separate GUI rendering into its own translation unit so we can hot-reload it for quicker iteration
     - Add a screen to display loaded instructions
     - Add a screen to display registers
     - Add a screen to display memory
     - Add hotkeys for step forward through assembly
     - Give processor or file error feedback via GUI
-    - Separate GUI rendering into its own translation unit so we can hot-reload it for quicker iteration
     - Add a file menu to open / load files
         - Use hard-coded value for now
 */
@@ -17,11 +17,14 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#include <stdio.h>
+#include <corecrt_malloc.h>
 #include <windows.h>
 #include <GL/GL.h>
 #include <tchar.h>
 
 #include "base.h"
+#include "sim8086.cpp"
 
 struct WGL_WindowData { HDC hDC; };
 
@@ -32,6 +35,8 @@ static int              g_Height;
 
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+static const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
 
 
 // Win32 message handler
@@ -113,7 +118,6 @@ int CALLBACK WinMain(
     LPSTR CommandLine,
     int ShowCode)
 {
-
     // create window and register
     WNDCLASSA windowClass = {};
 
@@ -202,6 +206,40 @@ int CALLBACK WinMain(
     bool show_another_window = false;
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00);
+
+    // initialize processor
+    processor_8086 processor = {};
+    processor.Memory = (U8 *)calloc(processor.MemorySize, sizeof(U8));
+    if (!processor.Memory)
+    {
+        Assert(FALSE && "Unable to allocate main memory for 8086");
+        return 1;
+    }
+
+    // load assembly into processor
+    FILE *file = {};
+    file = fopen(ASSEMBLY_FILE, "rb");
+    if (!file)
+    {
+        Assert(FALSE && "Unable to load hard-coded assembly file");
+        return 1;
+    }
+
+    processor.ProgramSize = (U16)fread(processor.Memory, 1, processor.MemorySize, file);
+
+    // error handling for file read
+    if (ferror(file))
+    {
+        Assert(FALSE && "Encountered error while reading file");
+        return 1;
+    }
+    if (!feof(file))
+    {
+        Assert(FALSE && "Program size exceeds processor memory; unable to load");
+        return 1;
+    }
+
+    fclose(file);
 
     // Main loop
     bool done = false;
