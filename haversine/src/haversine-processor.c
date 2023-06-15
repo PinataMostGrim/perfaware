@@ -1,5 +1,4 @@
 /*  TODO (Aaron):
-    - Use preprocessor definition to enable / disable timings?
     - Add usage printout
     - Compare release build to debug build once I add ms to the TotalTime printout
 */
@@ -24,7 +23,8 @@
 #include "memory_arena.c"
 
 
-#define EPSILON_FLOAT 0.01
+#define ENABLE_TIMINGS 1
+#define EPSILON_FLOAT 0.001
 
 
 typedef struct
@@ -199,6 +199,7 @@ global_function void PrintHaversineDistance(V2F64 point0, V2F64 point1, F64 dist
 }
 
 
+#if ENABLE_TIMINGS
 inline void StartCPUTiming(metric_timing *timing)
 {
     timing->Start = ReadCPUTimer();
@@ -211,6 +212,10 @@ inline void EndCPUTimingAndIncrementMetric(metric_timing *timing, U64 *metric)
     timing->Duration = timing->End - timing->Start;
     *metric += timing->Duration;
 }
+#else
+inline void StartCPUTiming(metric_timing *timing) {}
+inline void EndCPUTimingAndIncrementMetric(metric_timing *timing, U64 *metric) {}
+#endif
 
 
 inline void PrintTiming(char *timingName, U64 timing, U64 totalTime, U8 tabCount)
@@ -253,7 +258,10 @@ int main()
     InitializeMetricTiming(&sumCalculationTimings);
     InitializeMetricTiming(&miscOperationTimings);
 
-    StartCPUTiming(&totalTiming);
+    // Note (Aaron): Avoid using StartCPUTiming() for the totalTiming so we can
+    // disable the timings methods and get a sense of how much of an impact they
+    // have on execution times.
+    totalTiming.Start = ReadCPUTimer();
     StartCPUTiming(&startupTiming);
 
     // open data file
@@ -526,9 +534,15 @@ int main()
     printf("\n");
     EndCPUTimingAndIncrementMetric(&miscOperationTimings, &metrics.MiscOperations);
 
-    EndCPUTimingAndIncrementMetric(&totalTiming, &metrics.TotalTime);
-    U64 unaccounted = metrics.TotalTime
+    // Note (Aaron): As above, avoid using EndCPUTimingAndIncrementMetric() on totalTiming
+    // and calculate the duration below so we can disable the timings methods and get a sense
+    // for how much taking the timings affects the execution time.
+    totalTiming.End = ReadCPUTimer();
+    totalTiming.Duration = totalTiming.End - totalTiming.Start;
+    metrics.TotalTime += totalTiming.Duration;
     F64 totalTimeMs = ((F64)metrics.TotalTime / (F64)metrics.CPUFrequency) * 1000.0f;
+
+#if ENABLE_TIMINGS
     S64 unaccounted = metrics.TotalTime
         - metrics.Startup
         - metrics.JSONLexing
@@ -552,6 +566,8 @@ int main()
     PrintTiming("Misc Operations", metrics.MiscOperations, metrics.TotalTime, 1);
     PrintTiming("Unaccounted", unaccounted, metrics.TotalTime, 2);
     printf("\n");
+#endif
+
     printf("  Total time: %.4fms (CPU freq %llu)\n", totalTimeMs, metrics.CPUFrequency);
 
     return 0;
