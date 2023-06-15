@@ -1,6 +1,5 @@
 /*  TODO (Aaron):
     - Add usage printout
-    - Compare release build to debug build once I add ms to the TotalTime printout
 */
 
 #pragma warning(disable:4996)
@@ -569,6 +568,7 @@ int main()
 #endif
 
     printf("  Total time: %.4fms (CPU freq %llu)\n", totalTimeMs, metrics.CPUFrequency);
+    printf("\n");
 
     return 0;
 }
