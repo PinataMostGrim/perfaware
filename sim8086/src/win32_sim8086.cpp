@@ -60,17 +60,17 @@ typedef struct
 } win32_context;
 
 
-static void Win32GetExeInfo(win32_context context, memory_arena *arena)
+static void Win32GetExeInfo(win32_context *context, memory_arena *arena)
 {
     // TODO (Aaron): Make use of PushSizeZero() in this function once it has been implemented
     // so we can eliminate the call to set the null terminator.
 
-    context.FullExePath = (char *)PushSize_(arena, FILE_PATH_BUFFER_SIZE);
-    DWORD sizeOfFullPath = GetModuleFileName(0, context.FullExePath, FILE_PATH_BUFFER_SIZE);
+    context->FullExePath = (char *)PushSize_(arena, FILE_PATH_BUFFER_SIZE);
+    DWORD sizeOfFullPath = GetModuleFileName(0, context->FullExePath, FILE_PATH_BUFFER_SIZE);
     Assert((sizeOfFullPath < FILE_PATH_BUFFER_SIZE) && "Allocated a buffer that was too small for the length of the file path");
 
-    char *lastSlashPlusOne = context.FullExePath;
-    for (char *scan = context.FullExePath; *scan; ++scan)
+    char *lastSlashPlusOne = context->FullExePath;
+    for (char *scan = context->FullExePath; *scan; ++scan)
     {
         if (*scan == '\\')
         {
@@ -78,21 +78,21 @@ static void Win32GetExeInfo(win32_context context, memory_arena *arena)
         }
     }
 
-    U64 sizeOfFolderPath = lastSlashPlusOne - context.FullExePath;
-    context.ExeFolderPath = (char *)PushSize_(arena, sizeOfFolderPath + 1);     // + 1 for null termination character
+    U64 sizeOfFolderPath = lastSlashPlusOne - context->FullExePath;
+    context->ExeFolderPath = (char *)PushSize_(arena, sizeOfFolderPath + 1);     // + 1 for null termination character
     if (sizeOfFolderPath > 0)
     {
-        MemoryCopy(context.ExeFolderPath, context.FullExePath, sizeOfFolderPath);
+        MemoryCopy(context->ExeFolderPath, context->FullExePath, sizeOfFolderPath);
         // Note (Aaron): Set the null terminator in case the memory hasn't been initialized to 0
-        MemorySet((U8 *)context.ExeFolderPath + sizeOfFolderPath, 0x0, 1);
+        MemorySet((U8 *)context->ExeFolderPath + sizeOfFolderPath, 0x0, 1);
     }
 
     U64 sizeOfFilename = sizeOfFullPath - sizeOfFolderPath;
     Assert(sizeOfFilename > 0 && "Filename cannot be 0 characters in length");
-    context.ExeFilename = (char *)PushSize_(arena, sizeOfFilename + 1);         // + 1 for null termination character
-    MemoryCopy(context.ExeFilename, context.FullExePath + sizeOfFolderPath, sizeOfFilename);
+    context->ExeFilename = (char *)PushSize_(arena, sizeOfFilename + 1);         // + 1 for null termination character
+    MemoryCopy(context->ExeFilename, context->FullExePath + sizeOfFolderPath, sizeOfFilename);
     // Note (Aaron): Set the null terminator in case the memory hasn't been initialized to 0
-    MemorySet((U8 *)context.ExeFilename + sizeOfFilename, 0xff, 1);
+    MemorySet((U8 *)context->ExeFilename + sizeOfFilename, 0xff, 1);
 }
 
 
@@ -313,7 +313,7 @@ int CALLBACK WinMain(
 
     // get exe file name and path to prep for hot-loading
     win32_context context = {};
-    Win32GetExeInfo(context, &memory.Arena);
+    Win32GetExeInfo(&context, &memory.Arena);
 
 
     // Main loop
