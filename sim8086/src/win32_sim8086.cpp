@@ -1,6 +1,4 @@
 /* TODO (Aaron):
-    - Add gui_state struct to sim8086_gui.h
-    - Write a PushSizeZero() function for memory arenas & use in Win32GetExeInfo()
     - Add a screen to display loaded instructions
     - Add a screen to display registers
     - Add a screen to display memory
@@ -98,10 +96,9 @@ global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *
     U64 sizeOfB = GetStringLength(stringB);
     U64 resultSize = sizeOfA + sizeOfB;
 
-    char *result = (char *)PushSize_(arena, resultSize + 1);
+    char *result = (char *)PushSizeZero_(arena, resultSize + 1);
     MemoryCopy(result, stringA, sizeOfA);
     MemoryCopy(result + sizeOfA, stringB, sizeOfB);
-    MemorySet((U8 *)result + resultSize, 0, 1);
 
     return result;
 }
@@ -109,11 +106,8 @@ global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *
 
 global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena)
 {
-    // TODO (Aaron): Make use of PushSizeZero() in this function once it has been implemented
-    // so we can eliminate the call to set the null terminator.
-
     // extract full path
-    context->FullExePath = (char *)PushSize_(arena, FILE_PATH_BUFFER_SIZE);
+    context->FullExePath = (char *)PushSizeZero_(arena, FILE_PATH_BUFFER_SIZE);
     DWORD sizeOfFullPath = GetModuleFileName(0, context->FullExePath, FILE_PATH_BUFFER_SIZE);
     Assert((sizeOfFullPath < FILE_PATH_BUFFER_SIZE) && "Allocated a buffer that was too small for the length of the file path");
 
@@ -128,21 +122,17 @@ global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena
 
     // construct exe folder path
     U64 sizeOfFolderPath = lastSlashPlusOne - context->FullExePath;
-    context->ExeFolderPath = (char *)PushSize_(arena, sizeOfFolderPath + 1);     // + 1 for null termination character
+    context->ExeFolderPath = (char *)PushSizeZero_(arena, sizeOfFolderPath + 1);     // + 1 for null termination character
     if (sizeOfFolderPath > 0)
     {
         MemoryCopy(context->ExeFolderPath, context->FullExePath, sizeOfFolderPath);
-        // Note (Aaron): Set the null terminator in case the memory hasn't been initialized to 0
-        MemorySet((U8 *)context->ExeFolderPath + sizeOfFolderPath, 0x0, 1);
     }
 
     // construct exe filename
     U64 sizeOfFilename = sizeOfFullPath - sizeOfFolderPath;
     Assert(sizeOfFilename > 0 && "Filename cannot be 0 characters in length");
-    context->ExeFilename = (char *)PushSize_(arena, sizeOfFilename + 1);         // + 1 for null termination character
+    context->ExeFilename = (char *)PushSizeZero_(arena, sizeOfFilename + 1);         // + 1 for null termination character
     MemoryCopy(context->ExeFilename, context->FullExePath + sizeOfFolderPath, sizeOfFilename);
-    // Note (Aaron): Set the null terminator in case the memory hasn't been initialized to 0
-    MemorySet((U8 *)context->ExeFilename + sizeOfFilename, 0, 1);
 
     // construct GUI DLL related paths
     context->GuiDLLPath = ConcatStrings(context->ExeFolderPath, GUI_DLL_FILENAME, arena);
