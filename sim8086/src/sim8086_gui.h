@@ -7,6 +7,13 @@
 
 #include <stdbool.h>
 
-static void DrawGui(ImGuiIO *io, bool *show_demo_window, bool *show_another_window, ImVec4 *clear_color);
+#include "base.h"
+#include "sim8086.h"
+
+C_LINKAGE_BEGIN
+void SetImguiContext(ImGuiContext *context);
+void DrawGui(ImGuiIO *io, bool *show_demo_window, bool *show_another_window, ImVec4 *clear_color, processor_8086 *processor);
+C_LINKAGE_END
+
 
 #endif // SIM8086_GUI_H

@@ -1,7 +1,5 @@
 /* TODO (Aaron):
     - Add support for hot-reload of GUI code
-        - Place it in a separate translation unit
-        - Compile out to a DLL
         - Setup function pointers
         - Include all the code required for renaming the original DLL, etc
         - Update the batch script to create a lock file and then delete it
@@ -32,9 +30,10 @@
 #include "base.h"
 #include "memory.h"
 #include "memory_arena.c"
+
 #include "sim8086_platform.h"
+#include "sim8086_gui.h"
 #include "sim8086.cpp"
-#include "sim8086_gui.cpp"
 
 struct WGL_WindowData { HDC hDC; };
 
@@ -50,6 +49,8 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
 global_variable U32 PERMANENT_MEMORY_SIZE = Megabytes(2);
 global_variable U32 FILE_PATH_BUFFER_SIZE = Kilobytes(1);
+
+global_variable ImVec4 CLEAR_COLOR = {0.45f, 0.55f, 0.60f, 1.00};
 
 
 typedef struct
@@ -229,10 +230,11 @@ int CALLBACK WinMain(
 
     // setup Dear ImGui context
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+    ImGuiContext *guiContext = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;   // Enable Keyboard Controls
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;    // Enable Gamepad Controls
+    SetImguiContext(guiContext);
 
     // Setup Dear ImGui Style
     ImGui::StyleColorsDark();
@@ -261,8 +263,6 @@ int CALLBACK WinMain(
     // Our state
     bool show_demo_window = true;
     bool show_another_window = false;
-
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00);
 
     // allocate memory for a memory arena
     sim8086_memory memory = {};
@@ -354,12 +354,12 @@ int CALLBACK WinMain(
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        DrawGui(&io, &show_demo_window, &show_another_window, &clear_color);
+        DrawGui(&io, &show_demo_window, &show_another_window, &CLEAR_COLOR, &processor);
 
         // Rendering
         ImGui::Render();
         glViewport(0, 0, g_Width, g_Height);
-        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+        glClearColor(CLEAR_COLOR.x, CLEAR_COLOR.y, CLEAR_COLOR.z, CLEAR_COLOR.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -369,7 +369,7 @@ int CALLBACK WinMain(
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
+    ImGui::DestroyContext(guiContext);
 
     CleanupDeviceWGL(window, &g_MainWindow);
     wglDeleteContext(g_hRC);
