@@ -33,6 +33,6 @@ IF NOT %ERRORLEVEL% == 0 (
     call vcvarsall.bat x64
 )
 
-:: Compile test runner
 cl %COMPILER_FLAGS% %INCLUDES% %SOURCES% -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS%
+:: Compile and link
 popd
