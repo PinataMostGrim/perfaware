@@ -37,6 +37,28 @@
 
 struct WGL_WindowData { HDC hDC; };
 
+typedef struct
+{
+    char *FullExePath;
+    char *ExeFolderPath;
+    char *ExeFilename;
+    char *GuiDLLPath;
+    char *GuiDLLTempPath;
+    char *GuiDLLLockPath;
+} win32_context;
+
+
+// Note (Aaron): Consider these these values for adjustment
+global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
+global_variable char *GUI_DLL_FILENAME = (char *)"sim8086_gui.dll";
+global_variable char *GUI_DLL_TEMP_FILENAME = (char *)"sim8086_gui_temp.dll";
+global_variable char *GUI_DLL_LOCK_FILENAME = (char *)"sim8086_gui_lock.tmp";
+
+global_variable U64 PERMANENT_MEMORY_SIZE = Megabytes(2);
+global_variable U32 FILE_PATH_BUFFER_SIZE = 512;
+
+global_variable ImVec4 CLEAR_COLOR = {0.45f, 0.55f, 0.60f, 1.00};
+
 global_variable HGLRC            g_hRC;
 global_variable WGL_WindowData   g_MainWindow;
 global_variable int              g_Width;
@@ -45,20 +67,29 @@ global_variable int              g_Height;
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-// Note (Aaron): Consider these these values for adjustment
-global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
-global_variable U32 PERMANENT_MEMORY_SIZE = Megabytes(2);
-global_variable U32 FILE_PATH_BUFFER_SIZE = Kilobytes(1);
 
-global_variable ImVec4 CLEAR_COLOR = {0.45f, 0.55f, 0.60f, 1.00};
-
-
-typedef struct
+global_function U64 GetStringLength(char *str)
 {
-    char *FullExePath;
-    char *ExeFolderPath;
-    char *ExeFilename;
-} win32_context;
+    U64 count = 0;
+    while(*str++) count++;
+
+    return count;
+}
+
+
+global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *arena)
+{
+    U64 sizeOfA = GetStringLength(stringA);
+    U64 sizeOfB = GetStringLength(stringB);
+    U64 resultSize = sizeOfA + sizeOfB;
+
+    char *result = (char *)PushSize_(arena, resultSize + 1);
+    MemoryCopy(result, stringA, sizeOfA);
+    MemoryCopy(result + sizeOfA, stringB, sizeOfB);
+    MemorySet((U8 *)result + resultSize, 0, 1);
+
+    return result;
+}
 
 
 global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena)
@@ -66,6 +97,7 @@ global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena
     // TODO (Aaron): Make use of PushSizeZero() in this function once it has been implemented
     // so we can eliminate the call to set the null terminator.
 
+    // extract full path
     context->FullExePath = (char *)PushSize_(arena, FILE_PATH_BUFFER_SIZE);
     DWORD sizeOfFullPath = GetModuleFileName(0, context->FullExePath, FILE_PATH_BUFFER_SIZE);
     Assert((sizeOfFullPath < FILE_PATH_BUFFER_SIZE) && "Allocated a buffer that was too small for the length of the file path");
@@ -79,6 +111,7 @@ global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena
         }
     }
 
+    // construct exe folder path
     U64 sizeOfFolderPath = lastSlashPlusOne - context->FullExePath;
     context->ExeFolderPath = (char *)PushSize_(arena, sizeOfFolderPath + 1);     // + 1 for null termination character
     if (sizeOfFolderPath > 0)
@@ -88,12 +121,18 @@ global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena
         MemorySet((U8 *)context->ExeFolderPath + sizeOfFolderPath, 0x0, 1);
     }
 
+    // construct exe filename
     U64 sizeOfFilename = sizeOfFullPath - sizeOfFolderPath;
     Assert(sizeOfFilename > 0 && "Filename cannot be 0 characters in length");
     context->ExeFilename = (char *)PushSize_(arena, sizeOfFilename + 1);         // + 1 for null termination character
     MemoryCopy(context->ExeFilename, context->FullExePath + sizeOfFolderPath, sizeOfFilename);
     // Note (Aaron): Set the null terminator in case the memory hasn't been initialized to 0
     MemorySet((U8 *)context->ExeFilename + sizeOfFilename, 0, 1);
+
+    // construct GUI DLL related paths
+    context->GuiDLLPath = ConcatStrings(context->ExeFolderPath, GUI_DLL_FILENAME, arena);
+    context->GuiDLLTempPath = ConcatStrings(context->ExeFolderPath, GUI_DLL_TEMP_FILENAME, arena);
+    context->GuiDLLLockPath = ConcatStrings(context->ExeFolderPath, GUI_DLL_LOCK_FILENAME, arena);
 }
 
 
