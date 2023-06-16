@@ -4,3 +4,4 @@ src\imgui
 src\imgui\backends
 -I
 ..\common\src
+-Wno-null-dereference
