@@ -393,10 +393,6 @@ int CALLBACK WinMain(
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
 
-    // Our state
-    bool show_demo_window = true;
-    bool show_another_window = false;
-
     // initialize 8086
     processor_8086 processor = {};
     processor.Memory = (U8 *)PushSize_(&memory.Arena, processor.MemorySize);
@@ -431,6 +427,12 @@ int CALLBACK WinMain(
     }
 
     fclose(file);
+
+    // setup GUI state
+    bool show_demo_window = true;
+    bool show_another_window = false;
+    U32 counter = 0;
+    F32 slider = 0;
 
     // Main loop
     bool done = false;
@@ -481,7 +483,7 @@ int CALLBACK WinMain(
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        if (guiCode.DrawGui) guiCode.DrawGui(&io, &show_demo_window, &show_another_window, &CLEAR_COLOR, &processor);
+        if (guiCode.DrawGui) guiCode.DrawGui(&io, &show_demo_window, &show_another_window, &CLEAR_COLOR, &counter, &slider, &processor);
 
         // Rendering
         ImGui::Render();
