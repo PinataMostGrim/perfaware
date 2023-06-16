@@ -93,7 +93,7 @@ global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena
     context->ExeFilename = (char *)PushSize_(arena, sizeOfFilename + 1);         // + 1 for null termination character
     MemoryCopy(context->ExeFilename, context->FullExePath + sizeOfFolderPath, sizeOfFilename);
     // Note (Aaron): Set the null terminator in case the memory hasn't been initialized to 0
-    MemorySet((U8 *)context->ExeFilename + sizeOfFilename, 0xff, 1);
+    MemorySet((U8 *)context->ExeFilename + sizeOfFilename, 0, 1);
 }
 
 
