@@ -11,6 +11,8 @@ set LINKER_FLAGS=-incremental:no -opt:ref
 set LIBS=User32.lib gdi32.lib winmm.lib opengl32.lib sim8086_gui.lib
 set IMGUI_OBJS=imgui*.obj
 
+set GUI_LOCK_FILE=sim8086_gui_lock.tmp
+
 set BUILD_FOLDER=sim8086\build
 set OUT_EXE=win32_sim8086
 
@@ -36,6 +38,9 @@ IF NOT %ERRORLEVEL% == 0 (
 )
 
 :: Compile and link
-cl %COMPILER_FLAGS% %INCLUDES% ..\src\sim8086_gui.cpp %IMGUI_SOURCES% -Fmsim8086_gui.map -LD /link %LINKER_FLAGS% -EXPORT:DrawGui -EXPORT:SetImguiContext
+del *.pdb > NUL 2> NUL
+echo WAITING FOR PDB > %GUI_LOCK_FILE%
+cl %COMPILER_FLAGS% %INCLUDES% ..\src\sim8086_gui.cpp %IMGUI_SOURCES% -Fmsim8086_gui.map -LD /link %LINKER_FLAGS% -PDB:sim8086_gui_%random%.pdb -EXPORT:DrawGui -EXPORT:SetImguiContext
+del %GUI_LOCK_FILE%
 cl %COMPILER_FLAGS% %INCLUDES% ..\src\win32_sim8086.cpp -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS% %IMGUI_OBJS%
 popd

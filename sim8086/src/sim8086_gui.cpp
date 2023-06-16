@@ -9,15 +9,16 @@
 
 #include "base.h"
 #include "sim8086.h"
+#include "sim8086_gui.h"
 
 
-C_LINKAGE void SetImguiContext(ImGuiContext *context)
+C_LINKAGE SET_IMGUI_CONTEXT(SetImguiContext)
 {
     ImGui::SetCurrentContext(context);
 }
 
 
-C_LINKAGE void DrawGui(ImGuiIO *io, bool *show_demo_window, bool *show_another_window, ImVec4 *clear_color, processor_8086 *processor)
+C_LINKAGE DRAW_GUI(DrawGui)
 {
     // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
     if (show_demo_window)
