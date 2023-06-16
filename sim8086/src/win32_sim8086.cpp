@@ -38,18 +38,18 @@
 
 struct WGL_WindowData { HDC hDC; };
 
-static HGLRC            g_hRC;
-static WGL_WindowData   g_MainWindow;
-static int              g_Width;
-static int              g_Height;
+global_variable HGLRC            g_hRC;
+global_variable WGL_WindowData   g_MainWindow;
+global_variable int              g_Width;
+global_variable int              g_Height;
 
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Note (Aaron): Consider these these values for adjustment
-static const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
-static U32 PERMANENT_MEMORY_SIZE = Megabytes(2);
-static U32 FILE_PATH_BUFFER_SIZE = Kilobytes(1);
+global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
+global_variable U32 PERMANENT_MEMORY_SIZE = Megabytes(2);
+global_variable U32 FILE_PATH_BUFFER_SIZE = Kilobytes(1);
 
 
 typedef struct
@@ -60,7 +60,7 @@ typedef struct
 } win32_context;
 
 
-static void Win32GetExeInfo(win32_context *context, memory_arena *arena)
+global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena)
 {
     // TODO (Aaron): Make use of PushSizeZero() in this function once it has been implemented
     // so we can eliminate the call to set the null terminator.
@@ -138,7 +138,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 }
 
 
-static bool CreateDeviceWGL(HWND hWnd, WGL_WindowData* data)
+global_function bool CreateDeviceWGL(HWND hWnd, WGL_WindowData* data)
 {
     HDC hDc = GetDC(hWnd);
     PIXELFORMATDESCRIPTOR pfd = { 0 };
@@ -162,7 +162,7 @@ static bool CreateDeviceWGL(HWND hWnd, WGL_WindowData* data)
 }
 
 
-static void CleanupDeviceWGL(HWND hWnd, WGL_WindowData* data)
+global_function void CleanupDeviceWGL(HWND hWnd, WGL_WindowData* data)
 {
     wglMakeCurrent(NULL, NULL);
     ReleaseDC(hWnd, data->hDC);
