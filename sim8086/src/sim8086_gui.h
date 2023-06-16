@@ -11,11 +11,23 @@
 #include "sim8086.h"
 
 
+typedef struct
+{
+    ImGuiContext *GuiContext;
+    ImGuiIO IO;
+    bool ShowDemoWindow;
+    bool ShowAnotherWindow;
+    ImVec4 ClearColor;
+
+} gui_state;
+
+
 C_LINKAGE_BEGIN
 #define SET_IMGUI_CONTEXT(name) void name(ImGuiContext *context)
 typedef SET_IMGUI_CONTEXT(set_imgui_context);
 
-#define DRAW_GUI(name) void name(ImGuiIO *io, bool *show_demo_window, bool *show_another_window, ImVec4 *clear_color, processor_8086 *processor)
+// #define DRAW_GUI(name) void name(ImGuiIO *io, bool *show_demo_window, bool *show_another_window, ImVec4 *clear_color, processor_8086 *processor)
+#define DRAW_GUI(name) void name(gui_state *guiState, processor_8086 *processor)
 typedef DRAW_GUI(draw_gui);
 C_LINKAGE_END
 

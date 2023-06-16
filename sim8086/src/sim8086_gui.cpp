@@ -21,9 +21,9 @@ C_LINKAGE SET_IMGUI_CONTEXT(SetImguiContext)
 C_LINKAGE DRAW_GUI(DrawGui)
 {
     // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-    if (show_demo_window)
+    if (guiState->ShowDemoWindow)
     {
-        ImGui::ShowDemoWindow(show_demo_window);
+        ImGui::ShowDemoWindow(&guiState->ShowDemoWindow);
     }
 
     // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
@@ -34,11 +34,11 @@ C_LINKAGE DRAW_GUI(DrawGui)
         ImGui::Begin("Hello, world!");
 
         ImGui::Text("This is some useful text.");
-        ImGui::Checkbox("Demo Window", show_demo_window);
-        ImGui::Checkbox("Another Window", show_another_window);
+        ImGui::Checkbox("Demo Window", &guiState->ShowDemoWindow);
+        ImGui::Checkbox("Another Window", &guiState->ShowAnotherWindow);
 
         ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-        ImGui::ColorEdit3("clear color", (float *)clear_color);
+        ImGui::ColorEdit3("clear color", (float *)(&guiState->ClearColor));
 
         if (ImGui::Button("Button"))
         {
@@ -47,18 +47,18 @@ C_LINKAGE DRAW_GUI(DrawGui)
         ImGui::SameLine();
         ImGui::Text("counter = %d", counter);
 
-        ImGui::Text("Application average %.3f  ms/frame (%.1f FPS)", 1000.0f / io->Framerate, io->Framerate);
+        ImGui::Text("Application average %.3f  ms/frame (%.1f FPS)", 1000.0f / guiState->IO.Framerate, guiState->IO.Framerate);
         ImGui::End();
     }
 
     // 3. Show another simple window.
-    if (show_another_window)
+    if (guiState->ShowAnotherWindow)
     {
-        ImGui::Begin("Another Window", show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+        ImGui::Begin("Another Window", &guiState->ShowAnotherWindow);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
         ImGui::Text("Hello from another window!");
         if (ImGui::Button("Close Me"))
         {
-            *show_another_window = false;
+            guiState->ShowAnotherWindow = false;
         }
         ImGui::End();
     }

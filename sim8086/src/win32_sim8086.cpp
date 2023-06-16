@@ -370,14 +370,21 @@ int CALLBACK WinMain(
     // show the window
     ShowWindow(window, SW_SHOWDEFAULT);
 
-    // setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGuiContext *guiContext = ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;   // Enable Keyboard Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;    // Enable Gamepad Controls
+    // Setup GUI state and context
+    gui_state guiState = {};
+    guiState.ShowDemoWindow = true;
+    guiState.ShowAnotherWindow = false;
+    // guiState.ClearColor = CLEAR_COLOR;
+    guiState.ClearColor = {0.45f, 0.55f, 0.60f, 1.00};
 
-    if (guiCode.SetImGuiContext) guiCode.SetImGuiContext(guiContext);
+    IMGUI_CHECKVERSION();
+    guiState.GuiContext = ImGui::CreateContext();
+    // ImGuiIO& io = ImGui::GetIO(); (void)io;
+    guiState.IO = ImGui::GetIO(); (void)guiState.IO;
+    guiState.IO.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;   // Enable Keyboard Controls
+    // guiState.IO.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;    // Enable Gamepad Controls
+
+    if (guiCode.SetImGuiContext) guiCode.SetImGuiContext(guiState.GuiContext);
 
     // Setup Dear ImGui Style
     ImGui::StyleColorsDark();
@@ -402,10 +409,6 @@ int CALLBACK WinMain(
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
-
-    // Our state
-    bool show_demo_window = true;
-    bool show_another_window = false;
 
     // initialize 8086
     processor_8086 processor = {};
@@ -483,7 +486,7 @@ int CALLBACK WinMain(
             // TODO (Aaron): Why was it 75 specifically?
             Sleep(75);
             guiCode = Win32LoadGuiCode(win32Context.GuiDLLPath, win32Context.GuiDLLTempPath, win32Context.GuiDLLLockPath);
-            if (guiCode.SetImGuiContext) guiCode.SetImGuiContext(guiContext);
+            if (guiCode.SetImGuiContext) guiCode.SetImGuiContext(guiState.GuiContext);
         }
 
         // Start the Dear ImGui frame
@@ -491,7 +494,8 @@ int CALLBACK WinMain(
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        if (guiCode.DrawGui) guiCode.DrawGui(&io, &show_demo_window, &show_another_window, &CLEAR_COLOR, &processor);
+        // if (guiCode.DrawGui) guiCode.DrawGui(&io, &show_demo_window, &show_another_window, &CLEAR_COLOR, &processor);
+        if (guiCode.DrawGui) guiCode.DrawGui(&guiState, &processor);
 
         // Rendering
         ImGui::Render();
@@ -506,7 +510,7 @@ int CALLBACK WinMain(
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext(guiContext);
+    ImGui::DestroyContext(guiState.GuiContext);
 
     CleanupDeviceWGL(window, &g_MainWindow);
     wglDeleteContext(g_hRC);
