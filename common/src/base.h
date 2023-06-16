@@ -35,9 +35,9 @@
 #define TRUE 1
 #define FALSE 0
 
-#define c_linkage_begin extern "C"{
-#define c_linkage_end }
-#define c_linkage extern "C"
+#define C_LINKAGE_BEGIN extern "C"{
+#define C_LINKAGE_END }
+#define C_LINKAGE extern "C"
 
 
 // +------------------------------+
