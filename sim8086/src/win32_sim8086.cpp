@@ -7,6 +7,7 @@
     - Add a file menu to open / load files
         - Use hard-coded value for now
     - Convert to length based strings
+    - Add V2F32 (and others from base.h) macros to imconfig.h so I can use my own math types
 */
 
 #include "imgui.h"
@@ -284,15 +285,13 @@ int CALLBACK WinMain(
     LPSTR CommandLine,
     int ShowCode)
 {
-    // create window and register
     WNDCLASSA windowClass = {};
-
     windowClass.style = CS_HREDRAW|CS_VREDRAW;
     windowClass.lpfnWndProc = WndProc;
     windowClass.hInstance = Instance;
     windowClass.hCursor = LoadCursor(0, IDC_ARROW);
     // windowClass.hIcon = ;
-    windowClass.lpszClassName = "win32sim8086";
+    windowClass.lpszClassName = "win32_sim8086";
 
     if (!RegisterClassA(&windowClass))
     {
@@ -304,7 +303,7 @@ int CALLBACK WinMain(
         CreateWindowExA(
             0,
             windowClass.lpszClassName,
-            "win32sim8086",
+            "win32_sim8086",
             WS_OVERLAPPEDWINDOW | WS_VISIBLE,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
@@ -321,7 +320,7 @@ int CALLBACK WinMain(
         return 1;
     }
 
-    // allocate memory for a memory arena
+    // allocate a permanent storage memory arena
     sim8086_memory memory = {};
     memory.Size = PERMANENT_MEMORY_SIZE;
     memory.BackingStore = VirtualAlloc(0, memory.Size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
@@ -332,6 +331,7 @@ int CALLBACK WinMain(
     }
     InitializeArena(&memory.Arena, memory.Size, (U8 *)memory.BackingStore);
     memory.IsInitialized = TRUE;
+
 
     // construct paths in prep for GUI code hot-loading
     win32_context win32Context = {};
@@ -345,6 +345,7 @@ int CALLBACK WinMain(
         return 1;
     }
 
+
     // initialize OpenGL
     if (!CreateDeviceWGL(window, &g_MainWindow))
     {
@@ -352,30 +353,28 @@ int CALLBACK WinMain(
         DestroyWindow(window);
         UnregisterClassA(windowClass.lpszClassName, windowClass.hInstance);
 
+        Assert(FALSE && "OpenGL failed to initialize");
         return 1;
     }
 
     wglMakeCurrent(g_MainWindow.hDC, g_hRC);
-
-    // show the window
     ShowWindow(window, SW_SHOWDEFAULT);
 
-    // setup Dear ImGui context
+
+    // setup Dear ImGui context and gui state
     IMGUI_CHECKVERSION();
     ImGuiContext *guiContext = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;   // Enable Keyboard Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;    // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigWindowsResizeFromEdges = true;
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplWin32_InitForOpenGL(window);
+    ImGui_ImplOpenGL3_Init();
 
     if (guiCode.SetImGuiContext) guiCode.SetImGuiContext(guiContext);
 
-    // Setup Dear ImGui Style
-    ImGui::StyleColorsDark();
-    // ImGui::StyleColorsClassic();
-
-    // Setup Platform/Renderer backends
-    ImGui_ImplWin32_InitForOpenGL(window);
-    ImGui_ImplOpenGL3_Init();
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -392,6 +391,10 @@ int CALLBACK WinMain(
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
+
+    gui_state guiState = {};
+    guiState.ClearColor = CLEAR_COLOR;
+
 
     // initialize 8086
     processor_8086 processor = {};
@@ -428,11 +431,6 @@ int CALLBACK WinMain(
 
     fclose(file);
 
-    // setup GUI state
-    bool show_demo_window = true;
-    bool show_another_window = false;
-    U32 counter = 0;
-    F32 slider = 0;
 
     // Main loop
     bool done = false;
@@ -483,7 +481,10 @@ int CALLBACK WinMain(
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        if (guiCode.DrawGui) guiCode.DrawGui(&io, &show_demo_window, &show_another_window, &CLEAR_COLOR, &counter, &slider, &processor);
+        if (guiCode.DrawGui)
+        {
+            guiCode.DrawGui(&guiState, &io, &processor);
+        }
 
         // Rendering
         ImGui::Render();
