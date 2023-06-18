@@ -43,4 +43,5 @@ echo WAITING FOR PDB > %GUI_LOCK_FILE%
 cl %COMPILER_FLAGS% %INCLUDES% ..\src\sim8086_gui.cpp %IMGUI_SOURCES% -Fmsim8086_gui.map -LD /link %LINKER_FLAGS% -PDB:sim8086_gui_%random%.pdb -EXPORT:DrawGui -EXPORT:SetImguiContext
 del %GUI_LOCK_FILE%
 cl %COMPILER_FLAGS% %INCLUDES% ..\src\win32_sim8086.cpp -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS% %IMGUI_OBJS%
+::cl -E %COMPILER_FLAGS% %INCLUDES% ..\src\win32_sim8086.cpp -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS% %IMGUI_OBJS% | clang-format -style="Microsoft" > temp.txt
 popd

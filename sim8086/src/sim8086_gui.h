@@ -8,13 +8,15 @@
 #include <stdbool.h>
 
 #include "base.h"
+#include "memory_arena.h"
+#include "sim8086_platform.h"
 #include "sim8086.h"
 
 
 typedef struct
 {
     ImVec4 ClearColor;
-    int SelectedLine;
+    U32 SelectedLine;
 
 } gui_state;
 
@@ -23,7 +25,7 @@ C_LINKAGE_BEGIN
 #define SET_IMGUI_CONTEXT(name) void name(ImGuiContext *context)
 typedef SET_IMGUI_CONTEXT(set_imgui_context);
 
-#define DRAW_GUI(name) void name(gui_state *guiState, ImGuiIO *io, processor_8086 *processor)
+#define DRAW_GUI(name) void name(gui_state *guiState, ImGuiIO *io, application_memory *memory)
 typedef DRAW_GUI(draw_gui);
 C_LINKAGE_END
 

@@ -1,5 +1,5 @@
 /* TODO (Aaron):
-    - Add a screen to display loaded instructions
+    - Add a ScratchArena when I need it
     - Add a screen to display registers
     - Add a screen to display memory
     - Add hotkeys for step forward through assembly
@@ -26,11 +26,11 @@
 #include <tchar.h>
 
 #include "base.h"
-#include "memory.h"
-#include "memory_arena.c"
-
+#include "memory_arena.h"
 #include "sim8086_platform.h"
 #include "sim8086_gui.h"
+
+#include "memory_arena.c"
 #include "sim8086.cpp"
 
 
@@ -60,14 +60,19 @@ typedef struct
 
 // ///////////////////////////////////////////////////////////////
 // Note (Aaron): Adjustable values
-global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
+// global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
+// global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0039_more_movs";
+global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0041_add_sub_cmp_jnz";
 
 // Note (Aaron): Update the build batch file when adjusting these three
 global_variable char *GUI_DLL_FILENAME = (char *)"sim8086_gui.dll";
 global_variable char *GUI_DLL_TEMP_FILENAME = (char *)"sim8086_gui_temp.dll";
 global_variable char *GUI_DLL_LOCK_FILENAME = (char *)"sim8086_gui_lock.tmp";
 
-global_variable U64 PERMANENT_MEMORY_SIZE = Megabytes(2);
+global_variable U64 PERMANENT_ARENA_SIZE = Megabytes(10);
+global_variable U64 INSTRUCTION_ARENA_SIZE = Megabytes(10);
+global_variable U64 FRAME_ARENA_SIZE = Megabytes(10);
+
 global_variable U32 FILE_PATH_BUFFER_SIZE = 512;
 
 global_variable ImVec4 CLEAR_COLOR = {0.45f, 0.55f, 0.60f, 1.00};
@@ -311,22 +316,32 @@ int CALLBACK WinMain(
         return 1;
     }
 
-    // allocate a permanent storage memory arena
-    sim8086_memory memory = {};
-    memory.Size = PERMANENT_MEMORY_SIZE;
-    memory.BackingStore = VirtualAlloc(0, memory.Size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+    // allocate application memory
+    application_memory memory = {};
+    memory.TotalSize = PERMANENT_ARENA_SIZE + INSTRUCTION_ARENA_SIZE + FRAME_ARENA_SIZE;
+    memory.BackingStore = VirtualAlloc(0, memory.TotalSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
     if (!memory.BackingStore)
     {
         Assert(FALSE && "Unable to allocate permanent memory");
         return 1;
     }
-    InitializeArena(&memory.Arena, memory.Size, (U8 *)memory.BackingStore);
-    memory.IsInitialized = TRUE;
 
+    // partition out memory arenas
+    {
+        InitializeArena(&memory.PermanentArena, PERMANENT_ARENA_SIZE, (U8 *)memory.BackingStore);
+
+        U8 *instructionsArenaPtr = ((U8 *)memory.BackingStore) + memory.PermanentArena.Size;
+        InitializeArena(&memory.InstructionsArena, INSTRUCTION_ARENA_SIZE, instructionsArenaPtr);
+
+        U8 *frameArenaPtr = ((U8 *)memory.BackingStore) + memory.PermanentArena.Size + memory.InstructionsArena.Size;
+        InitializeArena(&memory.FrameArena, FRAME_ARENA_SIZE, frameArenaPtr);
+
+        memory.IsInitialized = (memory.PermanentArena.BasePtr && memory.InstructionsArena.BasePtr && memory.FrameArena.BasePtr);
+    }
 
     // construct paths in prep for GUI code hot-loading
     win32_context win32Context = {};
-    Win32GetExeInfo(&win32Context, &memory.Arena);
+    Win32GetExeInfo(&win32Context, &memory.PermanentArena);
 
     // initial hot-load of GUI code
     gui_code guiCode = Win32LoadGuiCode(win32Context.GuiDLLPath, win32Context.GuiDLLTempPath, win32Context.GuiDLLLockPath);
@@ -389,7 +404,7 @@ int CALLBACK WinMain(
 
     // initialize 8086
     processor_8086 processor = {};
-    processor.Memory = (U8 *)PushSize(&memory.Arena, processor.MemorySize);
+    processor.Memory = (U8 *)PushSize(&memory.PermanentArena, processor.MemorySize);
     if (!processor.Memory)
     {
         Assert(FALSE && "Unable to allocate main memory for 8086");
@@ -422,6 +437,14 @@ int CALLBACK WinMain(
 
     fclose(file);
 
+    // generate instructions from program
+    instruction *instructionBuffer = (instruction *)memory.InstructionsArena.BasePtr;
+    while (processor.IP < processor.ProgramSize)
+    {
+        instruction nextInstruction = DecodeNextInstruction(&processor);
+        instruction *nextInstructionPtr = PushStruct(&memory.InstructionsArena, instruction);
+        MemoryCopy(nextInstructionPtr, &nextInstruction, sizeof(instruction));
+    }
 
     // Main loop
     bool done = false;
@@ -456,6 +479,8 @@ int CALLBACK WinMain(
             break;
         }
 
+        ClearArena(&memory.FrameArena);
+
         // Hot-load GUI code if necessary
         FILETIME dllWriteTime = Win32GetLastWriteTime(win32Context.GuiDLLPath);
         if (CompareFileTime(&dllWriteTime, &guiCode.LastWriteTime))
@@ -474,7 +499,7 @@ int CALLBACK WinMain(
 
         if (guiCode.DrawGui)
         {
-            guiCode.DrawGui(&guiState, &io, &processor);
+            guiCode.DrawGui(&guiState, &io, &memory);
         }
 
         // Rendering

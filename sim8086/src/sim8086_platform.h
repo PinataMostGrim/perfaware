@@ -8,9 +8,13 @@
 typedef struct
 {
     void *BackingStore;
-    U64 Size;
-    memory_arena Arena;
+    U64 TotalSize;
+
+    memory_arena PermanentArena;
+    memory_arena FrameArena;
+    memory_arena InstructionsArena;
+
     B32 IsInitialized;
-} sim8086_memory;
+} application_memory;
 
 #endif // SIM8086_PLATFORM_H

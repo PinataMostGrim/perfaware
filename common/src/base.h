@@ -196,7 +196,7 @@ global_function V4F64 v4f64(F64 x, F64 y, F64 z, F64 w)
 
 global_function void *MemorySet(uint8_t *destPtr, int c, size_t count)
 {
-    Assert(count > 0);
+    Assert(count > 0 && "Attempted to set 0 bytes");
 
     unsigned char *dest = (unsigned char *)destPtr;
     while(count--) *dest++ = (unsigned char)c;

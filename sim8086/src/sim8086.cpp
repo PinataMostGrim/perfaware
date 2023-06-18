@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "base.h"
+#include "memory_arena.h"
 #include "sim8086.h"
 #include "sim8086_mnemonics.cpp"
 
@@ -281,6 +282,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
 {
     processor->PrevIP = processor->IP;
     instruction instruction = {};
+    instruction.Address = processor->IP;
 
     // read initial instruction byte for parsing
     processor->InstructionCount++;
@@ -1190,6 +1192,162 @@ void SetOperandValue(processor_8086 *processor, instruction_operand *operand, U1
     }
 
     assert_8086(FALSE && "Unreachable case");
+}
+
+
+// TODO (Aaron): Consider moving this into a separate script. Nothing else here
+// uses memory arenas.
+static char *GetInstructionMnemonic(instruction *instruction, memory_arena *arena)
+{
+    // TODO (Aaron): Don't forget about this. Figure out a better way to set its size.
+    char buffer[128] = "";
+
+    sprintf(buffer, "%s ", GetOpMnemonic(instruction->OpType));
+    char *resultPtr = PushString(arena, buffer);
+    // printf("%s ", GetOpMnemonic(instruction->OpType));
+
+    const char *Separator = "";
+
+    for (int i = 0; i < ArrayCount(instruction->Operands); ++i)
+    {
+        instruction_operand operand = instruction->Operands[i];
+
+        // skip empty operands
+        if(operand.Type == Operand_None)
+        {
+            continue;
+        }
+
+        if (GetStringLength((char *)Separator) > 0)
+        {
+            PushString(arena, (char *)Separator);
+        }
+        // printf("%s", Separator);
+        Separator = ", ";
+
+        switch (operand.Type)
+        {
+            case Operand_None:
+            {
+                break;
+            }
+            case Operand_Memory:
+            {
+                // prepend width hint if necessary
+                if (operand.Memory.Flags & Memory_PrependWidth)
+                {
+                    // sprintf(buffer, "%s ",
+                    //         (operand.Memory.Flags & Memory_IsWide)
+                    //             ? "word": "byte");
+
+                    if (operand.Memory.Flags & Memory_IsWide)
+                    {
+                        PushString(arena, (char *)"word ");
+                    }
+                    else
+                    {
+                        PushString(arena, (char *)"byte ");
+                    }
+
+                    // printf("%s ", (operand.Memory.Flags & Memory_IsWide) ? "word": "byte");
+                }
+
+                // print direct address
+                if (operand.Memory.Flags & Memory_HasDirectAddress)
+                {
+                    sprintf(buffer, "[%i]", operand.Memory.DirectAddress);
+                    PushString(arena, buffer);
+
+                    // printf("[%i]", operand.Memory.DirectAddress);
+                    break;
+                }
+
+                // print memory with optional displacement
+                PushString(arena, (char *)"[");
+                PushString(arena, (char *)GetRegisterMnemonic(operand.Memory.Register));
+                // printf("[");
+                // printf("%s", GetRegisterMnemonic(operand.Memory.Register));
+
+                if (operand.Memory.Flags & Memory_HasDisplacement)
+                {
+                    if (operand.Memory.Displacement >= 0)
+                    {
+                        sprintf(buffer, " + %i", operand.Memory.Displacement);
+                        PushString(arena, buffer);
+                        // printf(" + %i", operand.Memory.Displacement);
+                    }
+                    else
+                    {
+                        sprintf(buffer, " - %i", operand.Memory.Displacement * -1);
+                        PushString(arena, buffer);
+                        // printf(" - %i", operand.Memory.Displacement * -1);
+                    }
+                }
+
+                PushString(arena, (char *)"]");
+                // printf("]");
+
+                break;
+            }
+            case Operand_Register:
+            {
+                PushString(arena, (char *)GetRegisterMnemonic(operand.Register));
+                // printf("%s", GetRegisterMnemonic(operand.Register));
+                break;
+            }
+            case Operand_Immediate:
+            {
+                if (operand.Immediate.Flags & Immediate_IsJump)
+                {
+                    S8 offset = (S8)(operand.Immediate.Value & 0xff);
+
+                    // Note (Aaron): Offset the value to accommodate a NASM syntax peculiarity.
+                    // NASM expects an offset value from the start of the instruction rather than
+                    // the end (which is how the instructions are encoded).
+                    offset += instruction->Bits.ByteCount;
+
+                    if (offset >= 0)
+                    {
+                        sprintf(buffer, "$+%i", offset);
+                    }
+                    else
+                    {
+                        sprintf(buffer, "$%i", offset);
+                    }
+                    PushString(arena, buffer);
+                    // printf(offset >= 0 ? "$+%i" : "$%i", offset);
+                    break;
+                }
+
+                // TODO (Aaron): Test this more
+                bool isSigned = operand.Immediate.Flags & Immediate_IsSigned;
+
+                sprintf(buffer, "%i",
+                        (isSigned
+                         ? (S16) operand.Immediate.Value
+                         : (U16) operand.Immediate.Value));
+
+                PushString(arena, buffer);
+
+                // printf("%i", isSigned
+                //        ? (S16) operand.Immediate.Value
+                //        : (U16) operand.Immediate.Value);
+
+                break;
+            }
+
+            default:
+            {
+                PushString(arena, (char *)"?");
+                // printf("?");
+            }
+        }
+    }
+
+    // Note (Aaron): Append the null-terminator character
+    PushSizeZero(arena, 1);
+
+    return resultPtr;
 }
 
 

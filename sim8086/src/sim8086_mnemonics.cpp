@@ -1,5 +1,4 @@
 #include "sim8086.h"
-#include "sim8086_mnemonics.h"
 
 
 char const *OperationMnemonics[]

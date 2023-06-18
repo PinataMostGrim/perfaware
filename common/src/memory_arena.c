@@ -1,4 +1,7 @@
 /* TODO (Aaron):
+    - Prefix these method calls with "Arena"
+        - "ArenaPushSize", etc
+    - Consider collapsing this into memory_arena.h
     - Update PushString() to make use of length based strings once I implement them.
 */
 
@@ -50,10 +53,10 @@ global_function void *PushData(memory_arena *arena, memory_index size, U8 *sourc
 }
 
 
-global_function void *PushString(memory_arena *arena, char *str)
+global_function char *PushString(memory_arena *arena, char *str)
 {
     U64 strLength = GetStringLength(str);
-    void *result = PushSize(arena, strLength);
+    char *result = (char *)PushSize(arena, strLength);
     MemoryCopy(result, str, strLength);
 
     return result;
@@ -76,4 +79,13 @@ global_function void ClearArena(memory_arena *arena)
 {
     arena->PositionPtr = arena->PositionPtr;
     arena->Used = 0;
+}
+
+
+global_function void ClearArenaZero(memory_arena *arena)
+{
+    arena->PositionPtr = arena->PositionPtr;
+    arena->Used = 0;
+
+    MemorySet(arena->BasePtr, 0x0, arena->Size);
 }

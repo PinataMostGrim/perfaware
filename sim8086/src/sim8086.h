@@ -97,7 +97,7 @@ struct processor_8086
     // be slid around like windows over the entire memory surface, however I'm not replicating
     // that here. I'm arbitrarily allocating 1 memory segment (64k bytes) for program memory
     // and the remaining 15 memory segments for the program to make use of.
-    U32 MemorySize = 1024 * 1024;
+    U32 MemorySize = Megabytes(1);
     U8 *Memory;
     U32 ProgramSize = 0;
 
@@ -220,6 +220,8 @@ struct instruction_bits
 
 struct instruction
 {
+    U32 Address;
+
     operation_types OpType = Op_unknown;
     instruction_operand Operands[2] = {};
     instruction_bits Bits = {};
@@ -241,5 +243,7 @@ static void ReadInstructionStream(processor_8086 *processor, instruction *instru
 static void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand);
 static U8 CalculateEffectiveAddressClocks(instruction_operand *operand);
 static instruction DecodeNextInstruction(processor_8086 *processor);
+
+static char *GetInstructionMnemonic(instruction *instruction, memory_arena *scratchArena);
 
 #endif //SIM8086_H
