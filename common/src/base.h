@@ -217,4 +217,14 @@ global_function void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t si
     return destPtr;
 }
 
+
+global_function U64 GetStringLength(char *str)
+{
+    U64 count = 0;
+    while(*str++) count++;
+
+    return count;
+}
+
+
 #endif // BASE_H

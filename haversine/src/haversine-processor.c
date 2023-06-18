@@ -91,7 +91,7 @@ global_function void InitializeTokenStack(token_stack *stack, memory_arena *aren
 
 global_function haversine_token *PushToken(token_stack *tokenStack, haversine_token value)
 {
-    haversine_token *tokenPtr = PushSize(tokenStack->Arena, haversine_token);
+    haversine_token *tokenPtr = PushStruct(tokenStack->Arena, haversine_token);
     tokenStack->TokenCount++;
     MemoryCopy(tokenPtr, &value, sizeof(haversine_token));
 
@@ -104,7 +104,7 @@ global_function haversine_token *PushToken(token_stack *tokenStack, haversine_to
 global_function haversine_token PopToken(token_stack *tokenStack)
 {
     haversine_token result;
-    haversine_token *tokenPtr = PopSize(tokenStack->Arena, haversine_token);
+    haversine_token *tokenPtr = PopStruct(tokenStack->Arena, haversine_token);
     tokenStack->TokenCount--;
 
     MemoryCopy(&result, tokenPtr, sizeof(haversine_token));

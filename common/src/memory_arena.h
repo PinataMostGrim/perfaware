@@ -16,11 +16,15 @@ typedef struct
 
 
 global_function void InitializeArena(memory_arena *arena, memory_index size, U8 *basePtr);
-global_function void *PushSize_(memory_arena *arena, memory_index size);
-global_function void *PushSizeZero_(memory_arena *arena, memory_index size);
-global_function void *PopSize_(memory_arena *arena, memory_index size);
+global_function void *PushSize(memory_arena *arena, memory_index size);
+global_function void *PushSizeZero(memory_arena *arena, memory_index size);
+global_function void *PushData(memory_arena *arena, memory_index size, U8 *sourcePtr);
+global_function void *PushString(memory_arena *arena, char *str);
+global_function void *PopSize(memory_arena *arena, memory_index size);
+global_function void ClearArena(memory_arena *arena);
 
-#define PushSize(arena, type) (type *)PushSize_(arena, sizeof(type))
-#define PopSize(arena, type) (type *)PopSize_(arena, sizeof(type))
+#define PushStruct(arena, type) (type *)PushSize(arena, sizeof(type))
+#define PushArray(arena, type, count) (type *)PushSize((arena), sizeof(type)*(count))
+#define PopStruct(arena, type) (type *)PopSize(arena, sizeof(type))
 
 #endif // MEMORY_ARENA_H

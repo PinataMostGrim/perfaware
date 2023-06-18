@@ -82,22 +82,13 @@ global_variable int              g_Height;
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
-global_function U64 GetStringLength(char *str)
-{
-    U64 count = 0;
-    while(*str++) count++;
-
-    return count;
-}
-
-
 global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *arena)
 {
     U64 sizeOfA = GetStringLength(stringA);
     U64 sizeOfB = GetStringLength(stringB);
     U64 resultSize = sizeOfA + sizeOfB;
 
-    char *result = (char *)PushSizeZero_(arena, resultSize + 1);
+    char *result = (char *)PushSizeZero(arena, resultSize + 1);
     MemoryCopy(result, stringA, sizeOfA);
     MemoryCopy(result + sizeOfA, stringB, sizeOfB);
 
@@ -108,7 +99,7 @@ global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *
 global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena)
 {
     // extract full path
-    context->FullExePath = (char *)PushSizeZero_(arena, FILE_PATH_BUFFER_SIZE);
+    context->FullExePath = (char *)PushSizeZero(arena, FILE_PATH_BUFFER_SIZE);
     DWORD sizeOfFullPath = GetModuleFileName(0, context->FullExePath, FILE_PATH_BUFFER_SIZE);
     Assert((sizeOfFullPath < FILE_PATH_BUFFER_SIZE) && "Allocated a buffer that was too small for the length of the file path");
 
@@ -123,7 +114,7 @@ global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena
 
     // construct exe folder path
     U64 sizeOfFolderPath = lastSlashPlusOne - context->FullExePath;
-    context->ExeFolderPath = (char *)PushSizeZero_(arena, sizeOfFolderPath + 1);     // + 1 for null termination character
+    context->ExeFolderPath = (char *)PushSizeZero(arena, sizeOfFolderPath + 1);     // + 1 for null termination character
     if (sizeOfFolderPath > 0)
     {
         MemoryCopy(context->ExeFolderPath, context->FullExePath, sizeOfFolderPath);
@@ -132,7 +123,7 @@ global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena
     // construct exe filename
     U64 sizeOfFilename = sizeOfFullPath - sizeOfFolderPath;
     Assert(sizeOfFilename > 0 && "Filename cannot be 0 characters in length");
-    context->ExeFilename = (char *)PushSizeZero_(arena, sizeOfFilename + 1);         // + 1 for null termination character
+    context->ExeFilename = (char *)PushSizeZero(arena, sizeOfFilename + 1);         // + 1 for null termination character
     MemoryCopy(context->ExeFilename, context->FullExePath + sizeOfFolderPath, sizeOfFilename);
 
     // construct GUI DLL related paths
@@ -398,7 +389,7 @@ int CALLBACK WinMain(
 
     // initialize 8086
     processor_8086 processor = {};
-    processor.Memory = (U8 *)PushSize_(&memory.Arena, processor.MemorySize);
+    processor.Memory = (U8 *)PushSize(&memory.Arena, processor.MemorySize);
     if (!processor.Memory)
     {
         Assert(FALSE && "Unable to allocate main memory for 8086");
