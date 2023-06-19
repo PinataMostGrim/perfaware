@@ -36,9 +36,12 @@
 #include "memory_arena.h"
 #include "sim8086_platform.h"
 #include "sim8086_gui.h"
+#include "sim8086.h"
+#include "sim8086_mnemonics.h"
 
 #include "memory_arena.c"
 #include "sim8086.cpp"
+#include "sim8086_mnemonics.cpp"
 
 
 struct WGL_WindowData { HDC hDC; };

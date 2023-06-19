@@ -19,6 +19,7 @@
 
 #include "memory_arena.c"
 #include "sim8086.cpp"
+#include "sim8086_mnemonics.cpp"
 
 
 

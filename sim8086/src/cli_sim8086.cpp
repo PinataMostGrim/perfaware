@@ -1,8 +1,12 @@
 /* TODO (Aaron):
-    -
 */
 
+#include "base.h"
+#include "memory_arena.h"
+
+#include "memory_arena.c"
 #include "sim8086.cpp"
+#include "sim8086_mnemonics.cpp"
 
 
 void PrintFlags(processor_8086 *processor, bool force = false)

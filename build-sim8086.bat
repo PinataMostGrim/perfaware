@@ -15,7 +15,7 @@ set OUT_EXE=sim8086
 :: NOTE: Set %DEBUG% to 1 for debug build
 IF [%DEBUG%] == [1] (
     :: Making debug build
-    set COMPILER_FLAGS=-nologo -Od -Gm- -MT -W4 -FC -wd4996 -wd4201 -wd4100 -wd4505 -DSIM8086_SLOW=1 -Zi -DEBUG:FULL
+    set COMPILER_FLAGS=-nologo -Od -Gm- -MT -W4 -FC -wd4996 -wd4201 -wd4100 -wd4505 -wd4127 -DSIM8086_SLOW=1 -Zi -DEBUG:FULL
     set OUT_EXE=%OUT_EXE%_debug.exe
 ) ELSE (
     :: Making release build

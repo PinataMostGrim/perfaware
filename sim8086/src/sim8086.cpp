@@ -10,7 +10,8 @@
 #include "base.h"
 #include "memory_arena.h"
 #include "sim8086.h"
-#include "sim8086_mnemonics.cpp"
+#include "sim8086_mnemonics.h"
+
 
 // SIM8086_SLOW:
 //     0 - No slow code allowed!

@@ -1,7 +1,7 @@
 #include <stdio.h>
 
-#include "sim8086.h"
 #include "memory_arena.h"
+#include "sim8086.h"
 
 
 char const *OperationMnemonics[]

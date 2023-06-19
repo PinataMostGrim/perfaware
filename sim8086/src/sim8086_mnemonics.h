@@ -1,8 +1,8 @@
 #ifndef SIM8086_MNEMONICS_H
 #define SIM8086_MNEMONICS_H
 
-#include "sim8086.h"
 #include "memory_arena.h"
+#include "sim8086.h"
 
 static char const *GetOpMnemonic(operation_types op);
 static char const *GetRegisterMnemonic(register_id regMemId);
