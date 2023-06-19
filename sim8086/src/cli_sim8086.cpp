@@ -14,12 +14,12 @@ void PrintFlags(processor_8086 *processor, bool force = false)
 
     printf(" flags:->");
 
-    if (processor->Flags & Register_CF) { printf("C"); }
-    if (processor->Flags & Register_PF) { printf("P"); }
-    if (processor->Flags & Register_AF) { printf("A"); }
-    if (processor->Flags & Register_ZF) { printf("Z"); }
-    if (processor->Flags & Register_SF) { printf("S"); }
-    if (processor->Flags & Register_OF) { printf("O"); }
+    if (processor->Flags & RegisterFlag_CF) { printf("C"); }
+    if (processor->Flags & RegisterFlag_PF) { printf("P"); }
+    if (processor->Flags & RegisterFlag_AF) { printf("A"); }
+    if (processor->Flags & RegisterFlag_ZF) { printf("Z"); }
+    if (processor->Flags & RegisterFlag_SF) { printf("S"); }
+    if (processor->Flags & RegisterFlag_OF) { printf("O"); }
 }
 
 

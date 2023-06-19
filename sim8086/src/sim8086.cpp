@@ -1042,12 +1042,12 @@ static void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targ
     if (info.IsWide)
     {
         // use 16 bit mask
-        SetRegisterFlag(processor, Register_SF, (value >> 15) == 1);
+        SetRegisterFlag(processor, RegisterFlag_SF, (value >> 15) == 1);
     }
     else
     {
         // use 8 bit mask
-        SetRegisterFlag(processor, Register_SF, (value >> 7) == 1);
+        SetRegisterFlag(processor, RegisterFlag_SF, (value >> 7) == 1);
     }
 }
 
@@ -1205,22 +1205,22 @@ static void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
     printf(" flags:");
 
     // Flags that are changing to 0
-    if ((oldFlags & Register_CF) && !(newFlags & Register_CF)) { printf("C"); }
-    if ((oldFlags & Register_PF) && !(newFlags & Register_PF)) { printf("P"); }
-    if ((oldFlags & Register_AF) && !(newFlags & Register_AF)) { printf("A"); }
-    if ((oldFlags & Register_ZF) && !(newFlags & Register_ZF)) { printf("Z"); }
-    if ((oldFlags & Register_SF) && !(newFlags & Register_SF)) { printf("S"); }
-    if ((oldFlags & Register_OF) && !(newFlags & Register_OF)) { printf("O"); }
+    if ((oldFlags & RegisterFlag_CF) && !(newFlags & RegisterFlag_CF)) { printf("C"); }
+    if ((oldFlags & RegisterFlag_PF) && !(newFlags & RegisterFlag_PF)) { printf("P"); }
+    if ((oldFlags & RegisterFlag_AF) && !(newFlags & RegisterFlag_AF)) { printf("A"); }
+    if ((oldFlags & RegisterFlag_ZF) && !(newFlags & RegisterFlag_ZF)) { printf("Z"); }
+    if ((oldFlags & RegisterFlag_SF) && !(newFlags & RegisterFlag_SF)) { printf("S"); }
+    if ((oldFlags & RegisterFlag_OF) && !(newFlags & RegisterFlag_OF)) { printf("O"); }
 
     printf("->");
 
     // Flags that are changing to 1
-    if (!(oldFlags & Register_CF) && (newFlags & Register_CF)) { printf("C"); }
-    if (!(oldFlags & Register_PF) && (newFlags & Register_PF)) { printf("P"); }
-    if (!(oldFlags & Register_AF) && (newFlags & Register_AF)) { printf("A"); }
-    if (!(oldFlags & Register_ZF) && (newFlags & Register_ZF)) { printf("Z"); }
-    if (!(oldFlags & Register_SF) && (newFlags & Register_SF)) { printf("S"); }
-    if (!(oldFlags & Register_OF) && (newFlags & Register_OF)) { printf("O"); }
+    if (!(oldFlags & RegisterFlag_CF) && (newFlags & RegisterFlag_CF)) { printf("C"); }
+    if (!(oldFlags & RegisterFlag_PF) && (newFlags & RegisterFlag_PF)) { printf("P"); }
+    if (!(oldFlags & RegisterFlag_AF) && (newFlags & RegisterFlag_AF)) { printf("A"); }
+    if (!(oldFlags & RegisterFlag_ZF) && (newFlags & RegisterFlag_ZF)) { printf("Z"); }
+    if (!(oldFlags & RegisterFlag_SF) && (newFlags & RegisterFlag_SF)) { printf("S"); }
+    if (!(oldFlags & RegisterFlag_OF) && (newFlags & RegisterFlag_OF)) { printf("O"); }
 }
 
 
@@ -1266,7 +1266,7 @@ static void ExecuteInstruction(processor_8086 *processor, instruction *instructi
             U16 finalValue = value1 + value0;
 
             SetOperandValue(processor, &operand0, finalValue);
-            SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
+            SetRegisterFlag(processor, RegisterFlag_ZF, (finalValue == 0));
 
             // TODO (Aaron): Does the signed flag still get set if we are assigning to memory?
             if (operand0.Type == Operand_Register)
@@ -1296,7 +1296,7 @@ static void ExecuteInstruction(processor_8086 *processor, instruction *instructi
             U16 finalValue = value0 - value1;
 
             SetOperandValue(processor, &operand0, finalValue);
-            SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
+            SetRegisterFlag(processor, RegisterFlag_ZF, (finalValue == 0));
 
             // TODO (Aaron): Does the signed flag still get set if we are assigning to memory?
             if (operand0.Type == Operand_Register)
@@ -1324,7 +1324,7 @@ static void ExecuteInstruction(processor_8086 *processor, instruction *instructi
             U16 value1 = GetOperandValue(processor, operand1);
             U16 finalValue = value0 - value1;
 
-            SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
+            SetRegisterFlag(processor, RegisterFlag_ZF, (finalValue == 0));
             UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
 
             break;
@@ -1333,7 +1333,7 @@ static void ExecuteInstruction(processor_8086 *processor, instruction *instructi
         case Op_jne:
         {
             // jump if not equal to zero
-            if (!GetRegisterFlag(processor, Register_ZF))
+            if (!GetRegisterFlag(processor, RegisterFlag_ZF))
             {
                 instruction_operand operand0 = instruction->Operands[0];
                 S8 offset = (S8)(operand0.Immediate.Value & 0xff);

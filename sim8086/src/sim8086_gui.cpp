@@ -178,7 +178,7 @@ global_function void ShowRegistersWindow(gui_state *guiState, processor_8086 *pr
     if (ImGui::BeginTable("flags", 6, tableFlags))
     {
         char buffer[32];
-        register_flags flags[] ={ Register_CF, Register_PF, Register_AF, Register_ZF, Register_SF, Register_OF };
+        register_flags flags[] ={ RegisterFlag_CF, RegisterFlag_PF, RegisterFlag_AF, RegisterFlag_ZF, RegisterFlag_SF, RegisterFlag_OF };
 
         ImGui::TableNextRow();
         for (int i = 0; i < ArrayCount(flags); i++)

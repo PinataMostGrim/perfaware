@@ -63,12 +63,12 @@ struct register_info
 //     OF - Overflow flag
 enum register_flags : U8
 {
-    Register_CF = 0x1,
-    Register_PF = 0x2,
-    Register_AF = 0x4,
-    Register_ZF = 0x8,          // Did an arithmetic operation produce a value of 0?
-    Register_SF = 0x10,         // Did an arithmetic operation produce a negative value?
-    Register_OF = 0x20,
+    RegisterFlag_CF = 0x1,
+    RegisterFlag_PF = 0x2,
+    RegisterFlag_AF = 0x4,
+    RegisterFlag_ZF = 0x8,          // Did an arithmetic operation produce a value of 0?
+    RegisterFlag_SF = 0x10,         // Did an arithmetic operation produce a negative value?
+    RegisterFlag_OF = 0x20,
 };
 
 

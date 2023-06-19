@@ -102,17 +102,17 @@ static const char *GetRegisterFlagMnemonic(register_flags flag)
 {
     switch (flag)
     {
-        case Register_CF:
+        case RegisterFlag_CF:
             return RegisterFlagMnemonics[0];
-        case Register_PF:
+        case RegisterFlag_PF:
             return RegisterFlagMnemonics[1];
-        case Register_AF:
+        case RegisterFlag_AF:
             return RegisterFlagMnemonics[2];
-        case Register_ZF:
+        case RegisterFlag_ZF:
             return RegisterFlagMnemonics[3];
-        case Register_SF:
+        case RegisterFlag_SF:
             return RegisterFlagMnemonics[4];
-        case Register_OF:
+        case RegisterFlag_OF:
             return RegisterFlagMnemonics[5];
         default:
             Assert(FALSE && "Unhandled register flag enum");
