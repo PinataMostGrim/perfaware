@@ -199,6 +199,7 @@ void PrintUsage()
 
 int main(int argc, char const *argv[])
 {
+    // TODO (Aaron): Need to move these elsewhere
     static_assert_8086(ArrayCount(OperationMnemonics) == Op_count,
               "OperationMnemonics does not accommodate all operation_types");
 

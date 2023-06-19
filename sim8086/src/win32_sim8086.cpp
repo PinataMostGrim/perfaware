@@ -1,9 +1,8 @@
 /* TODO (Aaron):
-    - Add a screen to display registers
+    - Rename sim8086 -> sim8086_processor and use sim8086 for application logic?
     - Add a screen to view FPS
 
-    - Extract sim8086 management logic into 'sim8086_application.cpp' when I get to it
-        - Need to add file loading to platform layer so that the application can load assemblies into the processor
+    - Need to add file loading to platform layer so that the application can load assemblies into the processor
     - Add a ScratchArena when I need it
     - Convert to length based strings
 
@@ -380,6 +379,7 @@ int CALLBACK WinMain(
     // setup Dear ImGui context and gui state
     IMGUI_CHECKVERSION();
     ImGuiContext *guiContext = ImGui::CreateContext();
+    // TODO (Aaron): I don't understand the syntax in these lines
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;

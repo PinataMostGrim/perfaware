@@ -1,3 +1,7 @@
+/* TODO (Aaron):
+    - Change all structs and enums to typedefs?
+*/
+
 #ifndef SIM8086_H
 #define SIM8086_H
 

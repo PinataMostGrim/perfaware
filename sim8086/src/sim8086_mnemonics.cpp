@@ -61,6 +61,8 @@ char const *RegisterMnemonics[]
 };
 
 
+// TODO (Aaron): Figure out how to assert that this matches the number of elements in 'register_flags'
+// Normally I would add a 'RegisterFlags_count' element, but it's being used as a flag so that won't work.
 char const *RegisterFlagMnemonics[]
 {
     "CF",
@@ -123,6 +125,7 @@ static const char *GetRegisterFlagMnemonic(register_flags flag)
 
 static char *GetInstructionMnemonic(instruction *instruction, memory_arena *arena)
 {
+    // TODO (Aaron): Is there a way to statically determine what the maximum could be?
     char buffer[128] = "";
 
     sprintf(buffer, "%s ", GetOpMnemonic(instruction->OpType));

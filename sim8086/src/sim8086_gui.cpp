@@ -1,5 +1,4 @@
 /*TODO (Aaron):
-    - Add an FPS counter
 */
 
 #include "imgui.h"
