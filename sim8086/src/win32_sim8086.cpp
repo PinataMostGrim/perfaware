@@ -1,12 +1,19 @@
 /* TODO (Aaron):
-    - Add a ScratchArena when I need it
     - Add a screen to display registers
+    - Add a screen to view FPS
+
+    - Extract sim8086 management logic into 'sim8086_application.cpp' when I get to it
+        - Need to add file loading to platform layer so that the application can load assemblies into the processor
+    - Add a ScratchArena when I need it
+    - Convert to length based strings
+
+    - Add feedback to main window titlebar (loaded program name, etc)
     - Add a screen to display memory
+    - Add instruction bits when hovering over an assembly line
     - Add hotkeys for step forward through assembly
     - Give processor or file error feedback via GUI
     - Add a file menu to open / load files
         - Use hard-coded value for now
-    - Convert to length based strings
     - Add V2F32 (and others from base.h) macros to imconfig.h so I can use my own math types
 */
 
@@ -401,7 +408,6 @@ int CALLBACK WinMain(
     gui_state guiState = {};
     guiState.ClearColor = CLEAR_COLOR;
 
-
     // initialize 8086
     processor_8086 processor = {};
     processor.Memory = (U8 *)PushSize(&memory.PermanentArena, processor.MemorySize);
@@ -499,7 +505,7 @@ int CALLBACK WinMain(
 
         if (guiCode.DrawGui)
         {
-            guiCode.DrawGui(&guiState, &io, &memory);
+            guiCode.DrawGui(&guiState, &io, &memory, &processor);
         }
 
         // Rendering

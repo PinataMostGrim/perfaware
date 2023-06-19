@@ -15,6 +15,7 @@
 #include "sim8086_platform.h"
 #include "sim8086_gui.h"
 #include "sim8086.h"
+#include "sim8086_mnemonics.h"
 
 #include "memory_arena.c"
 #include "sim8086.cpp"
@@ -54,45 +55,7 @@ global_function void _DrawMenuBar(gui_state *guiState)
 }
 
 
-#if 0
-global_function void _DrawAssemblyExperiment00(gui_state *guiState)
-{
-    bool useWorkArea = true;
-
-    const ImGuiViewport* viewport = ImGui::GetMainViewport();
-    ImGui::SetNextWindowPos(useWorkArea ? viewport->WorkPos : viewport->Pos);
-    ImGui::SetNextWindowSize(useWorkArea ? viewport->WorkSize : viewport->Size);
-    ImGuiWindowFlags backgroundFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
-
-    ImGui::Begin("Background", NULL, backgroundFlags);
-
-    U32 address = 100000000;
-    for (int n = 0; n < 5; n++)
-    {
-        char lineBuff[32];
-        char addressBuf[32];
-        char assemblyBuf[32];
-
-        sprintf(lineBuff, "%i", n + 1);
-        sprintf(addressBuf, "0x%.8x", address);
-        sprintf(assemblyBuf, "mov  eax, [si+28]");
-
-        if (ImGui::Selectable(lineBuff, guiState->SelectedLine == n)) guiState->SelectedLine = n;
-
-        ImGui::SameLine(60);
-        ImGui::Text("%s", addressBuf);
-        ImGui::SameLine(200);
-        ImGui::Text("%s", assemblyBuf);
-
-        address++;
-    }
-
-    ImGui::End();
-}
-#endif
-
-
-global_function void _DrawAssemblyWindow(gui_state *guiState, memory_arena *instructionArena, memory_arena *frameArena)
+global_function void ShowAssemblyWindow(gui_state *guiState, memory_arena *instructionArena, memory_arena *frameArena)
 {
     size_t instructionCount = instructionArena->Used / sizeof(instruction);
     instruction *instructions = (instruction *)instructionArena->BasePtr;
@@ -113,7 +76,7 @@ global_function void _DrawAssemblyWindow(gui_state *guiState, memory_arena *inst
         sprintf(addressBuf, "0x%.8x", currentInstruction.Address);
         char *assemblyPtr = GetInstructionMnemonic(&currentInstruction, frameArena);
 
-        if (ImGui::Selectable(lineBuff, guiState->SelectedLine == i)) guiState->SelectedLine = i;
+        if (ImGui::Selectable(lineBuff, guiState->Assembly_SelectedLine == i)) guiState->Assembly_SelectedLine = i;
 
         ImGui::SameLine(60);
         ImGui::Text("%s", addressBuf);
@@ -127,11 +90,117 @@ global_function void _DrawAssemblyWindow(gui_state *guiState, memory_arena *inst
 }
 
 
+global_function void ShowRegistersWindow(gui_state *guiState, processor_8086 *processor)
+{
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoCollapse;
+    ImGui::Begin("Registers", NULL, windowFlags);
+
+    ImGuiTableFlags tableFlags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
+
+    // instruction pointer
+    if (ImGui::BeginTable("instruction_pointer", 1, tableFlags))
+    {
+        char buffer[56];
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        sprintf(buffer, "instruction pointer: 0x%.32x", processor->IP);
+        ImGui::TextUnformatted(buffer);
+        ImGui::EndTable();
+    }
+
+    // al / ah / cl / ch / dl / dh / bl / bh
+    {
+        char buffer[32];
+        register_id registers[] = {
+            Reg_al, Reg_ah,
+            Reg_cl, Reg_ch,
+            Reg_dl, Reg_dh,
+            Reg_bl, Reg_bh };
+
+        Assert(ArrayCount(registers) % 2 == 0);
+
+        if (ImGui::BeginTable("registers_low/high", 2, tableFlags))
+        {
+            for (int i = 0; i < ArrayCount(registers); i = i+2)
+            {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                sprintf(buffer, "%s: 0x%.8x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
+                ImGui::TextUnformatted(buffer);
+
+                ImGui::TableNextColumn();
+                sprintf(buffer, "%s: 0x%.8x", GetRegisterMnemonic(registers[i+1]), GetRegisterValue(processor, registers[i+1]));
+                ImGui::TextUnformatted(buffer);
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    // ax / cx / dx / bx
+    {
+        char buffer[32];
+        register_id registers[] ={ Reg_ax, Reg_cx, Reg_dx, Reg_bx };
+
+        if (ImGui::BeginTable("registers_full", 1, tableFlags))
+        {
+            for (int i = 0; i < ArrayCount(registers); i++)
+            {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                sprintf(buffer, "%s: 0x%.16x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
+                ImGui::TextUnformatted(buffer);
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    // sp / bp / si / di
+    if (ImGui::BeginTable("registers_1", 1, tableFlags))
+    {
+        char buffer[32];
+        register_id registers[] ={ Reg_sp, Reg_bp, Reg_si, Reg_di };
+
+        for (int i = 0; i < ArrayCount(registers); i++)
+        {
+            ImGui::TableNextRow();
+
+            ImGui::TableNextColumn();
+            sprintf(buffer, "%s: 0x%.16x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
+            ImGui::TextUnformatted(buffer);
+        }
+
+        ImGui::EndTable();
+    }
+
+    // flags
+    if (ImGui::BeginTable("flags", 6, tableFlags))
+    {
+        char buffer[32];
+        register_flags flags[] ={ Register_CF, Register_PF, Register_AF, Register_ZF, Register_SF, Register_OF };
+
+        ImGui::TableNextRow();
+        for (int i = 0; i < ArrayCount(flags); i++)
+        {
+            ImGui::TableNextColumn();
+            sprintf(buffer, "%s: 0x%.1u", GetRegisterFlagMnemonic(flags[i]), GetRegisterFlag(processor, flags[i]));
+            ImGui::TextUnformatted(buffer);
+        }
+
+        ImGui::EndTable();
+    }
+
+    ImGui::End();
+}
+
+
 C_LINKAGE DRAW_GUI(DrawGui)
 {
     _DrawMenuBar(guiState);
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    _DrawAssemblyWindow(guiState, &memory->InstructionsArena, &memory->FrameArena);
+    ShowAssemblyWindow(guiState, &memory->InstructionsArena, &memory->FrameArena);
+    ShowRegistersWindow(guiState, processor);
 
     // ImGui::ShowDemoWindow();
     // ImGui::ShowStackToolWindow();

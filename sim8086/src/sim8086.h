@@ -244,6 +244,6 @@ static void ParseRmBits(processor_8086 *processor, instruction *instruction, ins
 static U8 CalculateEffectiveAddressClocks(instruction_operand *operand);
 static instruction DecodeNextInstruction(processor_8086 *processor);
 
-static char *GetInstructionMnemonic(instruction *instruction, memory_arena *scratchArena);
+static U8 GetRegisterFlag(processor_8086 *processor, register_flags flag);
 
 #endif //SIM8086_H

@@ -962,7 +962,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
 }
 
 
-U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister)
+static U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister)
 {
     U16 result = 0;
     register_info info = RegisterLookup[targetRegister];
@@ -1008,7 +1008,7 @@ U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister)
 }
 
 
-void SetRegisterValue(processor_8086 *processor, register_id targetRegister, U16 value)
+static void SetRegisterValue(processor_8086 *processor, register_id targetRegister, U16 value)
 {
     register_info info = RegisterLookup[targetRegister];
     // TODO (Aaron): I don't think this preserves values in a lower or higher segment of the register
@@ -1018,13 +1018,13 @@ void SetRegisterValue(processor_8086 *processor, register_id targetRegister, U16
 }
 
 
-U8 GetRegisterFlag(processor_8086 *processor, register_flags flag)
+static U8 GetRegisterFlag(processor_8086 *processor, register_flags flag)
 {
     return (processor->Flags & flag);
 }
 
 
-void SetRegisterFlag(processor_8086 *processor, register_flags flag, B32 set)
+static void SetRegisterFlag(processor_8086 *processor, register_flags flag, B32 set)
 {
     if (set)
     {
@@ -1036,7 +1036,7 @@ void SetRegisterFlag(processor_8086 *processor, register_flags flag, B32 set)
 }
 
 
-void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targetRegister, U16 value)
+static void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targetRegister, U16 value)
 {
     register_info info = RegisterLookup[targetRegister];
     if (info.IsWide)
@@ -1052,7 +1052,7 @@ void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targetRegis
 }
 
 
-U32 CalculateEffectiveAddress(processor_8086 *processor, instruction_operand operand)
+static U32 CalculateEffectiveAddress(processor_8086 *processor, instruction_operand operand)
 {
     assert_8086(operand.Type == Operand_Memory);
 
@@ -1076,7 +1076,7 @@ U32 CalculateEffectiveAddress(processor_8086 *processor, instruction_operand ope
 }
 
 
-U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide)
+static U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide)
 {
     if (effectiveAddress >= processor->MemorySize)
     {
@@ -1099,7 +1099,7 @@ U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide)
 }
 
 
-void SetMemory(processor_8086 *processor, U32 effectiveAddress, U16 value, B32 wide)
+static void SetMemory(processor_8086 *processor, U32 effectiveAddress, U16 value, B32 wide)
 {
     if (effectiveAddress >= processor->MemorySize)
     {
@@ -1122,7 +1122,7 @@ void SetMemory(processor_8086 *processor, U32 effectiveAddress, U16 value, B32 w
 }
 
 
-U16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
+static U16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
 {
     U16 result = 0;
     switch (operand.Type)
@@ -1156,7 +1156,7 @@ U16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
 }
 
 
-void SetOperandValue(processor_8086 *processor, instruction_operand *operand, U16 value)
+static void SetOperandValue(processor_8086 *processor, instruction_operand *operand, U16 value)
 {
     // Only these two operand types are assignable
     assert_8086((operand->Type == Operand_Register) || operand->Type == Operand_Memory);
@@ -1195,163 +1195,7 @@ void SetOperandValue(processor_8086 *processor, instruction_operand *operand, U1
 }
 
 
-// TODO (Aaron): Consider moving this into a separate script. Nothing else here
-// uses memory arenas.
-static char *GetInstructionMnemonic(instruction *instruction, memory_arena *arena)
-{
-    // TODO (Aaron): Don't forget about this. Figure out a better way to set its size.
-    char buffer[128] = "";
-
-    sprintf(buffer, "%s ", GetOpMnemonic(instruction->OpType));
-    char *resultPtr = PushString(arena, buffer);
-    // printf("%s ", GetOpMnemonic(instruction->OpType));
-
-    const char *Separator = "";
-
-    for (int i = 0; i < ArrayCount(instruction->Operands); ++i)
-    {
-        instruction_operand operand = instruction->Operands[i];
-
-        // skip empty operands
-        if(operand.Type == Operand_None)
-        {
-            continue;
-        }
-
-        if (GetStringLength((char *)Separator) > 0)
-        {
-            PushString(arena, (char *)Separator);
-        }
-        // printf("%s", Separator);
-        Separator = ", ";
-
-        switch (operand.Type)
-        {
-            case Operand_None:
-            {
-                break;
-            }
-            case Operand_Memory:
-            {
-                // prepend width hint if necessary
-                if (operand.Memory.Flags & Memory_PrependWidth)
-                {
-                    // sprintf(buffer, "%s ",
-                    //         (operand.Memory.Flags & Memory_IsWide)
-                    //             ? "word": "byte");
-
-                    if (operand.Memory.Flags & Memory_IsWide)
-                    {
-                        PushString(arena, (char *)"word ");
-                    }
-                    else
-                    {
-                        PushString(arena, (char *)"byte ");
-                    }
-
-                    // printf("%s ", (operand.Memory.Flags & Memory_IsWide) ? "word": "byte");
-                }
-
-                // print direct address
-                if (operand.Memory.Flags & Memory_HasDirectAddress)
-                {
-                    sprintf(buffer, "[%i]", operand.Memory.DirectAddress);
-                    PushString(arena, buffer);
-
-                    // printf("[%i]", operand.Memory.DirectAddress);
-                    break;
-                }
-
-                // print memory with optional displacement
-                PushString(arena, (char *)"[");
-                PushString(arena, (char *)GetRegisterMnemonic(operand.Memory.Register));
-                // printf("[");
-                // printf("%s", GetRegisterMnemonic(operand.Memory.Register));
-
-                if (operand.Memory.Flags & Memory_HasDisplacement)
-                {
-                    if (operand.Memory.Displacement >= 0)
-                    {
-                        sprintf(buffer, " + %i", operand.Memory.Displacement);
-                        PushString(arena, buffer);
-                        // printf(" + %i", operand.Memory.Displacement);
-                    }
-                    else
-                    {
-                        sprintf(buffer, " - %i", operand.Memory.Displacement * -1);
-                        PushString(arena, buffer);
-                        // printf(" - %i", operand.Memory.Displacement * -1);
-                    }
-                }
-
-                PushString(arena, (char *)"]");
-                // printf("]");
-
-                break;
-            }
-            case Operand_Register:
-            {
-                PushString(arena, (char *)GetRegisterMnemonic(operand.Register));
-                // printf("%s", GetRegisterMnemonic(operand.Register));
-                break;
-            }
-            case Operand_Immediate:
-            {
-                if (operand.Immediate.Flags & Immediate_IsJump)
-                {
-                    S8 offset = (S8)(operand.Immediate.Value & 0xff);
-
-                    // Note (Aaron): Offset the value to accommodate a NASM syntax peculiarity.
-                    // NASM expects an offset value from the start of the instruction rather than
-                    // the end (which is how the instructions are encoded).
-                    offset += instruction->Bits.ByteCount;
-
-                    if (offset >= 0)
-                    {
-                        sprintf(buffer, "$+%i", offset);
-                    }
-                    else
-                    {
-                        sprintf(buffer, "$%i", offset);
-                    }
-                    PushString(arena, buffer);
-                    // printf(offset >= 0 ? "$+%i" : "$%i", offset);
-                    break;
-                }
-
-                // TODO (Aaron): Test this more
-                bool isSigned = operand.Immediate.Flags & Immediate_IsSigned;
-
-                sprintf(buffer, "%i",
-                        (isSigned
-                         ? (S16) operand.Immediate.Value
-                         : (U16) operand.Immediate.Value));
-
-                PushString(arena, buffer);
-
-                // printf("%i", isSigned
-                //        ? (S16) operand.Immediate.Value
-                //        : (U16) operand.Immediate.Value);
-
-                break;
-            }
-
-            default:
-            {
-                PushString(arena, (char *)"?");
-                // printf("?");
-            }
-        }
-    }
-
-    // Note (Aaron): Append the null-terminator character
-    PushSizeZero(arena, 1);
-
-    return resultPtr;
-}
-
-
-void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
+static void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
 {
     if (oldFlags == newFlags)
     {
@@ -1380,7 +1224,7 @@ void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
 }
 
 
-void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
+static void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
 {
     U8 oldFlags = processor->Flags;
 
