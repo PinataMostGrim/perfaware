@@ -8,10 +8,10 @@ set INCLUDES=-I..\..\common\src -I..\src\imgui -I..\src\imgui\backends
 set SOURCES=
 set IMGUI_SOURCES=..\src\imgui\imgui*.cpp ..\src\imgui\backends\imgui_impl_opengl3.cpp ..\src\imgui\backends\imgui_impl_win32.cpp
 set LINKER_FLAGS=-incremental:no -opt:ref
-set LIBS=User32.lib gdi32.lib winmm.lib opengl32.lib sim8086_gui.lib
+set LIBS=User32.lib gdi32.lib winmm.lib opengl32.lib sim8086_application.lib
 set IMGUI_OBJS=imgui*.obj
 
-set GUI_LOCK_FILE=sim8086_gui_lock.tmp
+set GUI_LOCK_FILE=sim8086_lock.tmp
 
 set BUILD_FOLDER=sim8086\build
 set OUT_EXE=win32_sim8086
@@ -40,7 +40,7 @@ IF NOT %ERRORLEVEL% == 0 (
 :: Compile and link
 del *.pdb > NUL 2> NUL
 echo WAITING FOR PDB > %GUI_LOCK_FILE%
-cl %COMPILER_FLAGS% %INCLUDES% ..\src\sim8086_gui.cpp %IMGUI_SOURCES% -Fmsim8086_gui.map -LD /link %LINKER_FLAGS% -PDB:sim8086_gui_%random%.pdb -EXPORT:DrawGui -EXPORT:SetImguiContext
+cl %COMPILER_FLAGS% %INCLUDES% ..\src\sim8086_application.cpp %IMGUI_SOURCES% -Fmsim8086_application.map -LD /link %LINKER_FLAGS% -PDB:sim8086_application_%random%.pdb -EXPORT:SetImGuiContext -EXPORT:UpdateAndRender
 del %GUI_LOCK_FILE%
 cl %COMPILER_FLAGS% %INCLUDES% ..\src\win32_sim8086.cpp -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS% %IMGUI_OBJS%
 ::cl -E %COMPILER_FLAGS% %INCLUDES% ..\src\win32_sim8086.cpp -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS% %IMGUI_OBJS% | clang-format -style="Microsoft" > temp.txt

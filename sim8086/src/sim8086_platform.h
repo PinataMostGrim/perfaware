@@ -1,8 +1,11 @@
 #ifndef SIM8086_PLATFORM_H
 #define SIM8086_PLATFORM_H
 
+#include "imgui.h"
+
 #include "base.h"
 #include "memory_arena.h"
+#include "sim8086.h"
 
 
 typedef struct
@@ -16,5 +19,25 @@ typedef struct
 
     B32 IsInitialized;
 } application_memory;
+
+
+// TODO (Aaron): I don't like this in here, but the current nature of the UpdateAndRender signature produces
+// a circular dependency otherwise.
+typedef struct
+{
+    ImVec4 ClearColor;
+    U32 Assembly_SelectedLine;
+} gui_state;
+
+
+
+C_LINKAGE_BEGIN
+#define SET_IMGUI_CONTEXT(name) void name(ImGuiContext *context)
+typedef SET_IMGUI_CONTEXT(set_imgui_context);
+
+#define UPDATE_AND_RENDER(name) void name(gui_state *guiState, ImGuiIO *io, application_memory *memory, processor_8086 *processor)
+typedef UPDATE_AND_RENDER(update_and_render);
+
+C_LINKAGE_END
 
 #endif // SIM8086_PLATFORM_H

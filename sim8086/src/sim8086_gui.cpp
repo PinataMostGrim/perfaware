@@ -5,7 +5,6 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_win32.h"
 
-
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -15,17 +14,6 @@
 #include "sim8086_gui.h"
 #include "sim8086.h"
 #include "sim8086_mnemonics.h"
-
-#include "memory_arena.c"
-#include "sim8086.cpp"
-#include "sim8086_mnemonics.cpp"
-
-
-
-C_LINKAGE SET_IMGUI_CONTEXT(SetImguiContext)
-{
-    ImGui::SetCurrentContext(context);
-}
 
 
 global_function void _DrawMenuBar(gui_state *guiState)
@@ -195,7 +183,7 @@ global_function void ShowRegistersWindow(gui_state *guiState, processor_8086 *pr
 }
 
 
-C_LINKAGE DRAW_GUI(DrawGui)
+global_function void DrawGui(gui_state *guiState, ImGuiIO *io, application_memory *memory, processor_8086 *processor)
 {
     _DrawMenuBar(guiState);
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());

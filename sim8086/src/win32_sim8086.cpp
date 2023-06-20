@@ -1,5 +1,5 @@
 /* TODO (Aaron):
-    - Rename sim8086 -> sim8086_processor and use sim8086 for application logic?
+    - Rename sim8086 -> processor_8086.cpp and use sim8086 for application logic?
     - Add a screen to view FPS
 
     - Need to add file loading to platform layer so that the application can load assemblies into the processor
@@ -33,6 +33,7 @@
 
 #include "base.h"
 #include "memory_arena.h"
+#include "win32_sim8086.h"
 #include "sim8086_platform.h"
 #include "sim8086_gui.h"
 #include "sim8086.h"
@@ -43,30 +44,6 @@
 #include "sim8086_mnemonics.cpp"
 
 
-struct WGL_WindowData { HDC hDC; };
-
-typedef struct
-{
-    char *FullExePath;
-    char *ExeFolderPath;
-    char *ExeFilename;
-    char *GuiDLLPath;
-    char *GuiDLLTempPath;
-    char *GuiDLLLockPath;
-} win32_context;
-
-typedef struct
-{
-    HMODULE GuiCodeDLL;
-    FILETIME LastWriteTime;
-
-    set_imgui_context *SetImGuiContext;
-    draw_gui *DrawGui;
-
-    B32 IsValid;
-} gui_code;
-
-
 // ///////////////////////////////////////////////////////////////
 // Note (Aaron): Adjustable values
 // global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
@@ -74,9 +51,9 @@ typedef struct
 global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0041_add_sub_cmp_jnz";
 
 // Note (Aaron): Update the build batch file when adjusting these three
-global_variable char *GUI_DLL_FILENAME = (char *)"sim8086_gui.dll";
-global_variable char *GUI_DLL_TEMP_FILENAME = (char *)"sim8086_gui_temp.dll";
-global_variable char *GUI_DLL_LOCK_FILENAME = (char *)"sim8086_gui_lock.tmp";
+global_variable char *DLL_FILENAME = (char *)"sim8086_application.dll";
+global_variable char *DLL_TEMP_FILENAME = (char *)"sim8086_application_temp.dll";
+global_variable char *DLL_LOCK_FILENAME = (char *)"sim8086_lock.tmp";
 
 global_variable U64 PERMANENT_ARENA_SIZE = Megabytes(10);
 global_variable U64 INSTRUCTION_ARENA_SIZE = Megabytes(10);
@@ -86,6 +63,9 @@ global_variable U32 FILE_PATH_BUFFER_SIZE = 512;
 
 global_variable ImVec4 CLEAR_COLOR = {0.45f, 0.55f, 0.60f, 1.00};
 // ///////////////////////////////////////////////////////////////
+
+
+struct WGL_WindowData { HDC hDC; };
 
 global_variable HGLRC            g_hRC;
 global_variable WGL_WindowData   g_MainWindow;
@@ -141,9 +121,9 @@ global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena
     MemoryCopy(context->ExeFilename, context->FullExePath + sizeOfFolderPath, sizeOfFilename);
 
     // construct GUI DLL related paths
-    context->GuiDLLPath = ConcatStrings(context->ExeFolderPath, GUI_DLL_FILENAME, arena);
-    context->GuiDLLTempPath = ConcatStrings(context->ExeFolderPath, GUI_DLL_TEMP_FILENAME, arena);
-    context->GuiDLLLockPath = ConcatStrings(context->ExeFolderPath, GUI_DLL_LOCK_FILENAME, arena);
+    context->DLLPath = ConcatStrings(context->ExeFolderPath, DLL_FILENAME, arena);
+    context->DLLTempPath = ConcatStrings(context->ExeFolderPath, DLL_TEMP_FILENAME, arena);
+    context->DLLLockPath = ConcatStrings(context->ExeFolderPath, DLL_LOCK_FILENAME, arena);
 }
 
 
@@ -161,53 +141,53 @@ global_function FILETIME Win32GetLastWriteTime(char *filename)
 }
 
 
-global_function gui_code Win32LoadGuiCode(char *sourceDLLPath, char *tempDLLPath, char *lockFilePath)
+global_function application_code Win32LoadAppCode(char *sourceDLLPath, char *tempDLLPath, char *lockFilePath)
 {
-    gui_code result = {};
+    application_code result = {};
 
     // Note (Aaron): Not necessary if using a debugger that reloads PDB files
 #if 0
     // early out if the PDB lock file is present
-    // WIN32_FILE_ATTRIBUTE_DATA lockFileData;
-    // if (GetFileAttributesEx(lockFilePath, GetFileExInfoStandard, &lockFileData))
-    // {
-    //     return result;
-    // }
+    WIN32_FILE_ATTRIBUTE_DATA lockFileData;
+    if (GetFileAttributesEx(lockFilePath, GetFileExInfoStandard, &lockFileData))
+    {
+        return result;
+    }
 #endif
 
     // re-assign function pointers
     result.LastWriteTime = Win32GetLastWriteTime(sourceDLLPath);
     CopyFileA(sourceDLLPath, tempDLLPath, FALSE);
-    result.GuiCodeDLL = LoadLibraryA(tempDLLPath);
-    if (result.GuiCodeDLL)
+    result.CodeDLL = LoadLibraryA(tempDLLPath);
+    if (result.CodeDLL)
     {
-        result.SetImGuiContext = (set_imgui_context *)GetProcAddress(result.GuiCodeDLL, "SetImguiContext");
-        result.DrawGui = (draw_gui *)GetProcAddress(result.GuiCodeDLL, "DrawGui");
+        result.SetImGuiContext = (set_imgui_context *)GetProcAddress(result.CodeDLL, "SetImGuiContext");
+        result.UpdateAndRender = (update_and_render *)GetProcAddress(result.CodeDLL, "UpdateAndRender");
 
-        result.IsValid = (result.DrawGui && result.SetImGuiContext);
+        result.IsValid = (result.UpdateAndRender && result.SetImGuiContext);
     }
 
     if(!result.IsValid)
     {
         result.SetImGuiContext = 0;
-        result.DrawGui = 0;
+        result.UpdateAndRender = 0;
     }
 
     return result;
 }
 
 
-global_function void Win32UnloadGuiCode(gui_code *guiCode)
+global_function void Win32UnloadCode(application_code *applicationCode)
 {
-    if (guiCode->GuiCodeDLL)
+    if (applicationCode->CodeDLL)
     {
-        FreeLibrary(guiCode->GuiCodeDLL);
-        guiCode->GuiCodeDLL = 0;
+        FreeLibrary(applicationCode->CodeDLL);
+        applicationCode->CodeDLL = 0;
     }
 
-    guiCode->IsValid = FALSE;
-    guiCode->SetImGuiContext = 0;
-    guiCode->DrawGui = 0;
+    applicationCode->IsValid = FALSE;
+    applicationCode->SetImGuiContext = 0;
+    applicationCode->UpdateAndRender = 0;
 }
 
 
@@ -352,9 +332,9 @@ int CALLBACK WinMain(
     win32_context win32Context = {};
     Win32GetExeInfo(&win32Context, &memory.PermanentArena);
 
-    // initial hot-load of GUI code
-    gui_code guiCode = Win32LoadGuiCode(win32Context.GuiDLLPath, win32Context.GuiDLLTempPath, win32Context.GuiDLLLockPath);
-    if (!guiCode.IsValid)
+    // initial hot-load of application code
+    application_code applicationCode = Win32LoadAppCode(win32Context.DLLPath, win32Context.DLLTempPath, win32Context.DLLLockPath);
+    if (!applicationCode.IsValid)
     {
         Assert(FALSE && "Unable to perform initial hot-load of GUI code");
         return 1;
@@ -389,7 +369,7 @@ int CALLBACK WinMain(
     ImGui_ImplWin32_InitForOpenGL(window);
     ImGui_ImplOpenGL3_Init();
 
-    if (guiCode.SetImGuiContext) guiCode.SetImGuiContext(guiContext);
+    if (applicationCode.SetImGuiContext) applicationCode.SetImGuiContext(guiContext);
 
 
     // Load Fonts
@@ -490,15 +470,15 @@ int CALLBACK WinMain(
 
         ClearArena(&memory.FrameArena);
 
-        // Hot-load GUI code if necessary
-        FILETIME dllWriteTime = Win32GetLastWriteTime(win32Context.GuiDLLPath);
-        if (CompareFileTime(&dllWriteTime, &guiCode.LastWriteTime))
+        // Hot-load code if necessary
+        FILETIME dllWriteTime = Win32GetLastWriteTime(win32Context.DLLPath);
+        if (CompareFileTime(&dllWriteTime, &applicationCode.LastWriteTime))
         {
-            Win32UnloadGuiCode(&guiCode);
+            Win32UnloadCode(&applicationCode);
             // TODO (Aaron): Why was it 75 specifically?
             Sleep(75);
-            guiCode = Win32LoadGuiCode(win32Context.GuiDLLPath, win32Context.GuiDLLTempPath, win32Context.GuiDLLLockPath);
-            if (guiCode.SetImGuiContext) guiCode.SetImGuiContext(guiContext);
+            applicationCode = Win32LoadAppCode(win32Context.DLLPath, win32Context.DLLTempPath, win32Context.DLLLockPath);
+            if (applicationCode.SetImGuiContext) applicationCode.SetImGuiContext(guiContext);
         }
 
         // Start the Dear ImGui frame
@@ -506,9 +486,9 @@ int CALLBACK WinMain(
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        if (guiCode.DrawGui)
+        if (applicationCode.UpdateAndRender)
         {
-            guiCode.DrawGui(&guiState, &io, &memory, &processor);
+            applicationCode.UpdateAndRender(&guiState, &io, &memory, &processor);
         }
 
         // Rendering
