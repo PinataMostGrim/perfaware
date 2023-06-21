@@ -129,7 +129,7 @@ static char *GetInstructionMnemonic(instruction *instruction, memory_arena *aren
     char buffer[128] = "";
 
     sprintf(buffer, "%s ", GetOpMnemonic(instruction->OpType));
-    char *resultPtr = PushString(arena, buffer);
+    char *resultPtr = ArenaPushString(arena, buffer);
 
     const char *Separator = "";
 
@@ -145,7 +145,7 @@ static char *GetInstructionMnemonic(instruction *instruction, memory_arena *aren
 
         if (GetStringLength((char *)Separator) > 0)
         {
-            PushString(arena, (char *)Separator);
+            ArenaPushString(arena, (char *)Separator);
         }
         Separator = ", ";
 
@@ -162,11 +162,11 @@ static char *GetInstructionMnemonic(instruction *instruction, memory_arena *aren
                 {
                     if (operand.Memory.Flags & Memory_IsWide)
                     {
-                        PushString(arena, (char *)"word ");
+                        ArenaPushString(arena, (char *)"word ");
                     }
                     else
                     {
-                        PushString(arena, (char *)"byte ");
+                        ArenaPushString(arena, (char *)"byte ");
                     }
 
                 }
@@ -175,34 +175,34 @@ static char *GetInstructionMnemonic(instruction *instruction, memory_arena *aren
                 if (operand.Memory.Flags & Memory_HasDirectAddress)
                 {
                     sprintf(buffer, "[%i]", operand.Memory.DirectAddress);
-                    PushString(arena, buffer);
+                    ArenaPushString(arena, buffer);
                     break;
                 }
 
                 // print memory with optional displacement
-                PushString(arena, (char *)"[");
-                PushString(arena, (char *)GetRegisterMnemonic(operand.Memory.Register));
+                ArenaPushString(arena, (char *)"[");
+                ArenaPushString(arena, (char *)GetRegisterMnemonic(operand.Memory.Register));
 
                 if (operand.Memory.Flags & Memory_HasDisplacement)
                 {
                     if (operand.Memory.Displacement >= 0)
                     {
                         sprintf(buffer, " + %i", operand.Memory.Displacement);
-                        PushString(arena, buffer);
+                        ArenaPushString(arena, buffer);
                     }
                     else
                     {
                         sprintf(buffer, " - %i", operand.Memory.Displacement * -1);
-                        PushString(arena, buffer);
+                        ArenaPushString(arena, buffer);
                     }
                 }
 
-                PushString(arena, (char *)"]");
+                ArenaPushString(arena, (char *)"]");
                 break;
             }
             case Operand_Register:
             {
-                PushString(arena, (char *)GetRegisterMnemonic(operand.Register));
+                ArenaPushString(arena, (char *)GetRegisterMnemonic(operand.Register));
                 break;
             }
             case Operand_Immediate:
@@ -224,7 +224,7 @@ static char *GetInstructionMnemonic(instruction *instruction, memory_arena *aren
                     {
                         sprintf(buffer, "$%i", offset);
                     }
-                    PushString(arena, buffer);
+                    ArenaPushString(arena, buffer);
                     break;
                 }
 
@@ -236,19 +236,19 @@ static char *GetInstructionMnemonic(instruction *instruction, memory_arena *aren
                          ? (S16) operand.Immediate.Value
                          : (U16) operand.Immediate.Value));
 
-                PushString(arena, buffer);
+                ArenaPushString(arena, buffer);
                 break;
             }
 
             default:
             {
-                PushString(arena, (char *)"?");
+                ArenaPushString(arena, (char *)"?");
             }
         }
     }
 
     // Note (Aaron): Append the null-terminator character
-    PushSizeZero(arena, 1);
+    ArenaPushSizeZero(arena, 1);
 
     return resultPtr;
 }

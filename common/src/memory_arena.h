@@ -15,21 +15,21 @@ typedef struct
 } memory_arena;
 
 
-global_function void InitializeArena(memory_arena *arena, memory_index size, U8 *basePtr);
+global_function void ArenaInitialize(memory_arena *arena, memory_index size, U8 *basePtr);
 
-global_function void *PushSize(memory_arena *arena, memory_index size);
-global_function void *PushSizeZero(memory_arena *arena, memory_index size);
+global_function void *ArenaPushSize(memory_arena *arena, memory_index size);
+global_function void *ArenaPushSizeZero(memory_arena *arena, memory_index size);
 
-#define PushStruct(arena, type) (type *)PushSize(arena, sizeof(type))
-#define PushArray(arena, type, count) (type *)PushSize((arena), sizeof(type)*(count))
+#define ArenaPushStruct(arena, type) (type *)ArenaPushSize(arena, sizeof(type))
+#define ArenaPushArray(arena, type, count) (type *)ArenaPushSize((arena), sizeof(type)*(count))
 
-global_function void *PushData(memory_arena *arena, memory_index size, U8 *sourcePtr);
-global_function char *PushString(memory_arena *arena, char *str);
+global_function void *ArenaPushData(memory_arena *arena, memory_index size, U8 *sourcePtr);
+global_function char *ArenaPushString(memory_arena *arena, char *str);
 
-global_function void *PopSize(memory_arena *arena, memory_index size);
-#define PopStruct(arena, type) (type *)PopSize(arena, sizeof(type))
+global_function void *ArenaPopSize(memory_arena *arena, memory_index size);
+#define ArenaPopStruct(arena, type) (type *)ArenaPopSize(arena, sizeof(type))
 
-global_function void ClearArena(memory_arena *arena);
-global_function void ClearArenaZero(memory_arena *arena);
+global_function void ArenaClear(memory_arena *arena);
+global_function void ArenaClearZero(memory_arena *arena);
 
 #endif // MEMORY_ARENA_H

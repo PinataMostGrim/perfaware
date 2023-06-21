@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "base.h"
+#include "memory_arena.h"
 #include "sim8086_platform.h"
 #include "sim8086.h"
 #include "sim8086_mnemonics.h"
@@ -65,7 +66,7 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
         while (processor->IP < processor->ProgramSize)
         {
             instruction nextInstruction = DecodeNextInstruction(processor);
-            instruction *nextInstructionPtr = PushStruct(&memory->InstructionsArena, instruction);
+            instruction *nextInstructionPtr = ArenaPushStruct(&memory->InstructionsArena, instruction);
             MemoryCopy(nextInstructionPtr, &nextInstruction, sizeof(instruction));
         }
 

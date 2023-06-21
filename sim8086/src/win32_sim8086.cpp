@@ -76,7 +76,7 @@ global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *
     U64 sizeOfB = GetStringLength(stringB);
     U64 resultSize = sizeOfA + sizeOfB;
 
-    char *result = (char *)PushSizeZero(arena, resultSize + 1);
+    char *result = (char *)ArenaPushSizeZero(arena, resultSize + 1);
     MemoryCopy(result, stringA, sizeOfA);
     MemoryCopy(result + sizeOfA, stringB, sizeOfB);
 
@@ -87,7 +87,7 @@ global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *
 global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena)
 {
     // extract full path
-    context->FullExePath = (char *)PushSizeZero(arena, FILE_PATH_BUFFER_SIZE);
+    context->FullExePath = (char *)ArenaPushSizeZero(arena, FILE_PATH_BUFFER_SIZE);
     DWORD sizeOfFullPath = GetModuleFileName(0, context->FullExePath, FILE_PATH_BUFFER_SIZE);
     Assert((sizeOfFullPath < FILE_PATH_BUFFER_SIZE) && "Allocated a buffer that was too small for the length of the file path");
 
@@ -102,7 +102,7 @@ global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena
 
     // construct exe folder path
     U64 sizeOfFolderPath = lastSlashPlusOne - context->FullExePath;
-    context->ExeFolderPath = (char *)PushSizeZero(arena, sizeOfFolderPath + 1);     // + 1 for null termination character
+    context->ExeFolderPath = (char *)ArenaPushSizeZero(arena, sizeOfFolderPath + 1);     // + 1 for null termination character
     if (sizeOfFolderPath > 0)
     {
         MemoryCopy(context->ExeFolderPath, context->FullExePath, sizeOfFolderPath);
@@ -111,7 +111,7 @@ global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena
     // construct exe filename
     U64 sizeOfFilename = sizeOfFullPath - sizeOfFolderPath;
     Assert(sizeOfFilename > 0 && "Filename cannot be 0 characters in length");
-    context->ExeFilename = (char *)PushSizeZero(arena, sizeOfFilename + 1);         // + 1 for null termination character
+    context->ExeFilename = (char *)ArenaPushSizeZero(arena, sizeOfFilename + 1);         // + 1 for null termination character
     MemoryCopy(context->ExeFilename, context->FullExePath + sizeOfFolderPath, sizeOfFilename);
 
     // construct GUI DLL related paths
@@ -311,13 +311,13 @@ int CALLBACK WinMain(
 
     // partition out memory arenas
     {
-        InitializeArena(&memory.PermanentArena, PERMANENT_ARENA_SIZE, (U8 *)memory.BackingStore);
+        ArenaInitialize(&memory.PermanentArena, PERMANENT_ARENA_SIZE, (U8 *)memory.BackingStore);
 
         U8 *instructionsArenaPtr = ((U8 *)memory.BackingStore) + memory.PermanentArena.Size;
-        InitializeArena(&memory.InstructionsArena, INSTRUCTION_ARENA_SIZE, instructionsArenaPtr);
+        ArenaInitialize(&memory.InstructionsArena, INSTRUCTION_ARENA_SIZE, instructionsArenaPtr);
 
         U8 *frameArenaPtr = ((U8 *)memory.BackingStore) + memory.PermanentArena.Size + memory.InstructionsArena.Size;
-        InitializeArena(&memory.FrameArena, FRAME_ARENA_SIZE, frameArenaPtr);
+        ArenaInitialize(&memory.FrameArena, FRAME_ARENA_SIZE, frameArenaPtr);
 
         memory.IsInitialized = (memory.PermanentArena.BasePtr && memory.InstructionsArena.BasePtr && memory.FrameArena.BasePtr);
     }
@@ -386,7 +386,7 @@ int CALLBACK WinMain(
 
     // initialize 8086
     processor_8086 processor = {};
-    processor.Memory = (U8 *)PushSize(&memory.PermanentArena, processor.MemorySize);
+    processor.Memory = (U8 *)ArenaPushSize(&memory.PermanentArena, processor.MemorySize);
     if (!processor.Memory)
     {
         Assert(FALSE && "Unable to allocate main memory for 8086");
@@ -434,7 +434,7 @@ int CALLBACK WinMain(
             break;
         }
 
-        ClearArena(&memory.FrameArena);
+        ArenaClear(&memory.FrameArena);
 
         // Hot-load code if necessary
         FILETIME dllWriteTime = Win32GetLastWriteTime(win32Context.DLLPath);

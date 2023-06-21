@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "base.h"
+#include "memory_arena.h"
 #include "haversine.h"
 #include "haversine_lexer.h"
 #include "memory_arena.h"
@@ -91,7 +92,7 @@ global_function void InitializeTokenStack(token_stack *stack, memory_arena *aren
 
 global_function haversine_token *PushToken(token_stack *tokenStack, haversine_token value)
 {
-    haversine_token *tokenPtr = PushStruct(tokenStack->Arena, haversine_token);
+    haversine_token *tokenPtr = ArenaPushStruct(tokenStack->Arena, haversine_token);
     tokenStack->TokenCount++;
     MemoryCopy(tokenPtr, &value, sizeof(haversine_token));
 
@@ -104,7 +105,7 @@ global_function haversine_token *PushToken(token_stack *tokenStack, haversine_to
 global_function haversine_token PopToken(token_stack *tokenStack)
 {
     haversine_token result;
-    haversine_token *tokenPtr = PopStruct(tokenStack->Arena, haversine_token);
+    haversine_token *tokenPtr = ArenaPopStruct(tokenStack->Arena, haversine_token);
     tokenStack->TokenCount--;
 
     MemoryCopy(&result, tokenPtr, sizeof(haversine_token));
@@ -200,7 +201,7 @@ int main()
         printf("[ERROR] Unable to allocate memory for token stack");
         exit(1);
     }
-    InitializeArena(&tokenArena, Megabytes(1), memoryPtr);
+    ArenaInitialize(&tokenArena, Megabytes(1), memoryPtr);
 
 #if HAVERSINE_SLOW
     // Note (Aaron): Fill memory with 1s for debug purposes
