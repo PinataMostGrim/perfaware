@@ -43,8 +43,14 @@ IF NOT %ERRORLEVEL% == 0 (
 :: Compile and link
 del *.pdb > NUL 2> NUL
 echo WAITING FOR PDB > %GUI_LOCK_FILE%
+:: Compile application layer
 cl %COMPILER_FLAGS% %INCLUDES% ..\src\sim8086_application.cpp %IMGUI_SOURCES% -Fmsim8086_application.map -LD /link %LINKER_FLAGS% -PDB:sim8086_application_%random%.pdb -EXPORT:SetImGuiContext -EXPORT:UpdateAndRender
+:: Execute this line instead to view application layer after the pre-processor has been applied
+:: cl -E %COMPILER_FLAGS% %INCLUDES% ..\src\sim8086_application.cpp %IMGUI_SOURCES% -Fmsim8086_application.map -LD /link %LINKER_FLAGS% -PDB:sim8086_application_%random%.pdb -EXPORT:SetImGuiContext -EXPORT:UpdateAndRender | clang-format -style="Microsoft" > temp.txt
 del %GUI_LOCK_FILE%
+
+:: Compile platform layer
 cl %COMPILER_FLAGS% %INCLUDES% ..\src\win32_sim8086.cpp -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS% %IMGUI_OBJS%
-::cl -E %COMPILER_FLAGS% %INCLUDES% ..\src\win32_sim8086.cpp -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS% %IMGUI_OBJS% | clang-format -style="Microsoft" > temp.txt
+:: Execute this line instead to view platform layer after the pre-processor has been applied
+:: cl -E %COMPILER_FLAGS% %INCLUDES% ..\src\win32_sim8086.cpp -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS% %IMGUI_OBJS% | clang-format -style="Microsoft" > temp.txt
 popd
