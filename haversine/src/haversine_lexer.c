@@ -13,7 +13,7 @@
 #include <stdio.h>
 
 
-global const char *TokenMnemonics[] =
+global_variable const char *TokenMnemonics[] =
 {
     "Token_invalid",
     "Token_identifier",
@@ -28,7 +28,7 @@ global const char *TokenMnemonics[] =
 };
 
 
-function const char *GetTokenMenemonic(token_type tokenType)
+global_function const char *GetTokenMenemonic(token_type tokenType)
 {
     static_assert(ArrayCount(TokenMnemonics) == Token_type_count,
         "'TokenMnemonics' count does not match 'Token_type_count'");
@@ -37,7 +37,7 @@ function const char *GetTokenMenemonic(token_type tokenType)
 }
 
 
-function int _NextCharacter(FILE *file, B8 peek)
+global_function int _NextCharacter(FILE *file, B8 peek)
 {
     for (;;)
     {
@@ -48,9 +48,10 @@ function int _NextCharacter(FILE *file, B8 peek)
         }
 
         // skip white space characters
-        if (nextChar == 0x20        // space
-            || nextChar == 0x09     // horizontal tab
-            || nextChar == 0xa)     // newline
+        if (nextChar == '\t'
+            || nextChar == '\n'
+            || nextChar == '\r'
+            || nextChar == ' ')
         {
             continue;
         }
@@ -66,27 +67,27 @@ function int _NextCharacter(FILE *file, B8 peek)
 
 
 // Eat characters from a file stream until we get a non-whitespace character or reach EOF
-function int EatNextCharacter(FILE *file)
+global_function int EatNextCharacter(FILE *file)
 {
     return _NextCharacter(file, FALSE);
 }
 
 
 // Peek at the next character in a file stream (white-space characters excluded)
-function int PeekNextCharacter(FILE *file)
+global_function int PeekNextCharacter(FILE *file)
 {
     return _NextCharacter(file, TRUE);
 }
 
 // Returns whether or not the character belong to the set of characters used by floating point values
-function B8 IsFloatingPointChar(char character)
+global_function B8 IsFloatingPointChar(char character)
 {
     return (isdigit(character) || character == '.' || character == '-');
 }
 
 
 // Extracts next JSON token from file stream
-function haversine_token GetNextToken(FILE *file)
+global_function haversine_token GetNextToken(FILE *file)
 {
     haversine_token token;
     token.Type = Token_invalid;

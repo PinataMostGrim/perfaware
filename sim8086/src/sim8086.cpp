@@ -1,14 +1,17 @@
-#include "sim8086.h"
-#include "sim8086_mnemonics.cpp"
+/* TODO (Aaron):
+    - Separate print functionality from ExecuteInstruction() method so PrintFlagDiffs() can be moved into cli_sim8086.cpp
+*/
 
-#include <stdint.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-// SIM8086_SLOW:
-//     0 - No slow code allowed!
-//     1 - Slow code welcome
+#include "base.h"
+#include "memory_arena.h"
+#include "sim8086.h"
+#include "sim8086_mnemonics.h"
+
 
 // #pragma clang diagnostic ignored "-Wnull-dereference"
 
@@ -51,14 +54,14 @@ static register_info RegisterLookup[21]
 {
     // Note (Aaron): Order of registers must match the order defined in 'register_id' enum
     // in order for lookup to work
-    { Reg_al, 0, false, 0x00ff},
-    { Reg_cl, 2, false, 0x00ff},
-    { Reg_dl, 3, false, 0x00ff},
-    { Reg_bl, 1, false, 0x00ff},
-    { Reg_ah, 0, false, 0xff00},
-    { Reg_ch, 2, false, 0xff00},
-    { Reg_dh, 3, false, 0xff00},
-    { Reg_bh, 1, false, 0xff00},
+    { Reg_al, 0, FALSE, 0x00ff},
+    { Reg_cl, 2, FALSE, 0x00ff},
+    { Reg_dl, 3, FALSE, 0x00ff},
+    { Reg_bl, 1, FALSE, 0x00ff},
+    { Reg_ah, 0, FALSE, 0xff00},
+    { Reg_ch, 2, FALSE, 0xff00},
+    { Reg_dh, 3, FALSE, 0xff00},
+    { Reg_bh, 1, FALSE, 0xff00},
     { Reg_ax, 0, true, 0xffff},
     { Reg_cx, 2, true, 0xffff},
     { Reg_dx, 3, true, 0xffff},
@@ -81,7 +84,7 @@ static register_info RegisterLookup[21]
 static const char *MemoryDumpFilename = "memory.dat";
 
 
-static bool DumpMemoryToFile(processor_8086 *processor, const char *filename)
+static B32 DumpMemoryToFile(processor_8086 *processor, const char *filename)
 {
     FILE *file = {};
     file = fopen(filename, "wb");
@@ -89,13 +92,13 @@ static bool DumpMemoryToFile(processor_8086 *processor, const char *filename)
     if(!file)
     {
         printf("ERROR: Unable to open '%s'\n", filename);
-        return false;
+        return FALSE;
     }
 
     // loop over memory and write character to file stream one at a time
-    for (uint32 i = 0; i < processor->MemorySize; ++i)
+    for (U32 i = 0; i < processor->MemorySize; ++i)
     {
-        uint8 value = (uint8)*(processor->Memory + i);
+        U8 value = (U8)*(processor->Memory + i);
         fputc(value, file);
     }
 
@@ -103,7 +106,7 @@ static bool DumpMemoryToFile(processor_8086 *processor, const char *filename)
     if (ferror(file))
     {
         printf("ERROR: Encountered error while writing memory to '%s'", filename);
-        return false;
+        return FALSE;
     }
 
     fclose(file);
@@ -111,21 +114,9 @@ static bool DumpMemoryToFile(processor_8086 *processor, const char *filename)
 }
 
 
-static void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
-{
-    assert_8086(size > 0);
-
-    unsigned char *source = (unsigned char *)sourcePtr;
-    unsigned char *dest = (unsigned char *)destPtr;
-    while(size--) *dest++ = *source++;
-
-    return destPtr;
-}
-
-
 // Note (Aaron): Reads the next N bytes of the instruction stream into an instruction's bits.
 // Advances both the instruction bits pointer and the processor's instruction pointer.
-static void ReadInstructionStream(processor_8086 *processor, instruction *instruction, uint8 byteCount)
+static void ReadInstructionStream(processor_8086 *processor, instruction *instruction, U8 byteCount)
 {
     // Note (Aaron): Currently only support 8086 instructions that have a maximum of 6 bytes.
     // In practice, we never read this many bytes at once.
@@ -145,7 +136,7 @@ static void ReadInstructionStream(processor_8086 *processor, instruction *instru
     }
 
     // load instruction bytes out of memory
-    uint8 *readStartPtr = processor->Memory + processor->IP;
+    U8 *readStartPtr = processor->Memory + processor->IP;
     MemoryCopy(instruction->Bits.BytePtr, readStartPtr, byteCount);
 
     // advance pointers and counters
@@ -188,12 +179,12 @@ static void ParseRmBits(processor_8086 *processor, instruction *instruction, ins
                 // Note (Aaron): Casey said that this special case is always a 16-bit displacement in Q&A #5 (at 27m30s)
                 // but I think he meant the direct address value is always 16 bits. Putting an assert here to catch
                 // it in case we ever do hit a width bit of 0 in this case.
-                assert_8086(false);
+                assert_8086(FALSE);
             }
 
-            uint8 *readStartPtr = instruction->Bits.BytePtr;
+            U8 *readStartPtr = instruction->Bits.BytePtr;
             ReadInstructionStream(processor, instruction, 2);
-            operand->Memory.DirectAddress = (uint16)(*(uint16 *)readStartPtr);
+            operand->Memory.DirectAddress = (U16)(*(U16 *)readStartPtr);
         }
     }
 
@@ -213,15 +204,15 @@ static void ParseRmBits(processor_8086 *processor, instruction *instruction, ins
         // read displacement value
         if (instruction->ModBits == 0b1)
         {
-            uint8 *readStartPtr = instruction->Bits.BytePtr;
+            U8 *readStartPtr = instruction->Bits.BytePtr;
             ReadInstructionStream(processor, instruction, 1);
-            operand->Memory.Displacement = (int16)(*(int8 *)readStartPtr);
+            operand->Memory.Displacement = (S16)(*(S8 *)readStartPtr);
         }
         else if (instruction->ModBits == 0b10)
         {
-            uint8 *readStartPtr = instruction->Bits.BytePtr;
+            U8 *readStartPtr = instruction->Bits.BytePtr;
             ReadInstructionStream(processor, instruction, 2);
-            operand->Memory.Displacement = (int16)(*(int16 *)readStartPtr);
+            operand->Memory.Displacement = (S16)(*(S16 *)readStartPtr);
         }
 
         operand->Memory.Register = RegMemTables[2][instruction->RmBits];
@@ -235,7 +226,8 @@ static void ParseRmBits(processor_8086 *processor, instruction *instruction, ins
     }
 }
 
-static uint8 CalculateEffectiveAddressClocks(instruction_operand *operand)
+
+static U8 CalculateEffectiveAddressClocks(instruction_operand *operand)
 {
     // TODO (Aaron): We could just return 0 clocks instead in the event this is false
     // if (operand->Type != Operand_Memory)
@@ -251,11 +243,11 @@ static uint8 CalculateEffectiveAddressClocks(instruction_operand *operand)
     }
 
     register_id operandRegister = operand->Memory.Register;
-    bool baseOrIndex = operandRegister ==  Reg_bx
+    B32 baseOrIndex = operandRegister ==  Reg_bx
                     || operandRegister ==  Reg_bp
                     || operandRegister ==  Reg_si
                     || operandRegister ==  Reg_di;
-    bool hasDisplacement = (operand->Memory.Flags & Memory_HasDisplacement) && operand->Memory.Displacement > 0;
+    B32 hasDisplacement = (operand->Memory.Flags & Memory_HasDisplacement) && operand->Memory.Displacement > 0;
 
     if (baseOrIndex)
     {
@@ -278,15 +270,16 @@ static uint8 CalculateEffectiveAddressClocks(instruction_operand *operand)
             break;
     }
 
-    // we should never reach this case
-    assert_8086(false);
+    assert_8086(FALSE && "Unreachable case");
     return 0;
 }
+
 
 static instruction DecodeNextInstruction(processor_8086 *processor)
 {
     processor->PrevIP = processor->IP;
     instruction instruction = {};
+    instruction.Address = processor->IP;
 
     // read initial instruction byte for parsing
     processor->InstructionCount++;
@@ -355,8 +348,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
         else
         {
-            // we should never reach this case
-            assert_8086(false);
+            assert_8086(FALSE && "Unreachable case");
         }
     }
 
@@ -384,20 +376,19 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         // read data. guaranteed to be at least 8-bits.
         if (instruction.WidthBit == 0b0)
         {
-            uint8 *readStartPtr = instruction.Bits.BytePtr;
+            U8 *readStartPtr = instruction.Bits.BytePtr;
             ReadInstructionStream(processor, &instruction, 1);
-            operandSource.Immediate.Value = (uint16)(*(uint8 *)readStartPtr);
+            operandSource.Immediate.Value = (U16)(*(U8 *)readStartPtr);
         }
         else if (instruction.WidthBit == 0b1)
         {
-            uint8 *readStartPtr = instruction.Bits.BytePtr;
+            U8 *readStartPtr = instruction.Bits.BytePtr;
             ReadInstructionStream(processor, &instruction, 2);
-            operandSource.Immediate.Value = (uint16)(*(uint16 *)readStartPtr);
+            operandSource.Immediate.Value = (U16)(*(U16 *)readStartPtr);
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         instruction.Operands[0] = operandDest;
@@ -419,8 +410,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
         else
         {
-            // we should never reach this case
-            assert_8086(false);
+            assert_8086(FALSE && "Unreachable case");
         }
     }
 
@@ -441,18 +431,17 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             // read 8-bit data
             ReadInstructionStream(processor, &instruction, 1);
-            operandSource.Immediate.Value = *(uint8 *)(&instruction.Bits.Byte1);
+            operandSource.Immediate.Value = *(U8 *)(&instruction.Bits.Byte1);
         }
         else if (instruction.WidthBit == 0b1)
         {
             // read 16-bit data
             ReadInstructionStream(processor, &instruction, 2);
-            operandSource.Immediate.Value = *(uint16 *)(&instruction.Bits.Byte1);
+            operandSource.Immediate.Value = *(U16 *)(&instruction.Bits.Byte1);
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         operandDest.Register = RegMemTables[instruction.WidthBit][instruction.RegBits];
@@ -468,8 +457,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
         else
         {
-            // we should never reach this case
-            assert_8086(false);
+            assert_8086(FALSE && "Unreachable case");
         }
     }
 
@@ -488,17 +476,16 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         if (instruction.WidthBit == 0)
         {
             ReadInstructionStream(processor, &instruction, 1);
-            operandMemory.Memory.DirectAddress = (uint16)(*(&instruction.Bits.Byte1));
+            operandMemory.Memory.DirectAddress = (U16)(*(&instruction.Bits.Byte1));
         }
         else if (instruction.WidthBit == 1)
         {
             ReadInstructionStream(processor, &instruction, 2);
-            operandMemory.Memory.DirectAddress = (uint16)(*(uint16 *)(&instruction.Bits.Byte1));
+            operandMemory.Memory.DirectAddress = (U16)(*(U16 *)(&instruction.Bits.Byte1));
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         if ((instruction.Bits.Byte0 >> 1) == 0b1010000)
@@ -511,10 +498,9 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
             instruction.Operands[0] = operandMemory;
             instruction.Operands[1] = operandAccumulator;
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         // estimate clock cycles
@@ -558,10 +544,9 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             instruction.OpType = Op_cmp;
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         // decode reg
@@ -607,7 +592,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                     instruction.ClockCount = 9;
                     break;
                 default:
-                    assert_8086(false);
+                    assert_8086(FALSE && "Unhandled case");
             }
 
             instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[0]);
@@ -622,8 +607,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         }
         else
         {
-            // we should never reach this case
-            assert_8086(false);
+            assert_8086(FALSE && "Unreachable case");
         }
     }
 
@@ -659,10 +643,9 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             instruction.OpType = Op_cmp;
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         // parse r/m string
@@ -672,31 +655,31 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         if (instruction.SignBit == 0b0 && instruction.WidthBit == 0)
         {
             // read 8-bit unsigned
-            uint8 *readStartPtr = instruction.Bits.BytePtr;
+            U8 *readStartPtr = instruction.Bits.BytePtr;
             ReadInstructionStream(processor, &instruction, 1);
-            operandSource.Immediate.Value = (uint16)(*readStartPtr);
+            operandSource.Immediate.Value = (U16)(*readStartPtr);
         }
         else if (instruction.SignBit == 0b0 && instruction.WidthBit == 1)
         {
             // read 16-bit unsigned
-            uint8 *readStartPtr = instruction.Bits.BytePtr;
+            U8 *readStartPtr = instruction.Bits.BytePtr;
             ReadInstructionStream(processor, &instruction, 2);
-            operandSource.Immediate.Value = (uint16)(*(uint16 *)readStartPtr);
+            operandSource.Immediate.Value = (U16)(*(U16 *)readStartPtr);
         }
         else if (instruction.SignBit == 0b1 && instruction.WidthBit == 0)
         {
             // read 8-bit signed
-            uint8 *readStartPtr = instruction.Bits.BytePtr;
+            U8 *readStartPtr = instruction.Bits.BytePtr;
             ReadInstructionStream(processor, &instruction, 1);
-            operandSource.Immediate.Value = (uint16)((int8)(*readStartPtr));
+            operandSource.Immediate.Value = (U16)((S8)(*readStartPtr));
             operandSource.Immediate.Flags |= Immediate_IsSigned;
         }
         else if (instruction.SignBit == 0b1 && instruction.WidthBit == 1)
         {
             // read 8-bits and sign-extend to 16-bits
-            uint8 *readStartPtr = instruction.Bits.BytePtr;
+            U8 *readStartPtr = instruction.Bits.BytePtr;
             ReadInstructionStream(processor, &instruction, 1);
-            operandSource.Immediate.Value = (uint16)((int8)(*readStartPtr));
+            operandSource.Immediate.Value = (U16)((S8)(*readStartPtr));
             operandSource.Immediate.Flags |= Immediate_IsSigned;
         }
 
@@ -723,15 +706,14 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                     instruction.ClockCount = 10;
                     break;
                 default:
-                    assert_8086(false);
+                    assert_8086(FALSE && "Unhandled case");
             }
 
             instruction.EAClockCount = CalculateEffectiveAddressClocks(&instruction.Operands[0]);
         }
         else
         {
-            // we should never reach this case
-            assert_8086(false);
+            assert_8086(FALSE && "Unreachable case");
         }
     }
 
@@ -763,22 +745,21 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
         {
             instruction.OpType = Op_cmp;
         }
-        // unhandled case
         else
         {
-            assert_8086(false);
+            assert_8086(FALSE && "Unhandled case");
         }
 
         // read data
         if (instruction.WidthBit == 0b0)
         {
             ReadInstructionStream(processor, &instruction, 1);
-            operandSource.Immediate.Value = (uint16)(*(uint8 *)(&instruction.Bits.Byte1));
+            operandSource.Immediate.Value = (U16)(*(U8 *)(&instruction.Bits.Byte1));
         }
         else if (instruction.WidthBit == 0b1)
         {
             ReadInstructionStream(processor, &instruction, 2);
-            operandSource.Immediate.Value = (uint16)(*(uint16 *)(&instruction.Bits.Byte1));
+            operandSource.Immediate.Value = (U16)(*(U16 *)(&instruction.Bits.Byte1));
         }
 
         operandDest.Register = (instruction.WidthBit == 0b0) ? Reg_al : Reg_ax;
@@ -820,7 +801,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
 
         // read 8-bit signed offset for jumps
         ReadInstructionStream(processor, &instruction, 1);
-        int8 offset = *(int8 *)(&instruction.Bits.Byte1);
+        S8 offset = *(S8 *)(&instruction.Bits.Byte1);
 
         instruction_operand operand0 = {};
         operand0.Type = Operand_Immediate;
@@ -937,8 +918,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
                 instruction.OpType = Op_jcxz;
                 break;
             default:
-                // unhandled instruction
-                assert_8086(false);
+                assert_8086(FALSE && "Unhandled instruction");
         }
     }
 
@@ -979,38 +959,38 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
 }
 
 
-uint16 GetRegisterValue(processor_8086 *processor, register_id targetRegister)
+static U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister)
 {
-    uint16 result = 0;
+    U16 result = 0;
     register_info info = RegisterLookup[targetRegister];
 
     switch (info.Register)
     {
         case (Reg_bx_si):
         {
-            uint16 bxValue = GetRegisterValue(processor, Reg_bx);
-            uint16 siValue = GetRegisterValue(processor, Reg_si);
+            U16 bxValue = GetRegisterValue(processor, Reg_bx);
+            U16 siValue = GetRegisterValue(processor, Reg_si);
             result = bxValue + siValue;
             break;
         }
         case (Reg_bx_di):
         {
-            uint16 bxValue = GetRegisterValue(processor, Reg_bx);
-            uint16 diValue = GetRegisterValue(processor, Reg_di);
+            U16 bxValue = GetRegisterValue(processor, Reg_bx);
+            U16 diValue = GetRegisterValue(processor, Reg_di);
             result = bxValue + diValue;
             break;
         }
         case (Reg_bp_si):
         {
-            uint16 bpValue = GetRegisterValue(processor, Reg_bp);
-            uint16 siValue = GetRegisterValue(processor, Reg_si);
+            U16 bpValue = GetRegisterValue(processor, Reg_bp);
+            U16 siValue = GetRegisterValue(processor, Reg_si);
             result = bpValue + siValue;
             break;
         }
         case (Reg_bp_di):
         {
-            uint16 bpValue = GetRegisterValue(processor, Reg_bp);
-            uint16 diValue = GetRegisterValue(processor, Reg_di);
+            U16 bpValue = GetRegisterValue(processor, Reg_bp);
+            U16 diValue = GetRegisterValue(processor, Reg_di);
             result = bpValue + diValue;
             break;
         }
@@ -1025,7 +1005,7 @@ uint16 GetRegisterValue(processor_8086 *processor, register_id targetRegister)
 }
 
 
-void SetRegisterValue(processor_8086 *processor, register_id targetRegister, uint16 value)
+static void SetRegisterValue(processor_8086 *processor, register_id targetRegister, U16 value)
 {
     register_info info = RegisterLookup[targetRegister];
     // TODO (Aaron): I don't think this preserves values in a lower or higher segment of the register
@@ -1035,13 +1015,13 @@ void SetRegisterValue(processor_8086 *processor, register_id targetRegister, uin
 }
 
 
-uint8 GetRegisterFlag(processor_8086 *processor, register_flags flag)
+static U8 GetRegisterFlag(processor_8086 *processor, register_flags flag)
 {
     return (processor->Flags & flag);
 }
 
 
-void SetRegisterFlag(processor_8086 *processor, register_flags flag, bool set)
+static void SetRegisterFlag(processor_8086 *processor, register_flags flag, B32 set)
 {
     if (set)
     {
@@ -1053,27 +1033,27 @@ void SetRegisterFlag(processor_8086 *processor, register_flags flag, bool set)
 }
 
 
-void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targetRegister, uint16 value)
+static void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targetRegister, U16 value)
 {
     register_info info = RegisterLookup[targetRegister];
     if (info.IsWide)
     {
         // use 16 bit mask
-        SetRegisterFlag(processor, Register_SF, (value >> 15) == 1);
+        SetRegisterFlag(processor, RegisterFlag_SF, (value >> 15) == 1);
     }
     else
     {
         // use 8 bit mask
-        SetRegisterFlag(processor, Register_SF, (value >> 7) == 1);
+        SetRegisterFlag(processor, RegisterFlag_SF, (value >> 7) == 1);
     }
 }
 
 
-uint32 CalculateEffectiveAddress(processor_8086 *processor, instruction_operand operand)
+static U32 CalculateEffectiveAddress(processor_8086 *processor, instruction_operand operand)
 {
     assert_8086(operand.Type == Operand_Memory);
 
-    uint32 effectiveAddress = 0;
+    U32 effectiveAddress = 0;
     // direct address assignment
     if (operand.Memory.Flags & Memory_HasDirectAddress)
     {
@@ -1093,7 +1073,7 @@ uint32 CalculateEffectiveAddress(processor_8086 *processor, instruction_operand 
 }
 
 
-uint16 GetMemory(processor_8086 *processor, uint32 effectiveAddress, bool wide)
+static U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide)
 {
     if (effectiveAddress >= processor->MemorySize)
     {
@@ -1103,20 +1083,20 @@ uint16 GetMemory(processor_8086 *processor, uint32 effectiveAddress, bool wide)
 
     if (wide)
     {
-        uint16 *memoryRead = (uint16 *)(processor->Memory + effectiveAddress);
-        uint16 result = *memoryRead;
+        U16 *memoryRead = (U16 *)(processor->Memory + effectiveAddress);
+        U16 result = *memoryRead;
 
         return result;
     }
 
-    uint8 *memoryRead = (processor->Memory + effectiveAddress);
-    uint16 result = (uint16)*memoryRead;
+    U8 *memoryRead = (processor->Memory + effectiveAddress);
+    U16 result = (U16)*memoryRead;
 
     return result;
 }
 
 
-void SetMemory(processor_8086 *processor, uint32 effectiveAddress, uint16 value, bool wide)
+static void SetMemory(processor_8086 *processor, U32 effectiveAddress, U16 value, B32 wide)
 {
     if (effectiveAddress >= processor->MemorySize)
     {
@@ -1129,19 +1109,19 @@ void SetMemory(processor_8086 *processor, uint32 effectiveAddress, uint16 value,
 
     if (wide)
     {
-        uint16 *memoryWrite = (uint16 *)(processor->Memory + effectiveAddress);
+        U16 *memoryWrite = (U16 *)(processor->Memory + effectiveAddress);
         *memoryWrite = value;
         return;
     }
 
-    uint8 *memoryWrite = processor->Memory + effectiveAddress;
-    *memoryWrite = (uint8)value;
+    U8 *memoryWrite = processor->Memory + effectiveAddress;
+    *memoryWrite = (U8)value;
 }
 
 
-uint16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
+static U16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
 {
-    uint16 result = 0;
+    U16 result = 0;
     switch (operand.Type)
     {
         case Operand_Register:
@@ -1156,16 +1136,15 @@ uint16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
         }
         case Operand_Memory:
         {
-            uint32 effectiveAddress = CalculateEffectiveAddress(processor, operand);
-            bool wide = (operand.Memory.Flags & Memory_IsWide);
+            U32 effectiveAddress = CalculateEffectiveAddress(processor, operand);
+            B32 wide = (operand.Memory.Flags & Memory_IsWide);
             result = GetMemory(processor, effectiveAddress, wide);
 
             break;
         }
         default:
         {
-            // Note (Aaron): Invalid instruction
-            assert_8086(false);
+            assert_8086(FALSE && "Invalid instruction");
             break;
         }
     }
@@ -1173,7 +1152,8 @@ uint16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
     return result;
 }
 
-void SetOperandValue(processor_8086 *processor, instruction_operand *operand, uint16 value)
+
+static void SetOperandValue(processor_8086 *processor, instruction_operand *operand, U16 value)
 {
     // Only these two operand types are assignable
     assert_8086((operand->Type == Operand_Register) || operand->Type == Operand_Memory);
@@ -1186,8 +1166,8 @@ void SetOperandValue(processor_8086 *processor, instruction_operand *operand, ui
 
     if (operand->Type == Operand_Memory)
     {
-        uint32 effectiveAddress = 0;
-        bool wide = (operand->Memory.Flags & Memory_IsWide);
+        U32 effectiveAddress = 0;
+        B32 wide = (operand->Memory.Flags & Memory_IsWide);
 
         // direct address assignment
         if (operand->Memory.Flags & Memory_HasDirectAddress)
@@ -1208,29 +1188,11 @@ void SetOperandValue(processor_8086 *processor, instruction_operand *operand, ui
         return;
     }
 
-    // We should never reach this point
-    assert_8086(false);
-}
-
-void PrintFlags(processor_8086 *processor, bool force = false)
-{
-    if (processor->Flags == 0 && !force)
-    {
-        return;
-    }
-
-    printf(" flags:->");
-
-    if (processor->Flags & Register_CF) { printf("C"); }
-    if (processor->Flags & Register_PF) { printf("P"); }
-    if (processor->Flags & Register_AF) { printf("A"); }
-    if (processor->Flags & Register_ZF) { printf("Z"); }
-    if (processor->Flags & Register_SF) { printf("S"); }
-    if (processor->Flags & Register_OF) { printf("O"); }
+    assert_8086(FALSE && "Unreachable case");
 }
 
 
-void PrintFlagDiffs(uint8 oldFlags, uint8 newFlags)
+static void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
 {
     if (oldFlags == newFlags)
     {
@@ -1240,28 +1202,28 @@ void PrintFlagDiffs(uint8 oldFlags, uint8 newFlags)
     printf(" flags:");
 
     // Flags that are changing to 0
-    if ((oldFlags & Register_CF) && !(newFlags & Register_CF)) { printf("C"); }
-    if ((oldFlags & Register_PF) && !(newFlags & Register_PF)) { printf("P"); }
-    if ((oldFlags & Register_AF) && !(newFlags & Register_AF)) { printf("A"); }
-    if ((oldFlags & Register_ZF) && !(newFlags & Register_ZF)) { printf("Z"); }
-    if ((oldFlags & Register_SF) && !(newFlags & Register_SF)) { printf("S"); }
-    if ((oldFlags & Register_OF) && !(newFlags & Register_OF)) { printf("O"); }
+    if ((oldFlags & RegisterFlag_CF) && !(newFlags & RegisterFlag_CF)) { printf("C"); }
+    if ((oldFlags & RegisterFlag_PF) && !(newFlags & RegisterFlag_PF)) { printf("P"); }
+    if ((oldFlags & RegisterFlag_AF) && !(newFlags & RegisterFlag_AF)) { printf("A"); }
+    if ((oldFlags & RegisterFlag_ZF) && !(newFlags & RegisterFlag_ZF)) { printf("Z"); }
+    if ((oldFlags & RegisterFlag_SF) && !(newFlags & RegisterFlag_SF)) { printf("S"); }
+    if ((oldFlags & RegisterFlag_OF) && !(newFlags & RegisterFlag_OF)) { printf("O"); }
 
     printf("->");
 
     // Flags that are changing to 1
-    if (!(oldFlags & Register_CF) && (newFlags & Register_CF)) { printf("C"); }
-    if (!(oldFlags & Register_PF) && (newFlags & Register_PF)) { printf("P"); }
-    if (!(oldFlags & Register_AF) && (newFlags & Register_AF)) { printf("A"); }
-    if (!(oldFlags & Register_ZF) && (newFlags & Register_ZF)) { printf("Z"); }
-    if (!(oldFlags & Register_SF) && (newFlags & Register_SF)) { printf("S"); }
-    if (!(oldFlags & Register_OF) && (newFlags & Register_OF)) { printf("O"); }
+    if (!(oldFlags & RegisterFlag_CF) && (newFlags & RegisterFlag_CF)) { printf("C"); }
+    if (!(oldFlags & RegisterFlag_PF) && (newFlags & RegisterFlag_PF)) { printf("P"); }
+    if (!(oldFlags & RegisterFlag_AF) && (newFlags & RegisterFlag_AF)) { printf("A"); }
+    if (!(oldFlags & RegisterFlag_ZF) && (newFlags & RegisterFlag_ZF)) { printf("Z"); }
+    if (!(oldFlags & RegisterFlag_SF) && (newFlags & RegisterFlag_SF)) { printf("S"); }
+    if (!(oldFlags & RegisterFlag_OF) && (newFlags & RegisterFlag_OF)) { printf("O"); }
 }
 
 
-void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
+static void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
 {
-    uint8 oldFlags = processor->Flags;
+    U8 oldFlags = processor->Flags;
 
     // TODO (Aaron): A lot of redundant code here
     //  - Re-write switch statement with if-statements?
@@ -1272,8 +1234,8 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             instruction_operand operand0 = instruction->Operands[0];
             instruction_operand operand1 = instruction->Operands[1];
 
-            uint16 oldValue = GetOperandValue(processor, operand0);
-            uint16 sourceValue = GetOperandValue(processor, operand1);
+            U16 oldValue = GetOperandValue(processor, operand0);
+            U16 sourceValue = GetOperandValue(processor, operand1);
 
             SetOperandValue(processor, &operand0, sourceValue);
 
@@ -1295,13 +1257,13 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             instruction_operand operand0 = instruction->Operands[0];
             instruction_operand operand1 = instruction->Operands[1];
 
-            uint16 oldValue = GetOperandValue(processor, operand0);
-            uint16 value0 = GetOperandValue(processor, operand0);
-            uint16 value1 = GetOperandValue(processor, operand1);
-            uint16 finalValue = value1 + value0;
+            U16 oldValue = GetOperandValue(processor, operand0);
+            U16 value0 = GetOperandValue(processor, operand0);
+            U16 value1 = GetOperandValue(processor, operand1);
+            U16 finalValue = value1 + value0;
 
             SetOperandValue(processor, &operand0, finalValue);
-            SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
+            SetRegisterFlag(processor, RegisterFlag_ZF, (finalValue == 0));
 
             // TODO (Aaron): Does the signed flag still get set if we are assigning to memory?
             if (operand0.Type == Operand_Register)
@@ -1325,13 +1287,13 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             instruction_operand operand0 = instruction->Operands[0];
             instruction_operand operand1 = instruction->Operands[1];
 
-            uint16 oldValue = GetOperandValue(processor, operand0);
-            uint16 value0 = GetOperandValue(processor, operand0);
-            uint16 value1 = GetOperandValue(processor, operand1);
-            uint16 finalValue = value0 - value1;
+            U16 oldValue = GetOperandValue(processor, operand0);
+            U16 value0 = GetOperandValue(processor, operand0);
+            U16 value1 = GetOperandValue(processor, operand1);
+            U16 finalValue = value0 - value1;
 
             SetOperandValue(processor, &operand0, finalValue);
-            SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
+            SetRegisterFlag(processor, RegisterFlag_ZF, (finalValue == 0));
 
             // TODO (Aaron): Does the signed flag still get set if we are assigning to memory?
             if (operand0.Type == Operand_Register)
@@ -1355,11 +1317,11 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             instruction_operand operand0 = instruction->Operands[0];
             instruction_operand operand1 = instruction->Operands[1];
 
-            uint16 value0 = GetOperandValue(processor, operand0);
-            uint16 value1 = GetOperandValue(processor, operand1);
-            uint16 finalValue = value0 - value1;
+            U16 value0 = GetOperandValue(processor, operand0);
+            U16 value1 = GetOperandValue(processor, operand1);
+            U16 finalValue = value0 - value1;
 
-            SetRegisterFlag(processor, Register_ZF, (finalValue == 0));
+            SetRegisterFlag(processor, RegisterFlag_ZF, (finalValue == 0));
             UpdateSignedRegisterFlag(processor, operand0.Register, finalValue);
 
             break;
@@ -1368,10 +1330,10 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
         case Op_jne:
         {
             // jump if not equal to zero
-            if (!GetRegisterFlag(processor, Register_ZF))
+            if (!GetRegisterFlag(processor, RegisterFlag_ZF))
             {
                 instruction_operand operand0 = instruction->Operands[0];
-                int8 offset = (int8)(operand0.Immediate.Value & 0xff);
+                S8 offset = (S8)(operand0.Immediate.Value & 0xff);
 
                 // modify instruction pointer
                 processor->IP += offset;
@@ -1383,7 +1345,7 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
         case Op_loop:
         {
             // decrement CX register by 1
-            uint16 cx = GetRegisterValue(processor, Reg_cx);
+            U16 cx = GetRegisterValue(processor, Reg_cx);
             --cx;
             SetRegisterValue(processor, Reg_cx, cx);
 
@@ -1391,7 +1353,7 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
             if (cx != 0)
             {
                 instruction_operand operand0 = instruction->Operands[0];
-                int8 offset = (int8)(operand0.Immediate.Value & 0xff);
+                S8 offset = (S8)(operand0.Immediate.Value & 0xff);
 
                 processor->IP += offset;
             }
@@ -1412,330 +1374,4 @@ void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
 
     printf(" ip:0x%x->0x%x", processor->PrevIP, processor->IP);
     PrintFlagDiffs(oldFlags, processor->Flags);
-}
-
-
-static void PrintInstruction(instruction *instruction)
-{
-    printf("%s ", GetOpMnemonic(instruction->OpType));
-    const char *Separator = "";
-
-    for (int i = 0; i < ArrayCount(instruction->Operands); ++i)
-    {
-        instruction_operand operand = instruction->Operands[i];
-
-        // skip empty operands
-        if(operand.Type == Operand_None)
-        {
-            continue;
-        }
-
-        printf("%s", Separator);
-        Separator = ", ";
-
-        switch (operand.Type)
-        {
-            case Operand_None:
-            {
-                break;
-            }
-            case Operand_Memory:
-            {
-                // prepend width hint if necessary
-                if (operand.Memory.Flags & Memory_PrependWidth)
-                {
-                    printf("%s ", (operand.Memory.Flags & Memory_IsWide) ? "word": "byte");
-                }
-
-                // print direct address
-                if (operand.Memory.Flags & Memory_HasDirectAddress)
-                {
-                    printf("[%i]", operand.Memory.DirectAddress);
-                    break;
-                }
-
-                // print memory with optional displacement
-                printf("[");
-                printf("%s", GetRegisterMnemonic(operand.Memory.Register));
-
-                if (operand.Memory.Flags & Memory_HasDisplacement)
-                {
-                    if (operand.Memory.Displacement >= 0)
-                    {
-                        printf(" + %i", operand.Memory.Displacement);
-                    }
-                    else
-                    {
-                        printf(" - %i", operand.Memory.Displacement * -1);
-                    }
-                }
-
-                printf("]");
-
-                break;
-            }
-            case Operand_Register:
-            {
-                printf("%s", GetRegisterMnemonic(operand.Register));
-                break;
-            }
-            case Operand_Immediate:
-            {
-                if (operand.Immediate.Flags & Immediate_IsJump)
-                {
-                    int8 offset = (int8)(operand.Immediate.Value & 0xff);
-
-                    // Note (Aaron): Offset the value to accommodate a NASM syntax peculiarity.
-                    // NASM expects an offset value from the start of the instruction rather than
-                    // the end (which is how the instructions are encoded).
-                    offset += instruction->Bits.ByteCount;
-
-                    printf(offset >= 0 ? "$+%i" : "$%i", offset);
-                    break;
-                }
-
-                // TODO (Aaron): Test this more
-                bool isSigned = operand.Immediate.Flags & Immediate_IsSigned;
-                printf("%i", isSigned
-                       ? (int16) operand.Immediate.Value
-                       : (uint16) operand.Immediate.Value);
-
-                break;
-            }
-
-            default:
-            {
-                printf("?");
-            }
-        }
-    }
-}
-
-static void PrintClocks(processor_8086 *processor, instruction *instruction)
-{
-    if (instruction->EAClockCount > 0)
-    {
-        printf(" Clocks: +%i (%i + %iea) = %i",
-               (instruction->ClockCount + instruction->EAClockCount),
-               instruction->ClockCount,
-               instruction->EAClockCount,
-               processor->TotalClockCount);
-        return;
-    }
-
-    printf(" Clocks: +%i = %i", instruction->ClockCount, processor->TotalClockCount);
-}
-
-static void PrintRegisters(processor_8086 *processor)
-{
-    register_id toDisplay[] =
-    {
-        Reg_ax,
-        Reg_bx,
-        Reg_cx,
-        Reg_dx,
-        Reg_sp,
-        Reg_bp,
-        Reg_si,
-        Reg_di,
-    };
-
-    printf("Registers:\n");
-
-    for (int i = 0; i < ArrayCount(toDisplay); ++i)
-    {
-        uint16 value = GetRegisterValue(processor, toDisplay[i]);
-
-        // Reduce noise by omitting registers with a value of 0
-        if (value == 0)
-        {
-            continue;
-        }
-
-        printf("\t%s: %04x (%i)\n",
-               GetRegisterMnemonic(toDisplay[i]),
-               value,
-               value);
-    }
-
-    // print instruction pointer
-    printf("\tip: %04x (%i)\n",
-           processor->IP,
-           processor->IP);
-
-    // align flags with register print out
-    printf("    ");
-    PrintFlags(processor);
-}
-
-void PrintUsage()
-{
-    printf("usage: sim8086 [--exec --show-clocks --dump --help] filename\n\n");
-    printf("disassembles 8086/88 assembly and optionally simulates it. note: supports \na limited number of instructions.\n\n");
-
-    printf("positional arguments:\n");
-    printf("  filename\t\tassembly file to load\n");
-    printf("\n");
-
-    printf("options:\n");
-    printf("  --exec, -e\t\tsimulate execution of assembly\n");
-    printf("  --show-clocks, -c\tshow clock count estimate for each instruction\n");
-    printf("  --dump, -d\t\tdump simulation memory to file after execution (%s)\n", MemoryDumpFilename);
-    printf("  --help, -h\t\tshow this message\n");
-}
-
-
-int main(int argc, char const *argv[])
-{
-    static_assert_8086(ArrayCount(OperationMnemonics) == Op_count,
-              "OperationMnemonics does not accommodate all operation_types");
-
-    static_assert_8086(ArrayCount(RegisterLookup) == Reg_mem_id_count,
-                  "RegisterLookup does not contain definitions for all register IDs");
-
-    if (argc < 2 ||  argc > 5)
-    {
-        PrintUsage();
-        exit(1);
-    }
-
-    // TODO (Aaron): Turn this into a struct
-    // TODO (Aaron): Extract this into a separate method
-    // process command line arguments
-    bool simulateInstructions = false;
-    bool dumpMemoryToFile = false;
-    bool showClocks = false;
-    bool stopOnReturn = false;
-    const char *filename = "";
-
-    for (int i = 1; i < argc; ++i)
-    {
-        if ((strncmp("--help", argv[i], 6) == 0)
-            || (strncmp("-h", argv[i], 2) == 0))
-        {
-            PrintUsage();
-            exit(0);
-        }
-
-        if ((strncmp("--exec", argv[i], 6) == 0)
-            || (strncmp("-e", argv[i], 2) == 0))
-        {
-            simulateInstructions = true;
-            continue;
-        }
-
-        if ((strncmp("--show-clocks", argv[i], 13) == 0)
-            || (strncmp("-c", argv[i], 2) == 0))
-        {
-            showClocks = true;
-            continue;
-        }
-
-        if ((strncmp("--dump", argv[i], 6) == 0)
-            || (strncmp("-d", argv[i], 2) == 0))
-        {
-            dumpMemoryToFile = true;
-            continue;
-        }
-
-        if ((strncmp("--stop-on-ret", argv[i], 13) == 0)
-            || (strncmp("-r", argv[i], 2) == 0))
-        {
-            stopOnReturn = true;
-            continue;
-        }
-
-        filename = argv[i];
-    }
-
-    // initialize processor
-    processor_8086 processor = {};
-    processor.Memory = (uint8 *)calloc(processor.MemorySize, sizeof(uint8));
-
-    if (!processor.Memory)
-    {
-        printf("ERROR: Unable to allocate main memory for 8086\n");
-        exit(1);
-    }
-
-    FILE *file = {};
-    file = fopen(filename, "rb");
-
-    if(!file)
-    {
-        printf("ERROR: Unable to open '%s'\n", filename);
-        exit(1);
-    }
-
-    processor.ProgramSize = (uint16)fread(processor.Memory, 1, processor.MemorySize, file);
-
-    // error handling for file read
-    if (ferror(file))
-    {
-        printf("ERROR: Encountered error while reading file '%s'", filename);
-        exit(1);
-    }
-
-    if (!feof(file))
-    {
-        printf("ERROR: Program size exceeds processor memory; unable to load\n\n");
-        exit(1);
-    }
-
-    fclose(file);
-
-    // TODO (Aaron): Should I assert anything here?
-    //  - Feedback for empty program?
-
-    printf("; %s:\n", filename);
-    printf("bits 16\n");
-
-    while (processor.IP < processor.ProgramSize)
-    {
-        instruction instruction = DecodeNextInstruction(&processor);
-        PrintInstruction(&instruction);
-
-        if (showClocks || simulateInstructions)
-        {
-            printf(" ;");
-        }
-
-        if (showClocks)
-        {
-            PrintClocks(&processor, &instruction);
-        }
-
-        if (showClocks && simulateInstructions)
-        {
-            printf(" |");
-        }
-
-        if (simulateInstructions)
-        {
-            ExecuteInstruction(&processor, &instruction);
-        }
-
-        printf("\n");
-
-        // TODO (Aaron): Test this. Will have to write an assembly specifically to do this as the listings provided
-        // contain instructions I haven't supported yet.
-        if (instruction.OpType == Op_ret && stopOnReturn)
-        {
-            break;
-        }
-    }
-
-    if (simulateInstructions)
-    {
-        printf("\n");
-        PrintRegisters(&processor);
-        printf("\n");
-
-        if (dumpMemoryToFile)
-        {
-            DumpMemoryToFile(&processor, MemoryDumpFilename);
-        }
-    }
-
-    return 0;
 }

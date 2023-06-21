@@ -4,7 +4,7 @@
         {
             "path": ".",
             "index_exclude_patterns": [".cache/*", ".git/*", "*.exe", "*.obj", "*.ilk", "*.pdb"],
-            "binary_file_patterns": [".git/*", "*.exe", "*.ilk", "*.obj", "*.pdb"],
+            "binary_file_patterns": [".git/*", "*.exe", "*.ilk", "*.obj", "*.pdb", "*.dll", "*.exp", "*.lib", "*.map"],
         }
     ],
     "build_systems":
@@ -15,7 +15,7 @@
             {
                 // file_regex for cl
                 "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
-                "shell_cmd": "call vcvarsall.bat x64 && build-sim8086.bat",
+                "shell_cmd": "build-sim8086.bat",
             },
             "linux":
             {
@@ -41,11 +41,42 @@
             ],
         },
         {
+            "name": "Build win32_sim8086",
+            "windows":
+            {
+                // file_regex for cl
+                "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
+                "shell_cmd": "build-win32-sim8086.bat",
+            },
+            "linux":
+            {
+                // file_regex for clang
+                "file_regex": "^(..[^:\\n]*):([0-9]+):?([0-9]+)?:? (.*)$",
+                "shell_cmd": "./build-win32-sim8086.sh"
+            },
+            "working_dir": "${project_path}",
+            "env":
+            {
+                "DEBUG": "0"
+            },
+            "quiet": false,
+            "variants" :
+            [
+                {
+                    "name": "Debug",
+                    "env":
+                    {
+                        "DEBUG": "1"
+                    },
+                },
+            ],
+        },
+        {
             "name": "Build haversine generator",
             "windows":
             {
                 "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
-                "shell_cmd": "call vcvarsall.bat x64 && build-haversine-gen.bat",
+                "shell_cmd": "build-haversine-gen.bat",
             },
             "working_dir": "${project_path}",
             "env":
@@ -69,7 +100,7 @@
             "windows":
             {
                 "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
-                "shell_cmd": "call vcvarsall.bat x64 && build-haversine-proc.bat",
+                "shell_cmd": "build-haversine-proc.bat",
             },
             "working_dir": "${project_path}",
             "env":

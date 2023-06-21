@@ -4,6 +4,10 @@
 *.obj
 *.pdb
 *.cache
+*.dll
+*.exp
+*.lib
+*.map
 
 # Sublime Text files
 *.sublime-workspace
@@ -11,3 +15,6 @@
 # Computer Enhance files
 listing_*
 listing_*.*
+
+# ImGui files
+imgui.ini

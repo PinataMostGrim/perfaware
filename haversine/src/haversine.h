@@ -20,8 +20,8 @@ typedef struct
 }answers_file_header;
 
 
-function F64 Square(F64 A);
-function F64 RadiansFromDegrees(F64 Degrees);
-function F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius);
+global_function F64 Square(F64 A);
+global_function F64 RadiansFromDegrees(F64 Degrees);
+global_function F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius);
 
 #endif // HAVERSINE_H

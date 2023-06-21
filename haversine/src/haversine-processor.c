@@ -1,11 +1,16 @@
 /*  TODO (Aaron):
-    - Add carriage return (\r) to the list of white space we ignore from the JSON
     - Add usage printout
 */
 
 #pragma warning(disable:4996)
 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "base.h"
+#include "memory_arena.h"
 #include "haversine.h"
 #include "haversine_lexer.h"
 #include "memory_arena.h"
@@ -13,10 +18,6 @@
 #include "haversine.c"
 #include "haversine_lexer.c"
 #include "memory_arena.c"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 
 #define EPSILON_FLOAT 0.01
@@ -58,14 +59,9 @@ typedef struct
 } pairs_context;
 
 
-function void InitializeTokenStack(token_stack *stack, memory_arena *arena)
-{
-    stack->Arena = arena;
-    stack->TokenCount = 0;
-}
 
 
-function void InitializeProcessorStats(processor_stats *stats)
+global_function void InitializeProcessorStats(processor_stats *stats)
 {
     stats->TokenCount = 0;
     stats->MaxTokenLength = 0;
@@ -73,7 +69,7 @@ function void InitializeProcessorStats(processor_stats *stats)
 }
 
 
-function void InitializePairsContext(pairs_context *context)
+global_function void InitializePairsContext(pairs_context *context)
 {
     context->PairsToken = 0;
     context->ArrayStartToken = 0;
@@ -87,9 +83,16 @@ function void InitializePairsContext(pairs_context *context)
 }
 
 
-function haversine_token *PushToken(token_stack *tokenStack, haversine_token value)
+global_function void InitializeTokenStack(token_stack *stack, memory_arena *arena)
 {
-    haversine_token *tokenPtr = PushSize(tokenStack->Arena, haversine_token);
+    stack->Arena = arena;
+    stack->TokenCount = 0;
+}
+
+
+global_function haversine_token *PushToken(token_stack *tokenStack, haversine_token value)
+{
+    haversine_token *tokenPtr = ArenaPushStruct(tokenStack->Arena, haversine_token);
     tokenStack->TokenCount++;
     MemoryCopy(tokenPtr, &value, sizeof(haversine_token));
 
@@ -99,10 +102,10 @@ function haversine_token *PushToken(token_stack *tokenStack, haversine_token val
 }
 
 
-function haversine_token PopToken(token_stack *tokenStack)
+global_function haversine_token PopToken(token_stack *tokenStack)
 {
     haversine_token result;
-    haversine_token *tokenPtr = PopSize(tokenStack->Arena, haversine_token);
+    haversine_token *tokenPtr = ArenaPopStruct(tokenStack->Arena, haversine_token);
     tokenStack->TokenCount--;
 
     MemoryCopy(&result, tokenPtr, sizeof(haversine_token));
@@ -117,7 +120,7 @@ function haversine_token PopToken(token_stack *tokenStack)
 }
 
 
-function V2F64 GetVectorFromCoordinateTokens(haversine_token xValue, haversine_token yValue)
+global_function V2F64 GetVectorFromCoordinateTokens(haversine_token xValue, haversine_token yValue)
 {
     V2F64 result = { .x = 0, .y = 0};
 
@@ -135,7 +138,7 @@ function V2F64 GetVectorFromCoordinateTokens(haversine_token xValue, haversine_t
 }
 
 
-function void PrintStats(processor_stats *stats)
+global_function void PrintStats(processor_stats *stats)
 {
     printf("[INFO] Tokens processed:    %lli\n", stats->TokenCount);
     printf("[INFO] Max token length:    %lli\n", stats->MaxTokenLength);
@@ -147,7 +150,7 @@ function void PrintStats(processor_stats *stats)
 }
 
 
-function void PrintToken(haversine_token *token)
+global_function void PrintToken(haversine_token *token)
 {
     printf("%s:\t\t%s\n",
            GetTokenMenemonic(token->Type),
@@ -155,7 +158,7 @@ function void PrintToken(haversine_token *token)
 }
 
 
-function void PrintHaversineDistance(V2F64 point0, V2F64 point1, F64 distance)
+global_function void PrintHaversineDistance(V2F64 point0, V2F64 point1, F64 distance)
 {
     printf("[INFO] Haversine distance: (%f, %f) -> (%f, %f) = %f\n", point0.x, point0.y, point1.x, point1.y, distance);
 }
@@ -198,7 +201,7 @@ int main()
         printf("[ERROR] Unable to allocate memory for token stack");
         exit(1);
     }
-    InitializeArena(&tokenArena, Megabytes(1), memoryPtr);
+    ArenaInitialize(&tokenArena, Megabytes(1), memoryPtr);
 
 #if HAVERSINE_SLOW
     // Note (Aaron): Fill memory with 1s for debug purposes

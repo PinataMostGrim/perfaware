@@ -51,7 +51,7 @@ goto :eof
 SET LISTING=%~1
 echo Testing '%LISTING%':
 echo
-build\sim8086.exe %LISTING% > output.asm
+build\sim8086_debug.exe %LISTING% > output.asm
 ext\nasm.exe output.asm -o output
 fc /B %LISTING% output || goto :error
 set /a PASSED=PASSED+1

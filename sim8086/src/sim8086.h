@@ -1,17 +1,13 @@
+/* TODO (Aaron):
+    - Change all structs and enums to typedefs?
+*/
+
 #ifndef SIM8086_H
 #define SIM8086_H
 
-#include <stdint.h>
 #include <assert.h>
 
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-
-typedef int8_t int8;
-typedef int16_t int16;
-typedef int32_t int32;
-
+#include "base.h"
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
@@ -55,9 +51,9 @@ enum register_id
 struct register_info
 {
     register_id Register = Reg_unknown;
-    uint8 RegisterIndex = 0;
-    bool IsWide = true;
-    uint16 Mask = 0x0;
+    U8 RegisterIndex = 0;
+    B32 IsWide = TRUE;
+    U16 Mask = 0x0;
 };
 
 
@@ -69,14 +65,14 @@ struct register_info
 //     ZF - Zero flag
 //     SF - Sign flag
 //     OF - Overflow flag
-enum register_flags : uint8
+enum register_flags : U8
 {
-    Register_CF = 0x1,
-    Register_PF = 0x2,
-    Register_AF = 0x4,
-    Register_ZF = 0x8,          // Did an arithmetic operation produce a value of 0?
-    Register_SF = 0x10,         // Did an arithmetic operation produce a negative value?
-    Register_OF = 0x20,
+    RegisterFlag_CF = 0x1,
+    RegisterFlag_PF = 0x2,
+    RegisterFlag_AF = 0x4,
+    RegisterFlag_ZF = 0x8,          // Did an arithmetic operation produce a value of 0?
+    RegisterFlag_SF = 0x10,         // Did an arithmetic operation produce a negative value?
+    RegisterFlag_OF = 0x20,
 };
 
 
@@ -84,40 +80,40 @@ struct processor_8086
 {
     union
     {
-        uint16 Registers[8] = {};   // Note (Aaron): Registers are: A, B, C, D, SP, BP, SI and DI
+        U16 Registers[8] = {};   // Note (Aaron): Registers are: A, B, C, D, SP, BP, SI and DI
         struct
         {
-            uint16 RegisterAX;
-            uint16 RegisterBX;
-            uint16 RegisterCX;
-            uint16 RegisterDX;
-            uint16 RegisterSP;
-            uint16 RegisterBP;
-            uint16 RegisterSI;
-            uint16 RegisterDI;
+            U16 RegisterAX;
+            U16 RegisterBX;
+            U16 RegisterCX;
+            U16 RegisterDX;
+            U16 RegisterSP;
+            U16 RegisterBP;
+            U16 RegisterSI;
+            U16 RegisterDI;
         };
     };
-    uint8 Flags = 0;            // Note (Aaron): Register flags
-    uint32 IP = 0;              // Note (Aaron): Instruction pointer
-    uint32 PrevIP = 0;          // Note (Aaron): Previous instruction pointer
+    U8 Flags = 0;            // Note (Aaron): Register flags
+    U32 IP = 0;              // Note (Aaron): Instruction pointer
+    U32 PrevIP = 0;          // Note (Aaron): Previous instruction pointer
 
     // Note (Aaron): The 8086 had 16 memory segments of 64k bytes each. Memory segments could
     // be slid around like windows over the entire memory surface, however I'm not replicating
     // that here. I'm arbitrarily allocating 1 memory segment (64k bytes) for program memory
     // and the remaining 15 memory segments for the program to make use of.
-    uint32 MemorySize = 1024 * 1024;
-    uint8 *Memory;
-    uint32 ProgramSize = 0;
+    U32 MemorySize = Megabytes(1);
+    U8 *Memory;
+    U32 ProgramSize = 0;
 
     // Note (Aaron): Number of instructions decoded from the loaded program
-    uint32 InstructionCount = 0;
+    U32 InstructionCount = 0;
 
     // Note (Aaron): Number of clock cycles used by the loaded program
-    uint32 TotalClockCount = 0;
+    U32 TotalClockCount = 0;
 };
 
 
-// TODO (Aaron): Define underlying type? uint32_t?
+// TODO (Aaron): Define underlying type? U32?
 // TODO (Aaron): Move Op_unknown to position 0 so that it is the default value (initialize to 0)
 enum operation_types
 {
@@ -164,13 +160,13 @@ enum operand_types
 struct operand_memory
 {
     register_id Register;
-    int16 Displacement;
-    uint16 DirectAddress;
-    uint8 Flags;
+    S16 Displacement;
+    U16 DirectAddress;
+    U8 Flags;
 };
 
 
-enum operand_memory_flags : uint8
+enum operand_memory_flags : U8
 {
     Memory_HasDisplacement = 0x1,
     Memory_HasDirectAddress = 0x2,
@@ -182,12 +178,12 @@ enum operand_memory_flags : uint8
 
 struct operand_immediate
 {
-    uint16 Value;
-    uint8 Flags;
+    U16 Value;
+    U8 Flags;
 };
 
 
-enum operand_immediate_flags : uint8
+enum operand_immediate_flags : U8
 {
     Immediate_IsSigned = 0x1,   // Is the value stored in the immediate signed?
     Immediate_IsJump = 0x2,     // Immediate.Value must be interpreted as an 8-bit signed value
@@ -210,37 +206,50 @@ struct instruction_bits
 {
     union
     {
-        uint8 Bytes[6] = {};
+        U8 Bytes[6] = {};
         struct
         {
-            uint8 Byte0;
-            uint8 Byte1;
-            uint8 Byte2;
-            uint8 Byte3;
-            uint8 Byte4;
-            uint8 Byte5;
+            U8 Byte0;
+            U8 Byte1;
+            U8 Byte2;
+            U8 Byte3;
+            U8 Byte4;
+            U8 Byte5;
         };
     };
-    uint8 *BytePtr = Bytes;
-    uint8 ByteCount = 0;
+    U8 *BytePtr = Bytes;
+    U8 ByteCount = 0;
 };
 
 
 struct instruction
 {
+    U32 Address;
+
     operation_types OpType = Op_unknown;
     instruction_operand Operands[2] = {};
     instruction_bits Bits = {};
 
-    uint8 DirectionBit = 0;
-    uint8 WidthBit = 0;
-    uint8 ModBits = 0;
-    uint8 RegBits = 0;
-    uint8 RmBits = 0;
-    uint8 SignBit = 0;
+    U8 DirectionBit = 0;
+    U8 WidthBit = 0;
+    U8 ModBits = 0;
+    U8 RegBits = 0;
+    U8 RmBits = 0;
+    U8 SignBit = 0;
 
-    uint8 ClockCount = 0;
-    uint8 EAClockCount = 0;
+    U8 ClockCount = 0;
+    U8 EAClockCount = 0;
 };
 
-#endif
+
+static B32 DumpMemoryToFile(processor_8086 *processor, const char *filename);
+static void ReadInstructionStream(processor_8086 *processor, instruction *instruction, U8 byteCount);
+static void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand);
+static U8 CalculateEffectiveAddressClocks(instruction_operand *operand);
+static instruction DecodeNextInstruction(processor_8086 *processor);
+
+static U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide);
+static U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister);
+static U8 GetRegisterFlag(processor_8086 *processor, register_flags flag);
+
+#endif //SIM8086_H
