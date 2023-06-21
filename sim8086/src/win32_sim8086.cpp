@@ -398,8 +398,9 @@ int CALLBACK WinMain(
     application_state applicationState = {};
     applicationState.IO = &io;
     applicationState.ClearColor = CLEAR_COLOR;
-    applicationState.Assembly_SelectedLine = 0;
-
+#if SIM8086_DIAGNOSTICS
+    applicationState.Diagnostics_ShowWindow = true;
+#endif
 
     // Main loop
     bool done = false;
@@ -433,6 +434,14 @@ int CALLBACK WinMain(
         {
             break;
         }
+
+
+#if SIM8086_DIAGNOSTICS
+        if (memory.FrameArena.Used > applicationState.MaxScratchMemoryUsage)
+        {
+            applicationState.MaxScratchMemoryUsage = memory.FrameArena.Used;
+        }
+#endif
 
         ArenaClear(&memory.FrameArena);
 

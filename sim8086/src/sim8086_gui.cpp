@@ -16,7 +16,7 @@
 #include "sim8086_mnemonics.h"
 
 
-global_function void DrawMenuBar(application_state *applicationState)
+global_function void ShowMainMenuBar(application_state *applicationState)
 {
     if (ImGui::BeginMainMenuBar())
     {
@@ -38,7 +38,21 @@ global_function void DrawMenuBar(application_state *applicationState)
         //     ImGui::EndMenu();
         // }
 
-        ImGui::Text("--- Average ms/frame: %.3f --- FPS: %.1f ", 1000.0f / applicationState->IO->Framerate, applicationState->IO->Framerate);
+        if (ImGui::BeginMenu("View"))
+        {
+
+#if SIM8086_DIAGNOSTICS
+            if (ImGui::MenuItem("Show Diagnostics",
+                                NULL,
+                                applicationState->Diagnostics_ShowWindow))
+            {
+                applicationState->Diagnostics_ShowWindow = !applicationState->Diagnostics_ShowWindow;
+            }
+#endif
+
+            ImGui::EndMenu();
+        }
+
         ImGui::EndMainMenuBar();
     }
 }
@@ -181,12 +195,56 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
 }
 
 
+global_function void ShowDiagnosticsWindow(application_state *applicationState, application_memory *memory)
+{
+#if SIM8086_DIAGNOSTICS
+    if (applicationState->Diagnostics_ShowWindow)
+    {
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
+        ImGui::Begin("Diagnostics", &applicationState->Diagnostics_ShowWindow, windowFlags);
+
+        ImGui::Text("Performance");
+        ImGui::Separator();
+        ImGui::Text("Average ms/frame: %.3f", 1000.0f / applicationState->IO->Framerate);
+        ImGui::Text("FPS: %.1f ", applicationState->IO->Framerate);
+
+        ImGui::Text("");
+
+        ImGui::Text("Memory");
+        ImGui::Separator();
+        ImGui::Text("Permanent arena: %.2f / %.f KB (%.2f%%)",
+                    (F64)memory->PermanentArena.Used / (F64)Kilobytes(1),
+                    (F64)memory->PermanentArena.Size / (F64)Kilobytes(1),
+                    (F64)memory->PermanentArena.Used / (F64)memory->PermanentArena.Size);
+        ImGui::Text("Per-frame arena: %.2f / %.f KB (%.2f%%)",
+                    (F64)memory->FrameArena.Used / (F64)Kilobytes(1),
+                    (F64)memory->FrameArena.Size / (F64)Kilobytes(1),
+                    (F64)memory->FrameArena.Used / (F64)memory->FrameArena.Size);
+        ImGui::Text("Max per-frame arena: %.2f KB", (F64)applicationState->MaxScratchMemoryUsage / (F64)Kilobytes(1));
+        ImGui::Text("Instruction arena: %llu / %llu KB (%.2f%%)",
+                    memory->InstructionsArena.Used / Kilobytes(1),
+                    memory->InstructionsArena.Size / Kilobytes(1),
+                    (F64)memory->InstructionsArena.Used / (F64)memory->InstructionsArena.Size);
+        ImGui::Text("Total used: %.3f MB (%.2f%%)",
+                    (F64)memory->TotalSize / (F64)Megabytes(1),
+                    (F64)(memory->PermanentArena.Used + memory->FrameArena.Used + memory->InstructionsArena.Used) / (F64)memory->TotalSize);
+        ImGui::Text("");
+
+        ImGui::End();
+    }
+#endif
+}
+
+
 global_function void DrawGui(application_state *applicationState, application_memory *memory, processor_8086 *processor)
 {
-    DrawMenuBar(applicationState);
+    ShowMainMenuBar(applicationState);
+
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
     ShowAssemblyWindow(applicationState, &memory->InstructionsArena, &memory->FrameArena);
     ShowRegistersWindow(applicationState, processor);
+
+    ShowDiagnosticsWindow(applicationState, memory);
 
     // ImGui::ShowDemoWindow();
     // ImGui::ShowStackToolWindow();

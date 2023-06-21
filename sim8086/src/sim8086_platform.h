@@ -2,11 +2,20 @@
 #define SIM8086_PLATFORM_H
 
 #include "imgui.h"
+#include <stdbool.h>
 
 #include "base.h"
 #include "memory_arena.h"
 #include "sim8086.h"
 
+
+// SIM8086_SLOW:
+//     0 - No slow code allowed!
+//     1 - Slow code welcome
+
+// SIM8086_DIAGNOSTICS:
+//     0 - Disabled
+//     1 - Enabled
 
 typedef struct
 {
@@ -31,6 +40,13 @@ typedef struct
     ImGuiIO *IO;
     ImVec4 ClearColor;
     U32 Assembly_SelectedLine;
+
+#if SIM8086_DIAGNOSTICS
+    // Diagnostics
+    bool Diagnostics_ShowWindow;
+    U64 MaxScratchMemoryUsage;
+#endif
+
 } application_state;
 
 

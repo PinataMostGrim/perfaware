@@ -13,10 +13,6 @@
 #include "sim8086_mnemonics.h"
 
 
-// SIM8086_SLOW:
-//     0 - No slow code allowed!
-//     1 - Slow code welcome
-
 // #pragma clang diagnostic ignored "-Wnull-dereference"
 
 static register_id RegMemTables[3][8]
