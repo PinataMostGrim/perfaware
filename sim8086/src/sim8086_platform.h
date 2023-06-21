@@ -23,6 +23,10 @@ typedef struct
 
 typedef struct
 {
+    // SIM8086
+    B32 ProgramLoaded;
+    B32 LoadFailure;
+
     // GUI
     ImGuiIO *IO;
     ImVec4 ClearColor;

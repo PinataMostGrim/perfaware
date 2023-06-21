@@ -1,6 +1,7 @@
 /* TODO (Aaron):
+    - Try moving GUI initialization into platform layer
+    - Add step through logic for processor with loaded program
 
-    - Need to add file loading to platform layer so that the application can load assemblies into the processor
     - Add a ScratchArena when I need it
     - Convert to length based strings
 
@@ -22,9 +23,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include <stdio.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <windows.h>
 #include <GL/GL.h>
 #include <tchar.h>
@@ -33,20 +32,17 @@
 #include "memory_arena.h"
 #include "win32_sim8086.h"
 #include "sim8086_platform.h"
-#include "sim8086_gui.h"
 #include "sim8086.h"
 #include "sim8086_mnemonics.h"
+#include "sim8086_gui.h"
 
 #include "memory_arena.c"
 #include "sim8086.cpp"
 #include "sim8086_mnemonics.cpp"
 
 
-// ///////////////////////////////////////////////////////////////
 // Note (Aaron): Adjustable values
-// global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
-// global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0039_more_movs";
-global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0041_add_sub_cmp_jnz";
+// ///////////////////////////////////////////////////////////////
 
 // Note (Aaron): Update the build batch file when adjusting these three
 global_variable char *DLL_FILENAME = (char *)"sim8086_application.dll";
@@ -355,7 +351,7 @@ int CALLBACK WinMain(
     ShowWindow(window, SW_SHOWDEFAULT);
 
 
-    // setup Dear ImGui context and gui state
+    // initialize Dear ImGui
     IMGUI_CHECKVERSION();
     ImGuiContext *guiContext = ImGui::CreateContext();
     // TODO (Aaron): I don't understand the syntax in these lines
@@ -365,10 +361,10 @@ int CALLBACK WinMain(
     io.ConfigWindowsResizeFromEdges = true;
     ImGui::StyleColorsDark();
 
+    if (applicationCode.SetImGuiContext) applicationCode.SetImGuiContext(guiContext);
+
     ImGui_ImplWin32_InitForOpenGL(window);
     ImGui_ImplOpenGL3_Init();
-
-    if (applicationCode.SetImGuiContext) applicationCode.SetImGuiContext(guiContext);
 
 
     // Load Fonts
@@ -397,43 +393,8 @@ int CALLBACK WinMain(
         return 1;
     }
 
-    // load program into the processor
-    FILE *file = {};
-    file = fopen(ASSEMBLY_FILE, "rb");
-    if (!file)
-    {
-        Assert(FALSE && "Unable to load hard-coded assembly file");
-        return 1;
-    }
 
-    // load program into 8086
-    processor.ProgramSize = (U16)fread(processor.Memory, 1, processor.MemorySize, file);
-
-    // error handling for file read
-    if (ferror(file))
-    {
-        Assert(FALSE && "Encountered error while reading file");
-        return 1;
-    }
-    if (!feof(file))
-    {
-        Assert(FALSE && "Program size exceeds processor memory; unable to load");
-        return 1;
-    }
-
-    fclose(file);
-
-    // generate instructions from program
-    instruction *instructionBuffer = (instruction *)memory.InstructionsArena.BasePtr;
-    while (processor.IP < processor.ProgramSize)
-    {
-        instruction nextInstruction = DecodeNextInstruction(&processor);
-        instruction *nextInstructionPtr = PushStruct(&memory.InstructionsArena, instruction);
-        MemoryCopy(nextInstructionPtr, &nextInstruction, sizeof(instruction));
-    }
-
-    processor.IP = 0;
-
+    // initialize state
     application_state applicationState = {};
     applicationState.IO = &io;
     applicationState.ClearColor = CLEAR_COLOR;
