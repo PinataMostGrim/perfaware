@@ -21,5 +21,5 @@ C_LINKAGE SET_IMGUI_CONTEXT(SetImGuiContext)
 
 C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
 {
-    DrawGui(guiState, io, memory, processor);
+    DrawGui(applicationState, memory, processor);
 }

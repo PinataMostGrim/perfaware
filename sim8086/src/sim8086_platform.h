@@ -21,21 +21,20 @@ typedef struct
 } application_memory;
 
 
-// TODO (Aaron): I don't like this in here, but the current nature of the UpdateAndRender signature produces
-// a circular dependency otherwise.
 typedef struct
 {
+    // GUI
+    ImGuiIO *IO;
     ImVec4 ClearColor;
     U32 Assembly_SelectedLine;
-} gui_state;
-
+} application_state;
 
 
 C_LINKAGE_BEGIN
 #define SET_IMGUI_CONTEXT(name) void name(ImGuiContext *context)
 typedef SET_IMGUI_CONTEXT(set_imgui_context);
 
-#define UPDATE_AND_RENDER(name) void name(gui_state *guiState, ImGuiIO *io, application_memory *memory, processor_8086 *processor)
+#define UPDATE_AND_RENDER(name) void name(application_state *applicationState, application_memory *memory, processor_8086 *processor)
 typedef UPDATE_AND_RENDER(update_and_render);
 
 C_LINKAGE_END

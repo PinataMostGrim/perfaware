@@ -16,7 +16,7 @@
 #include "sim8086_mnemonics.h"
 
 
-global_function void DrawMenuBar(gui_state *guiState, ImGuiIO *io)
+global_function void DrawMenuBar(application_state *applicationState)
 {
     if (ImGui::BeginMainMenuBar())
     {
@@ -44,7 +44,7 @@ global_function void DrawMenuBar(gui_state *guiState, ImGuiIO *io)
 }
 
 
-global_function void ShowAssemblyWindow(gui_state *guiState, memory_arena *instructionArena, memory_arena *frameArena)
+global_function void ShowAssemblyWindow(application_state *applicationState, memory_arena *instructionArena, memory_arena *frameArena)
 {
     size_t instructionCount = instructionArena->Used / sizeof(instruction);
     instruction *instructions = (instruction *)instructionArena->BasePtr;
@@ -52,7 +52,6 @@ global_function void ShowAssemblyWindow(gui_state *guiState, memory_arena *instr
     ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoCollapse;
     ImGui::Begin("Assembly", NULL, windowFlags);
 
-    U32 address = 100000000;
     for (U32 i = 0; i < instructionCount; i++)
     {
         instruction currentInstruction = instructions[i];
@@ -65,21 +64,19 @@ global_function void ShowAssemblyWindow(gui_state *guiState, memory_arena *instr
         sprintf(addressBuf, "0x%.8x", currentInstruction.Address);
         char *assemblyPtr = GetInstructionMnemonic(&currentInstruction, frameArena);
 
-        if (ImGui::Selectable(lineBuff, guiState->Assembly_SelectedLine == i)) guiState->Assembly_SelectedLine = i;
+        if (ImGui::Selectable(lineBuff, applicationState->Assembly_SelectedLine == i)) applicationState->Assembly_SelectedLine = i;
 
         ImGui::SameLine(60);
         ImGui::Text("%s", addressBuf);
         ImGui::SameLine(200);
         ImGui::Text("%s", assemblyPtr);
-
-        address++;
     }
 
     ImGui::End();
 }
 
 
-global_function void ShowRegistersWindow(gui_state *guiState, processor_8086 *processor)
+global_function void ShowRegistersWindow(application_state *applicationState, processor_8086 *processor)
 {
     ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoCollapse;
     ImGui::Begin("Registers", NULL, windowFlags);
@@ -184,12 +181,12 @@ global_function void ShowRegistersWindow(gui_state *guiState, processor_8086 *pr
 }
 
 
-global_function void DrawGui(gui_state *guiState, ImGuiIO *io, application_memory *memory, processor_8086 *processor)
+global_function void DrawGui(application_state *applicationState, application_memory *memory, processor_8086 *processor)
 {
-    DrawMenuBar(guiState, io);
+    DrawMenuBar(applicationState);
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    ShowAssemblyWindow(guiState, &memory->InstructionsArena, &memory->FrameArena);
-    ShowRegistersWindow(guiState, processor);
+    ShowAssemblyWindow(applicationState, &memory->InstructionsArena, &memory->FrameArena);
+    ShowRegistersWindow(applicationState, processor);
 
     // ImGui::ShowDemoWindow();
     // ImGui::ShowStackToolWindow();

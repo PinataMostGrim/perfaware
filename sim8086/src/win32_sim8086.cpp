@@ -273,7 +273,6 @@ int CALLBACK WinMain(
     windowClass.lpfnWndProc = WndProc;
     windowClass.hInstance = Instance;
     windowClass.hCursor = LoadCursor(0, IDC_ARROW);
-    // windowClass.hIcon = ;
     windowClass.lpszClassName = "win32_sim8086";
 
     if (!RegisterClassA(&windowClass))
@@ -303,6 +302,7 @@ int CALLBACK WinMain(
         return 1;
     }
 
+
     // allocate application memory
     application_memory memory = {};
     memory.TotalSize = PERMANENT_ARENA_SIZE + INSTRUCTION_ARENA_SIZE + FRAME_ARENA_SIZE;
@@ -325,6 +325,7 @@ int CALLBACK WinMain(
 
         memory.IsInitialized = (memory.PermanentArena.BasePtr && memory.InstructionsArena.BasePtr && memory.FrameArena.BasePtr);
     }
+
 
     // construct paths in prep for GUI code hot-loading
     win32_context win32Context = {};
@@ -386,8 +387,6 @@ int CALLBACK WinMain(
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
 
-    gui_state guiState = {};
-    guiState.ClearColor = CLEAR_COLOR;
 
     // initialize 8086
     processor_8086 processor = {};
@@ -432,6 +431,14 @@ int CALLBACK WinMain(
         instruction *nextInstructionPtr = PushStruct(&memory.InstructionsArena, instruction);
         MemoryCopy(nextInstructionPtr, &nextInstruction, sizeof(instruction));
     }
+
+    processor.IP = 0;
+
+    application_state applicationState = {};
+    applicationState.IO = &io;
+    applicationState.ClearColor = CLEAR_COLOR;
+    applicationState.Assembly_SelectedLine = 0;
+
 
     // Main loop
     bool done = false;
@@ -486,7 +493,7 @@ int CALLBACK WinMain(
 
         if (applicationCode.UpdateAndRender)
         {
-            applicationCode.UpdateAndRender(&guiState, &io, &memory, &processor);
+            applicationCode.UpdateAndRender(&applicationState, &memory, &processor);
         }
 
         // Rendering

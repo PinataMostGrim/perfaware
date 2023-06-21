@@ -8,6 +8,6 @@
 #include "sim8086.h"
 
 
-global_function void DrawGui(gui_state *guiState, ImGuiIO *io, application_memory *memory, processor_8086 *processor);
+global_function void DrawGui(application_state *applicationState, application_memory *memory, processor_8086 *processor);
 
 #endif // SIM8086_GUI_H
