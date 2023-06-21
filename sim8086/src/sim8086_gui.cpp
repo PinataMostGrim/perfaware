@@ -16,7 +16,7 @@
 #include "sim8086_mnemonics.h"
 
 
-global_function void _DrawMenuBar(gui_state *guiState)
+global_function void DrawMenuBar(gui_state *guiState, ImGuiIO *io)
 {
     if (ImGui::BeginMainMenuBar())
     {
@@ -38,6 +38,7 @@ global_function void _DrawMenuBar(gui_state *guiState)
         //     ImGui::EndMenu();
         // }
 
+        ImGui::Text("--- Average ms/frame: %.3f --- FPS: %.1f ", 1000.0f / applicationState->IO->Framerate, applicationState->IO->Framerate);
         ImGui::EndMainMenuBar();
     }
 }
@@ -185,7 +186,7 @@ global_function void ShowRegistersWindow(gui_state *guiState, processor_8086 *pr
 
 global_function void DrawGui(gui_state *guiState, ImGuiIO *io, application_memory *memory, processor_8086 *processor)
 {
-    _DrawMenuBar(guiState);
+    DrawMenuBar(guiState, io);
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
     ShowAssemblyWindow(guiState, &memory->InstructionsArena, &memory->FrameArena);
     ShowRegistersWindow(guiState, processor);

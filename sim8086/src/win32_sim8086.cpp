@@ -1,6 +1,4 @@
 /* TODO (Aaron):
-    - Rename sim8086 -> processor_8086.cpp and use sim8086 for application logic?
-    - Add a screen to view FPS
 
     - Need to add file loading to platform layer so that the application can load assemblies into the processor
     - Add a ScratchArena when I need it
