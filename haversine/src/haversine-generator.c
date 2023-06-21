@@ -15,6 +15,7 @@
 
 #include "haversine.c"
 
+#define CLUSTER_COUNT 16
 #define CLUSTER_PROXIMITY 20
 
 
@@ -144,7 +145,7 @@ int main(int argc, char const *argv[])
     fputs((char *)line, dataFile);
 
     // Generate cluster points
-    V2F64 clusters[64];
+    V2F64 clusters[CLUSTER_COUNT];
     for (int i = 0; i < ArrayCount(clusters); ++i)
     {
         V2F64 cluster = v2f64(

@@ -20,6 +20,8 @@ IF [%DEBUG%] == [1] (
 ) ELSE (
     :: Making release build
     set COMPILER_FLAGS=-nologo -Od -Gm- -MT -W4 -FC -DHAVERSINE_SLOW=0
+    :: Optimize code for speed
+    :: set COMPILER_FLAGS=-nologo -Ot -Gm- -MT -W4 -FC -DHAVERSINE_SLOW=0
     set OUT_EXE=%OUT_EXE%_release.exe
 )
 
