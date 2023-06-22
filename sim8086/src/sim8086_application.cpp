@@ -26,7 +26,6 @@ C_LINKAGE SET_IMGUI_CONTEXT(SetImGuiContext)
 }
 
 
-
 C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
 {
     if (!applicationState->ProgramLoaded && !applicationState->LoadFailure)

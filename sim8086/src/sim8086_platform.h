@@ -6,6 +6,7 @@
 
 #include "base.h"
 #include "memory_arena.h"
+#include "platform_metrics.h"
 #include "sim8086.h"
 
 
@@ -16,6 +17,15 @@
 // SIM8086_DIAGNOSTICS:
 //     0 - Disabled
 //     1 - Enabled
+
+#if SIM8086_DIAGNOSTICS
+typedef enum
+{
+  DiagnosticTimings_Frame,
+  diagnostic_timings_Count,
+} diagnostic_timings;
+#endif
+
 
 typedef struct
 {
@@ -45,8 +55,10 @@ typedef struct
     // Diagnostics
     bool Diagnostics_ShowWindow;
     U64 MaxScratchMemoryUsage;
-#endif
 
+    metric_timing Timings[diagnostic_timings_Count];
+
+#endif
 } application_state;
 
 
