@@ -207,7 +207,7 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
         ImGui::Separator();
         ImGui::Text("Average ms/frame: %.3f", 1000.0f / applicationState->IO->Framerate);
         ImGui::Text("FPS: %.1f ", applicationState->IO->Framerate);
-        ImGui::Text("Cycles/frame: %llu", applicationState->Timings[DiagnosticTimings_Frame]);
+
         ImGui::Text("");
 
         ImGui::Text("Memory");

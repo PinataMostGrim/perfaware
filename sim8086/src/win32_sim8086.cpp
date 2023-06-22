@@ -40,11 +40,6 @@
 #include "sim8086.cpp"
 #include "sim8086_mnemonics.cpp"
 
-#if SIM8086_DIAGNOSTICS
-#define PLATFORM_METRICS_IMPLEMENTATION
-#include "platform_metrics.h"
-#endif
-
 
 // Note (Aaron): Adjustable values
 // ///////////////////////////////////////////////////////////////
@@ -73,21 +68,6 @@ global_variable int              g_Height;
 
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-
-#if SIM8086_DIAGNOSTICS
-global_function void StartCPUTiming(metric_timing *timing)
-{
-    timing->Start = ReadCPUTimer();
-}
-
-global_function void EndCPUTiming(metric_timing *timing)
-{
-    timing->End = ReadCPUTimer();
-    timing->Duration = timing->End - timing->Start;
-}
-#endif
-
 
 
 global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *arena)
@@ -418,7 +398,6 @@ int CALLBACK WinMain(
     application_state applicationState = {};
     applicationState.IO = &io;
     applicationState.ClearColor = CLEAR_COLOR;
-
 #if SIM8086_DIAGNOSTICS
     applicationState.Diagnostics_ShowWindow = true;
 #endif
@@ -427,11 +406,6 @@ int CALLBACK WinMain(
     bool done = false;
     while (!done)
     {
-
-#if SIM8086_DIAGNOSTICS
-        StartCPUTiming(&applicationState.Timings[DiagnosticTimings_Frame]);
-#endif
-
         // Poll and handle messages (inputs, window resize, etc.)
         MSG msg;
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
@@ -501,10 +475,6 @@ int CALLBACK WinMain(
 
         // Present
         SwapBuffers(g_MainWindow.hDC);
-
-#if SIM8086_DIAGNOSTICS
-        EndCPUTiming(&applicationState.Timings[DiagnosticTimings_Frame]);
-#endif
     }
 
     ImGui_ImplOpenGL3_Shutdown();
