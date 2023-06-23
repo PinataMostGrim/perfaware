@@ -7,7 +7,6 @@
 
     - Add feedback to main window titlebar (loaded program name, etc)
     - Add a screen to display memory
-    - Add instruction bits when hovering over an assembly line
     - Add hotkeys for step forward through assembly
     - Give processor or file error feedback via GUI
     - Add a file menu to open / load files

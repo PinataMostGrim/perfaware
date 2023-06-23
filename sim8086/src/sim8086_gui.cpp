@@ -78,12 +78,18 @@ global_function void ShowAssemblyWindow(application_state *applicationState, mem
         sprintf(addressBuf, "0x%.8x", currentInstruction.Address);
         char *assemblyPtr = GetInstructionMnemonic(&currentInstruction, frameArena);
 
-        if (ImGui::Selectable(lineBuff, applicationState->Assembly_SelectedLine == i)) applicationState->Assembly_SelectedLine = i;
+        if (ImGui::Selectable(lineBuff, applicationState->Assembly_SelectedLine == i)) { applicationState->Assembly_SelectedLine = i; }
 
         ImGui::SameLine(60);
         ImGui::Text("%s", addressBuf);
         ImGui::SameLine(200);
         ImGui::Text("%s", assemblyPtr);
+
+        if (ImGui::IsItemHovered())
+        {
+            char *bitsString = GetInstructionBitsMnemonic(instructions[i], frameArena);
+            ImGui::SetTooltip("%s", bitsString);
+        }
     }
 
     ImGui::End();
@@ -103,7 +109,7 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
         char buffer[56];
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        sprintf(buffer, "instruction pointer: 0x%.32x", processor->IP);
+        sprintf(buffer, "Instruction pointer: 0x%.32x", processor->IP);
         ImGui::TextUnformatted(buffer);
         ImGui::EndTable();
     }

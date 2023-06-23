@@ -4,7 +4,7 @@
 #include "sim8086.h"
 
 
-char const *OperationMnemonics[]
+global_variable char const *OperationMnemonics[]
 {
     "mov",
     "add",
@@ -35,7 +35,7 @@ char const *OperationMnemonics[]
 };
 
 
-char const *RegisterMnemonics[]
+global_variable char const *RegisterMnemonics[]
 {
     "al",
     "cl",
@@ -63,7 +63,7 @@ char const *RegisterMnemonics[]
 
 // TODO (Aaron): Figure out how to assert that this matches the number of elements in 'register_flags'
 // Normally I would add a 'RegisterFlags_count' element, but it's being used as a flag so that won't work.
-char const *RegisterFlagMnemonics[]
+global_variable char const *RegisterFlagMnemonics[]
 {
     "CF",
     "PF",
@@ -74,7 +74,7 @@ char const *RegisterFlagMnemonics[]
 };
 
 
-static char const *GetOpMnemonic(operation_types op)
+global_function char const *GetOpMnemonic(operation_types op)
 {
     char const *Result = "";
 
@@ -87,7 +87,7 @@ static char const *GetOpMnemonic(operation_types op)
 }
 
 
-static char const *GetRegisterMnemonic(register_id regMemId)
+global_function char const *GetRegisterMnemonic(register_id regMemId)
 {
     char const *Result = "";
 
@@ -100,7 +100,7 @@ static char const *GetRegisterMnemonic(register_id regMemId)
 }
 
 
-static const char *GetRegisterFlagMnemonic(register_flags flag)
+global_function const char *GetRegisterFlagMnemonic(register_flags flag)
 {
     switch (flag)
     {
@@ -123,7 +123,7 @@ static const char *GetRegisterFlagMnemonic(register_flags flag)
 }
 
 
-static char *GetInstructionMnemonic(instruction *instruction, memory_arena *arena)
+global_function char *GetInstructionMnemonic(instruction *instruction, memory_arena *arena)
 {
     // TODO (Aaron): Is there a way to statically determine what the maximum could be?
     char buffer[128] = "";
@@ -251,4 +251,24 @@ static char *GetInstructionMnemonic(instruction *instruction, memory_arena *aren
     ArenaPushSizeZero(arena, 1);
 
     return resultPtr;
+}
+
+
+global_function char *GetInstructionBitsMnemonic(instruction inst, memory_arena *arena)
+{
+    char *result;
+    result = (char *)arena->PositionPtr;
+
+    for (U8 i = 0; i < inst.Bits.ByteCount; ++i)
+    {
+        for (U8 j = 0; j < 8; j++)
+        {
+            U8 mask = 128 >> j;
+            U8 bit = (inst.Bits.Bytes[i] & mask) >> (7 - j);
+            ArenaPushString(arena, bit == 1 ? (char *)"1": (char *)"0");
+        }
+    }
+
+    ArenaPushSizeZero(arena, 1);
+    return result;
 }
