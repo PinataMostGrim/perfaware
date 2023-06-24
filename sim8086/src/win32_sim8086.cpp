@@ -1,7 +1,5 @@
 /* TODO (Aaron):
-    - Add a screen to display memory
-        - Display __ blocks at a time?
-        - Prev / Next segment buttons
+    - Highlight instruction blocks in memory window when selecting instruction in disassembly window
 
     - Add hotkeys for controlling program
         - Run program
