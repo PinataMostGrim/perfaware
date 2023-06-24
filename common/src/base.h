@@ -230,4 +230,11 @@ global_function U64 GetStringLength(char *str)
 }
 
 
+// +------------------------------+
+// Note (Aaron): Hacker's Delight
+
+#define dozs(x, y) ((x) - (y)) & -((x) >= (y))
+#define maxs(x, y) (y) + (dozs((x), (y)))
+#define mins(x, y) (x) - (dozs((x), (y)))
+
 #endif // BASE_H
