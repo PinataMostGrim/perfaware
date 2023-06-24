@@ -1,4 +1,12 @@
 /* TODO (Aaron):
+    - Add a screen to display memory
+        - Display __ blocks at a time?
+        - Prev / Next segment buttons
+
+    - Add hotkeys for controlling program
+        - Run program
+        - Step forward
+        - Reset
     - Try moving GUI initialization into platform layer
     - Add step through logic for processor with loaded program
 
@@ -6,8 +14,6 @@
     - Convert to length based strings
 
     - Add feedback to main window titlebar (loaded program name, etc)
-    - Add a screen to display memory
-    - Add hotkeys for step forward through assembly
     - Give processor or file error feedback via GUI
     - Add a file menu to open / load files
         - Use hard-coded value for now
