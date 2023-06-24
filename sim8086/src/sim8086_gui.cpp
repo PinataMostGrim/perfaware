@@ -71,19 +71,23 @@ global_function void ShowAssemblyWindow(application_state *applicationState, mem
         instruction currentInstruction = instructions[i];
 
         // TODO (Aaron): Consider how to more cleanly pick buffer sizes here?
-        char lineBuff[32];
-        char addressBuf[32];
+        char buffer[64];
+        sprintf(buffer, "%i", i + 1);
+        if (ImGui::Selectable(buffer, applicationState->Assembly_SelectedLine == i)) { applicationState->Assembly_SelectedLine = i; }
 
-        sprintf(lineBuff, "%i", i + 1);
-        sprintf(addressBuf, "0x%.8x", currentInstruction.Address);
-        char *assemblyPtr = GetInstructionMnemonic(&currentInstruction, frameArena);
-
-        if (ImGui::Selectable(lineBuff, applicationState->Assembly_SelectedLine == i)) applicationState->Assembly_SelectedLine = i;
-
+        sprintf(buffer, "0x%.8x", currentInstruction.Address);
         ImGui::SameLine(60);
-        ImGui::Text("%s", addressBuf);
+        ImGui::Text("%s", buffer);
+
+        char *assemblyPtr = GetInstructionMnemonic(&currentInstruction, frameArena);
         ImGui::SameLine(200);
         ImGui::Text("%s", assemblyPtr);
+
+        if (ImGui::IsItemHovered())
+        {
+            char *bitsString = GetInstructionBitsMnemonic(instructions[i], frameArena);
+            ImGui::SetTooltip("%s", bitsString);
+        }
     }
 
     ImGui::End();
@@ -103,7 +107,7 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
         char buffer[56];
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        sprintf(buffer, "instruction pointer: 0x%.32x", processor->IP);
+        sprintf(buffer, "Instruction pointer: 0x%.32x", processor->IP);
         ImGui::TextUnformatted(buffer);
         ImGui::EndTable();
     }
