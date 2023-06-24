@@ -39,6 +39,9 @@
 #define C_LINKAGE_END }
 #define C_LINKAGE extern "C"
 
+#define Max(x, y) ((x) > (y)) ? (x) : (y)
+#define Min(x, y) ((x) < (y)) ? (x) : (y)
+#define Clamp(a, x, b) (((x) < (a)) ? (a) : ((b) < (x)) ? (b) : (x))
 
 // +------------------------------+
 // Note (Aaron): Typedefs
@@ -226,5 +229,12 @@ global_function U64 GetStringLength(char *str)
     return count;
 }
 
+
+// +------------------------------+
+// Note (Aaron): Hacker's Delight
+
+#define dozs(x, y) ((x) - (y)) & -((x) >= (y))
+#define maxs(x, y) (y) + (dozs((x), (y)))
+#define mins(x, y) (x) - (dozs((x), (y)))
 
 #endif // BASE_H

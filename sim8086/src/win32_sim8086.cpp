@@ -1,12 +1,14 @@
 /* TODO (Aaron):
-    - Add a screen to display memory
-        - Display __ blocks at a time?
-        - Prev / Next segment buttons
-
     - Add hotkeys for controlling program
         - Run program
         - Step forward
         - Reset
+
+    - Memory Window
+        - Add text input field for selecting address location
+        - Highlight instruction blocks in memory window when selecting instruction in disassembly window
+        - Add "dump memory to file" button
+
     - Try moving GUI initialization into platform layer
     - Add step through logic for processor with loaded program
 
@@ -403,6 +405,7 @@ int CALLBACK WinMain(
     application_state applicationState = {};
     applicationState.IO = &io;
     applicationState.ClearColor = CLEAR_COLOR;
+    applicationState.Memory_StartAddress = 0;
 #if SIM8086_DIAGNOSTICS
     applicationState.Diagnostics_ShowWindow = true;
 #endif

@@ -70,7 +70,7 @@ global_function void ShowAssemblyWindow(application_state *applicationState, mem
     {
         instruction currentInstruction = instructions[i];
 
-        // TODO (Aaron): Consider how to more cleanly pick buffer sizes here?
+        // TODO (Aaron): Consider how to more cleanly pick buffer sizes here
         char buffer[64];
         sprintf(buffer, "%i", i + 1);
         if (ImGui::Selectable(buffer, applicationState->Assembly_SelectedLine == i)) { applicationState->Assembly_SelectedLine = i; }
@@ -199,6 +199,77 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
 }
 
 
+global_function void ShowMemoryWindow(application_state *applicationState, memory_arena *frameArena, processor_8086 *processor)
+{
+    U8 bytesPerLine = 16;
+    U32 bytesDisplayed = Kilobytes(8);
+    U32 minimumBytesDisplayed = 512;
+
+    // TODO (Aaron): Consider how to more cleanly pick buffer sizes here
+    char buffer[64];
+    U32 maxMemoryAddress = processor->MemorySize - 1;
+
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
+    ImGui::Begin("Memory", NULL, windowFlags);
+
+    if (ImGui::Button("Previous segment"))
+    {
+        // protect against underflow
+        if (applicationState->Memory_StartAddress < bytesDisplayed)
+        {
+            applicationState->Memory_StartAddress = 0;
+        }
+        else
+        {
+            U32 clampedValue = Clamp(0, applicationState->Memory_StartAddress - bytesDisplayed, maxMemoryAddress - minimumBytesDisplayed);
+            applicationState->Memory_StartAddress = clampedValue;
+        }
+
+    }
+
+    ImGui::SameLine(132);
+
+    if (ImGui::Button("Next Segment"))
+    {
+        U32 clampedValue = Clamp(0 + minimumBytesDisplayed, applicationState->Memory_StartAddress + bytesDisplayed, maxMemoryAddress);
+        applicationState->Memory_StartAddress = clampedValue;
+    }
+
+    U64 startAddress = Clamp(0, applicationState->Memory_StartAddress, maxMemoryAddress - minimumBytesDisplayed);
+    U64 endAddress = Clamp(0 + minimumBytesDisplayed, applicationState->Memory_StartAddress + bytesDisplayed, maxMemoryAddress);
+
+    Assert((startAddress < endAddress) && "startAddress cannot be larger than endAddress");
+    Assert((startAddress >= 0) && "Invalid start address");
+    Assert((endAddress < processor->MemorySize) && "Invalid end address");
+
+    sprintf(buffer, "Range: 0x%.2llx - 0x%.2llx", startAddress, endAddress);
+    ImGui::Text("%s", buffer);
+    ImGui::Separator();
+
+    // loop over memory range displayed
+    for (U64 i = startAddress; i < endAddress; i += bytesPerLine)
+    {
+        // display address
+        sprintf(buffer, "%.16llx", i);
+        ImGui::Text("0x%s:", buffer);
+
+        F32 offset = 150;
+        for (int j = 0; j < bytesPerLine; ++j)
+        {
+            // advance offset to deliniate 32 bits
+            if (j % 2 == 0) { offset += 10; }
+
+            ImGui::SameLine(offset);
+            U8 value = processor->Memory[i + j];
+            ImGui::Text("%.2x", value);
+            offset += 20;
+        }
+    }
+
+    ImGui::End();
+}
+
+
 global_function void ShowDiagnosticsWindow(application_state *applicationState, application_memory *memory)
 {
 #if SIM8086_DIAGNOSTICS
@@ -247,6 +318,7 @@ global_function void DrawGui(application_state *applicationState, application_me
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
     ShowAssemblyWindow(applicationState, &memory->InstructionsArena, &memory->FrameArena);
     ShowRegistersWindow(applicationState, processor);
+    ShowMemoryWindow(applicationState, &memory->FrameArena, processor);
 
     ShowDiagnosticsWindow(applicationState, memory);
 
