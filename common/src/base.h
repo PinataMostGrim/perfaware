@@ -39,6 +39,9 @@
 #define C_LINKAGE_END }
 #define C_LINKAGE extern "C"
 
+#define Max(x, y) ((x) > (y)) ? (x) : (y)
+#define Min(x, y) ((x) < (y)) ? (x) : (y)
+#define Clamp(a, x, b) (((x) < (a)) ? (a) : ((b) < (x)) ? (b) : (x))
 
 // +------------------------------+
 // Note (Aaron): Typedefs

@@ -403,6 +403,7 @@ int CALLBACK WinMain(
     application_state applicationState = {};
     applicationState.IO = &io;
     applicationState.ClearColor = CLEAR_COLOR;
+    applicationState.Memory_StartAddress = 0;
 #if SIM8086_DIAGNOSTICS
     applicationState.Diagnostics_ShowWindow = true;
 #endif
