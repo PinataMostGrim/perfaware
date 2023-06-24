@@ -202,7 +202,7 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
 global_function void ShowMemoryWindow(application_state *applicationState, memory_arena *frameArena, processor_8086 *processor)
 {
     U8 bytesPerLine = 16;
-    U32 bytesDisplayed = Kilobytes(64);
+    U32 bytesDisplayed = Kilobytes(8);
     U32 minimumBytesDisplayed = 512;
 
     // TODO (Aaron): Consider how to more cleanly pick buffer sizes here
