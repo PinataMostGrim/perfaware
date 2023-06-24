@@ -1,10 +1,14 @@
 /* TODO (Aaron):
-    - Highlight instruction blocks in memory window when selecting instruction in disassembly window
-
     - Add hotkeys for controlling program
         - Run program
         - Step forward
         - Reset
+
+    - Memory Window
+        - Add text input field for selecting address location
+        - Highlight instruction blocks in memory window when selecting instruction in disassembly window
+        - Add "dump memory to file" button
+
     - Try moving GUI initialization into platform layer
     - Add step through logic for processor with loaded program
 
