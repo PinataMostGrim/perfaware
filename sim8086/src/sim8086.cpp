@@ -132,6 +132,7 @@ global_function void ReadInstructionStream(processor_8086 *processor, instructio
                processor->IP);
         printf("\tbyteCount: %i\n", byteCount);
 
+        Assert(FALSE && "Attempted to read outside of program memory");
         exit(1);
     }
 
@@ -1078,6 +1079,7 @@ global_function U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B
     if (effectiveAddress >= processor->MemorySize)
     {
         printf("[ERROR] Attempted to load out-of-bounds memory: 0x%x (out of 0x%x)", effectiveAddress, processor->MemorySize);
+        Assert(FALSE && "Attempted to load out-of-bounds memory");
         exit(1);
     }
 
@@ -1101,6 +1103,7 @@ global_function void SetMemory(processor_8086 *processor, U32 effectiveAddress, 
     if (effectiveAddress >= processor->MemorySize)
     {
         printf("[ERROR] Attempted to set out-of-bounds memory: 0x%x (out of 0x%x)", effectiveAddress, processor->MemorySize);
+        Assert(FALSE && "Attempted to set out-of-bounds memory");
         exit(1);
     }
 
