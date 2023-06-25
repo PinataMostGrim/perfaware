@@ -335,6 +335,13 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
 
         ImGui::Text("Instructions executed: %lu", processor->InstructionCount);
 
+        if(applicationState->Diagnostics_ExecutionStalled)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+            ImGui::Text("Execution timed out!");
+            ImGui::PopStyleColor(1);
+        }
+
         ImGui::End();
     }
 #endif

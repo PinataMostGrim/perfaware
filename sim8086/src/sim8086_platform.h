@@ -47,6 +47,7 @@ typedef struct
 #if SIM8086_DIAGNOSTICS
     // Diagnostics
     bool Diagnostics_ShowWindow;
+    bool Diagnostics_ExecutionStalled;
     U64 MaxScratchMemoryUsage;
 #endif
 

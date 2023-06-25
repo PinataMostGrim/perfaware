@@ -14,6 +14,9 @@
 #include "sim8086_gui.cpp"
 
 
+#define HALT_GUARD_COUNT 100000
+
+
 // global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
 // global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0039_more_movs";
 global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0041_add_sub_cmp_jnz";
@@ -82,16 +85,36 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
     if (ImGui::IsKeyPressed(ImGuiKey_F5))
     {
         // execute entire program
+        U32 safetyCounter = 0;
+
+#if SIM8086_DIAGNOSTICS
+            applicationState->Diagnostics_ExecutionStalled = false;
+#endif
+
         while(!HasProcessorFinishedExecution(processor))
         {
             instruction inst = DecodeNextInstruction(processor);
             ExecuteInstruction(processor, &inst);
+
+            safetyCounter++;
+            if (safetyCounter > HALT_GUARD_COUNT)
+            {
+#if SIM8086_DIAGNOSTICS
+                applicationState->Diagnostics_ExecutionStalled = true;
+#endif
+                break;
+            }
         }
     }
     else if(ImGui::IsKeyPressed(ImGuiKey_F8))
     {
         // reset program
         ResetProcessorExecution(processor);
+
+#if SIM8086_DIAGNOSTICS
+        applicationState->Diagnostics_ExecutionStalled = false;
+#endif
+
     }
     else if (ImGui::IsKeyPressed(ImGuiKey_F10))
     {
@@ -101,6 +124,10 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
             instruction inst = DecodeNextInstruction(processor);
             ExecuteInstruction(processor, &inst);
         }
+
+#if SIM8086_DIAGNOSTICS
+            applicationState->Diagnostics_ExecutionStalled = false;
+#endif
     }
 
     DrawGui(applicationState, memory, processor);
