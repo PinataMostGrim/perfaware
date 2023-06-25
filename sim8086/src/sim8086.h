@@ -242,18 +242,18 @@ struct instruction
 };
 
 
-static B32 DumpMemoryToFile(processor_8086 *processor, const char *filename);
-static void ReadInstructionStream(processor_8086 *processor, instruction *instruction, U8 byteCount);
-static void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand);
-static U8 CalculateEffectiveAddressClocks(instruction_operand *operand);
-static instruction DecodeNextInstruction(processor_8086 *processor);
-static void ExecuteInstruction(processor_8086 *processor, instruction *instruction);
+global_function B32 DumpMemoryToFile(processor_8086 *processor, const char *filename);
+global_function void ReadInstructionStream(processor_8086 *processor, instruction *instruction, U8 byteCount);
+global_function void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand);
+global_function U8 CalculateEffectiveAddressClocks(instruction_operand *operand);
+global_function instruction DecodeNextInstruction(processor_8086 *processor);
+global_function void ExecuteInstruction(processor_8086 *processor, instruction *instruction);
 
-static U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide);
-static U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister);
-static U8 GetRegisterFlag(processor_8086 *processor, register_flags flag);
+global_function U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide);
+global_function U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister);
+global_function U8 GetRegisterFlag(processor_8086 *processor, register_flags flag);
 
-static B32 HasProcessorFinishedExecution(processor_8086 *processor);
-static void ResetProcessorExecution(processor_8086 *processor);
+global_function B32 HasProcessorFinishedExecution(processor_8086 *processor);
+global_function void ResetProcessorExecution(processor_8086 *processor);
 
 #endif //SIM8086_H
