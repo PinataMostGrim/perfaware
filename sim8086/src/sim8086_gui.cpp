@@ -331,9 +331,16 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
                     memory->InstructionsArena.Used / Kilobytes(1),
                     memory->InstructionsArena.Size / Kilobytes(1),
                     (F64)memory->InstructionsArena.Used / (F64)memory->InstructionsArena.Size * 100);
-        ImGui::Text("Total used: %.3f MB (%.2f%%)",
+
+        U64 totalUsed = 0;
+        for (int i = 0; i < ArrayCount(memory->Arenas); ++i)
+        {
+            totalUsed += memory->Arenas[i].Used;
+        }
+        ImGui::Text("Total used: %.3f / %.3f MB (%.2f%%)",
+                    (F64)totalUsed / (F64)Megabytes(1),
                     (F64)memory->TotalSize / (F64)Megabytes(1),
-                    (F64)(memory->PermanentArena.Used + memory->FrameArena.Used + memory->InstructionsArena.Used) / (F64)memory->TotalSize * 100);
+                    (F64)totalUsed / (F64)memory->TotalSize * 100);
         ImGui::Text("");
 
         ImGui::Text("Performance");
