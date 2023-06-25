@@ -1,20 +1,25 @@
 /* TODO (Aaron):
+    - Highlight instruction we are currently on in assembly window
+    - Add char pointer to 'instruction' so we only have to generate the instruction mnemonic once
+    - ExecuteInstruction() takes a memory arena for 'output'
 
     - Memory Window
         - Add text input field for selecting address location
         - Highlight instruction blocks in memory window when selecting instruction in disassembly window
         - Add "dump memory to file" button
 
+    - Add breakpoints
+
     - Try moving GUI initialization into platform layer
-    - Add step through logic for processor with loaded program
 
     - Add a ScratchArena when I need it
     - Convert to length based strings
 
     - Add feedback to main window titlebar (loaded program name, etc)
-    - Give processor or file error feedback via GUI
     - Add a file menu to open / load files
         - Use hard-coded value for now
+    - Give processor or file error feedback via GUI
+
     - Add V2F32 (and others from base.h) macros to imconfig.h so I can use my own math types
 */
 

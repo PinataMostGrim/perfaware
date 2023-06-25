@@ -67,13 +67,13 @@ global_function void ShowMainMenuBar(application_state *applicationState)
 }
 
 
-global_function void ShowAssemblyWindow(application_state *applicationState, memory_arena *instructionArena, memory_arena *frameArena)
+global_function void ShowDisassemblyWindow(application_state *applicationState, memory_arena *instructionArena, memory_arena *frameArena)
 {
     size_t instructionCount = instructionArena->Used / sizeof(instruction);
     instruction *instructions = (instruction *)instructionArena->BasePtr;
 
     ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoCollapse;
-    ImGui::Begin("Assembly", NULL, windowFlags);
+    ImGui::Begin("Disassembly", NULL, windowFlags);
 
     for (U32 i = 0; i < instructionCount; i++)
     {
@@ -336,7 +336,7 @@ global_function void DrawGui(application_state *applicationState, application_me
     ShowMainMenuBar(applicationState);
 
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    ShowAssemblyWindow(applicationState, &memory->InstructionsArena, &memory->FrameArena);
+    ShowDisassemblyWindow(applicationState, processor, &memory->InstructionsArena, &memory->FrameArena);
     ShowRegistersWindow(applicationState, processor);
     ShowMemoryWindow(applicationState, &memory->FrameArena, processor);
 
