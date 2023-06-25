@@ -14,6 +14,9 @@
 #include "sim8086_gui.cpp"
 
 
+#define HALT_GUARD_COUNT 100000
+
+
 // global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
 // global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0039_more_movs";
 global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0041_add_sub_cmp_jnz";
@@ -70,9 +73,50 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
             MemoryCopy(nextInstructionPtr, &nextInstruction, sizeof(instruction));
         }
 
-        // reset the instruction pointer
-        processor->IP = 0;
+        applicationState->LoadedProgramInstructionCount = processor->InstructionCount;
+        applicationState->LoadedProgramCycleCount = processor->TotalClockCount;
+
+        // Reset processor state to prepare for simulated execution
+        ResetProcessorExecution(processor);
         applicationState->ProgramLoaded = TRUE;
+    }
+
+    // handle input
+    if (ImGui::IsKeyPressed(ImGuiKey_F5))
+    {
+        // execute entire program
+        U32 safetyCounter = 0;
+        applicationState->Diagnostics_ExecutionStalled = false;
+
+        while(!HasProcessorFinishedExecution(processor))
+        {
+            instruction inst = DecodeNextInstruction(processor);
+            ExecuteInstruction(processor, &inst);
+
+            safetyCounter++;
+            if (safetyCounter > HALT_GUARD_COUNT)
+            {
+                applicationState->Diagnostics_ExecutionStalled = true;
+                break;
+            }
+        }
+    }
+    else if(ImGui::IsKeyPressed(ImGuiKey_F8))
+    {
+        // reset program
+        ResetProcessorExecution(processor);
+        applicationState->Diagnostics_ExecutionStalled = false;
+    }
+    else if (ImGui::IsKeyPressed(ImGuiKey_F10))
+    {
+        // execute single instruction
+        if (!HasProcessorFinishedExecution(processor))
+        {
+            instruction inst = DecodeNextInstruction(processor);
+            ExecuteInstruction(processor, &inst);
+        }
+
+        applicationState->Diagnostics_ExecutionStalled = false;
     }
 
     DrawGui(applicationState, memory, processor);

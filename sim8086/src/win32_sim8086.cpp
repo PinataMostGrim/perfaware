@@ -1,24 +1,24 @@
 /* TODO (Aaron):
-    - Add hotkeys for controlling program
-        - Run program
-        - Step forward
-        - Reset
+    - Add char pointer to 'instruction' so we only have to generate the instruction mnemonic once
+    - ExecuteInstruction() takes a memory arena for 'output'
 
     - Memory Window
         - Add text input field for selecting address location
         - Highlight instruction blocks in memory window when selecting instruction in disassembly window
         - Add "dump memory to file" button
 
+    - Add breakpoints
+
     - Try moving GUI initialization into platform layer
-    - Add step through logic for processor with loaded program
 
     - Add a ScratchArena when I need it
     - Convert to length based strings
 
     - Add feedback to main window titlebar (loaded program name, etc)
-    - Give processor or file error feedback via GUI
     - Add a file menu to open / load files
         - Use hard-coded value for now
+    - Give processor or file error feedback via GUI
+
     - Add V2F32 (and others from base.h) macros to imconfig.h so I can use my own math types
 */
 
@@ -56,9 +56,9 @@ global_variable char *DLL_FILENAME = (char *)"sim8086_application.dll";
 global_variable char *DLL_TEMP_FILENAME = (char *)"sim8086_application_temp.dll";
 global_variable char *DLL_LOCK_FILENAME = (char *)"sim8086_lock.tmp";
 
-global_variable U64 PERMANENT_ARENA_SIZE = Megabytes(10);
-global_variable U64 INSTRUCTION_ARENA_SIZE = Megabytes(10);
-global_variable U64 FRAME_ARENA_SIZE = Megabytes(10);
+global_variable U64 PERMANENT_ARENA_SIZE = Megabytes(2);
+global_variable U64 INSTRUCTION_ARENA_SIZE = Megabytes(1);
+global_variable U64 FRAME_ARENA_SIZE = Megabytes(1);
 
 global_variable U32 FILE_PATH_BUFFER_SIZE = 512;
 
@@ -406,9 +406,7 @@ int CALLBACK WinMain(
     applicationState.IO = &io;
     applicationState.ClearColor = CLEAR_COLOR;
     applicationState.Memory_StartAddress = 0;
-#if SIM8086_DIAGNOSTICS
     applicationState.Diagnostics_ShowWindow = true;
-#endif
 
     // Main loop
     bool done = false;
@@ -443,13 +441,10 @@ int CALLBACK WinMain(
             break;
         }
 
-
-#if SIM8086_DIAGNOSTICS
         if (memory.FrameArena.Used > applicationState.MaxScratchMemoryUsage)
         {
             applicationState.MaxScratchMemoryUsage = memory.FrameArena.Used;
         }
-#endif
 
         ArenaClear(&memory.FrameArena);
 

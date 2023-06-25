@@ -15,7 +15,7 @@
 
 // #pragma clang diagnostic ignored "-Wnull-dereference"
 
-static register_id RegMemTables[3][8]
+global_variable register_id RegMemTables[3][8]
 {
     {
         Reg_al,
@@ -50,7 +50,7 @@ static register_id RegMemTables[3][8]
 };
 
 
-static register_info RegisterLookup[21]
+global_variable register_info RegisterLookup[21]
 {
     // Note (Aaron): Order of registers must match the order defined in 'register_id' enum
     // in order for lookup to work
@@ -81,10 +81,10 @@ static register_info RegisterLookup[21]
     { Reg_unknown, 0, 0x0},
 };
 
-static const char *MemoryDumpFilename = "memory.dat";
+global_variable const char *MemoryDumpFilename = "memory.dat";
 
 
-static B32 DumpMemoryToFile(processor_8086 *processor, const char *filename)
+global_function B32 DumpMemoryToFile(processor_8086 *processor, const char *filename)
 {
     FILE *file = {};
     file = fopen(filename, "wb");
@@ -116,7 +116,7 @@ static B32 DumpMemoryToFile(processor_8086 *processor, const char *filename)
 
 // Note (Aaron): Reads the next N bytes of the instruction stream into an instruction's bits.
 // Advances both the instruction bits pointer and the processor's instruction pointer.
-static void ReadInstructionStream(processor_8086 *processor, instruction *instruction, U8 byteCount)
+global_function void ReadInstructionStream(processor_8086 *processor, instruction *instruction, U8 byteCount)
 {
     // Note (Aaron): Currently only support 8086 instructions that have a maximum of 6 bytes.
     // In practice, we never read this many bytes at once.
@@ -132,6 +132,7 @@ static void ReadInstructionStream(processor_8086 *processor, instruction *instru
                processor->IP);
         printf("\tbyteCount: %i\n", byteCount);
 
+        Assert(FALSE && "Attempted to read outside of program memory");
         exit(1);
     }
 
@@ -149,7 +150,7 @@ static void ReadInstructionStream(processor_8086 *processor, instruction *instru
 // TODO (Aaron): Pass in operand index rather than the operand itself
 
 // Note (Aaron): Requires width, mod and rm to be decoded in the instruction first
-static void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand)
+global_function void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand)
 {
     // memory mode, no displacement
     if(instruction->ModBits == 0b0)
@@ -227,7 +228,7 @@ static void ParseRmBits(processor_8086 *processor, instruction *instruction, ins
 }
 
 
-static U8 CalculateEffectiveAddressClocks(instruction_operand *operand)
+global_function U8 CalculateEffectiveAddressClocks(instruction_operand *operand)
 {
     // TODO (Aaron): We could just return 0 clocks instead in the event this is false
     // if (operand->Type != Operand_Memory)
@@ -275,7 +276,7 @@ static U8 CalculateEffectiveAddressClocks(instruction_operand *operand)
 }
 
 
-static instruction DecodeNextInstruction(processor_8086 *processor)
+global_function instruction DecodeNextInstruction(processor_8086 *processor)
 {
     processor->PrevIP = processor->IP;
     instruction instruction = {};
@@ -959,7 +960,7 @@ static instruction DecodeNextInstruction(processor_8086 *processor)
 }
 
 
-static U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister)
+global_function U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister)
 {
     U16 result = 0;
     register_info info = RegisterLookup[targetRegister];
@@ -1005,7 +1006,7 @@ static U16 GetRegisterValue(processor_8086 *processor, register_id targetRegiste
 }
 
 
-static void SetRegisterValue(processor_8086 *processor, register_id targetRegister, U16 value)
+global_function void SetRegisterValue(processor_8086 *processor, register_id targetRegister, U16 value)
 {
     register_info info = RegisterLookup[targetRegister];
     // TODO (Aaron): I don't think this preserves values in a lower or higher segment of the register
@@ -1015,13 +1016,13 @@ static void SetRegisterValue(processor_8086 *processor, register_id targetRegist
 }
 
 
-static U8 GetRegisterFlag(processor_8086 *processor, register_flags flag)
+global_function U8 GetRegisterFlag(processor_8086 *processor, register_flags flag)
 {
     return (processor->Flags & flag);
 }
 
 
-static void SetRegisterFlag(processor_8086 *processor, register_flags flag, B32 set)
+global_function void SetRegisterFlag(processor_8086 *processor, register_flags flag, B32 set)
 {
     if (set)
     {
@@ -1033,7 +1034,7 @@ static void SetRegisterFlag(processor_8086 *processor, register_flags flag, B32 
 }
 
 
-static void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targetRegister, U16 value)
+global_function void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targetRegister, U16 value)
 {
     register_info info = RegisterLookup[targetRegister];
     if (info.IsWide)
@@ -1049,7 +1050,7 @@ static void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targ
 }
 
 
-static U32 CalculateEffectiveAddress(processor_8086 *processor, instruction_operand operand)
+global_function U32 CalculateEffectiveAddress(processor_8086 *processor, instruction_operand operand)
 {
     assert_8086(operand.Type == Operand_Memory);
 
@@ -1073,11 +1074,12 @@ static U32 CalculateEffectiveAddress(processor_8086 *processor, instruction_oper
 }
 
 
-static U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide)
+global_function U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide)
 {
     if (effectiveAddress >= processor->MemorySize)
     {
         printf("[ERROR] Attempted to load out-of-bounds memory: 0x%x (out of 0x%x)", effectiveAddress, processor->MemorySize);
+        Assert(FALSE && "Attempted to load out-of-bounds memory");
         exit(1);
     }
 
@@ -1096,11 +1098,12 @@ static U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide)
 }
 
 
-static void SetMemory(processor_8086 *processor, U32 effectiveAddress, U16 value, B32 wide)
+global_function void SetMemory(processor_8086 *processor, U32 effectiveAddress, U16 value, B32 wide)
 {
     if (effectiveAddress >= processor->MemorySize)
     {
         printf("[ERROR] Attempted to set out-of-bounds memory: 0x%x (out of 0x%x)", effectiveAddress, processor->MemorySize);
+        Assert(FALSE && "Attempted to set out-of-bounds memory");
         exit(1);
     }
 
@@ -1119,7 +1122,7 @@ static void SetMemory(processor_8086 *processor, U32 effectiveAddress, U16 value
 }
 
 
-static U16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
+global_function U16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
 {
     U16 result = 0;
     switch (operand.Type)
@@ -1153,7 +1156,7 @@ static U16 GetOperandValue(processor_8086 *processor, instruction_operand operan
 }
 
 
-static void SetOperandValue(processor_8086 *processor, instruction_operand *operand, U16 value)
+global_function void SetOperandValue(processor_8086 *processor, instruction_operand *operand, U16 value)
 {
     // Only these two operand types are assignable
     assert_8086((operand->Type == Operand_Register) || operand->Type == Operand_Memory);
@@ -1192,7 +1195,7 @@ static void SetOperandValue(processor_8086 *processor, instruction_operand *oper
 }
 
 
-static void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
+global_function void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
 {
     if (oldFlags == newFlags)
     {
@@ -1221,7 +1224,7 @@ static void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
 }
 
 
-static void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
+global_function void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
 {
     U8 oldFlags = processor->Flags;
 
@@ -1374,4 +1377,23 @@ static void ExecuteInstruction(processor_8086 *processor, instruction *instructi
 
     printf(" ip:0x%x->0x%x", processor->PrevIP, processor->IP);
     PrintFlagDiffs(oldFlags, processor->Flags);
+}
+
+
+// Note (Aaron): Resets the processor's execution state
+global_function void ResetProcessorExecution(processor_8086 *processor)
+{
+    processor->IP = 0;
+    processor->PrevIP = 0;
+    MemorySet((U8 *)&processor->Registers, 0, sizeof(processor->Registers));
+    processor->Flags = 0;
+    processor->InstructionCount = 0;
+    processor->TotalClockCount = 0;
+}
+
+
+global_function B32 HasProcessorFinishedExecution(processor_8086 *processor)
+{
+    B32 result = processor->IP >= processor->ProgramSize;
+    return result;
 }

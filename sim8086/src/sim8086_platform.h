@@ -35,18 +35,19 @@ typedef struct
     // SIM8086
     B32 ProgramLoaded;
     B32 LoadFailure;
+    U32 LoadedProgramInstructionCount;
+    U32 LoadedProgramCycleCount;
 
     // GUI
     ImGuiIO *IO;
     ImVec4 ClearColor;
-    U32 Assembly_SelectedLine;
+    U32 Disassembly_SelectedLine;
     U32 Memory_StartAddress;
 
-#if SIM8086_DIAGNOSTICS
     // Diagnostics
     bool Diagnostics_ShowWindow;
+    bool Diagnostics_ExecutionStalled;
     U64 MaxScratchMemoryUsage;
-#endif
 
 } application_state;
 

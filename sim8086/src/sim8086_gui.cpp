@@ -38,6 +38,15 @@ global_function void ShowMainMenuBar(application_state *applicationState)
         //     ImGui::EndMenu();
         // }
 
+        if (ImGui::BeginMenu("Control"))
+        {
+            if (ImGui::MenuItem("Run program", "F5", false, false)) {}  // Disabled item
+            if (ImGui::MenuItem("Reset program", "F8", false, false)) {}  // Disabled item
+            if (ImGui::MenuItem("Step instruction", "F10", false, false)) {}  // Disabled item
+
+            ImGui::EndMenu();
+        }
+
         if (ImGui::BeginMenu("View"))
         {
 
@@ -58,35 +67,45 @@ global_function void ShowMainMenuBar(application_state *applicationState)
 }
 
 
-global_function void ShowAssemblyWindow(application_state *applicationState, memory_arena *instructionArena, memory_arena *frameArena)
+global_function void ShowDisassemblyWindow(application_state *applicationState, processor_8086 *processor,
+                                           memory_arena *instructionArena, memory_arena *frameArena)
 {
     size_t instructionCount = instructionArena->Used / sizeof(instruction);
     instruction *instructions = (instruction *)instructionArena->BasePtr;
 
     ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoCollapse;
-    ImGui::Begin("Assembly", NULL, windowFlags);
+    ImGui::Begin("Disassembly", NULL, windowFlags);
 
     for (U32 i = 0; i < instructionCount; i++)
     {
         instruction currentInstruction = instructions[i];
 
-        // TODO (Aaron): Consider how to more cleanly pick buffer sizes here
+        if (processor->IP == currentInstruction.Address)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+        }
+
         char buffer[64];
         sprintf(buffer, "%i", i + 1);
-        if (ImGui::Selectable(buffer, applicationState->Assembly_SelectedLine == i)) { applicationState->Assembly_SelectedLine = i; }
+        if (ImGui::Selectable(buffer, applicationState->Disassembly_SelectedLine == i)) { applicationState->Disassembly_SelectedLine = i; }
 
         sprintf(buffer, "0x%.8x", currentInstruction.Address);
-        ImGui::SameLine(60);
+        ImGui::SameLine(50);
         ImGui::Text("%s", buffer);
 
         char *assemblyPtr = GetInstructionMnemonic(&currentInstruction, frameArena);
-        ImGui::SameLine(200);
+        ImGui::SameLine(160);
         ImGui::Text("%s", assemblyPtr);
 
         if (ImGui::IsItemHovered())
         {
             char *bitsString = GetInstructionBitsMnemonic(instructions[i], frameArena);
             ImGui::SetTooltip("%s", bitsString);
+        }
+
+        if (processor->IP == currentInstruction.Address)
+        {
+            ImGui::PopStyleColor(1);
         }
     }
 
@@ -270,44 +289,61 @@ global_function void ShowMemoryWindow(application_state *applicationState, memor
 }
 
 
-global_function void ShowDiagnosticsWindow(application_state *applicationState, application_memory *memory)
+global_function void ShowDiagnosticsWindow(application_state *applicationState, application_memory *memory, processor_8086 *processor)
 {
-#if SIM8086_DIAGNOSTICS
     if (applicationState->Diagnostics_ShowWindow)
     {
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
         ImGui::Begin("Diagnostics", &applicationState->Diagnostics_ShowWindow, windowFlags);
 
-        ImGui::Text("Performance");
-        ImGui::Separator();
-        ImGui::Text("Average ms/frame: %.3f", 1000.0f / applicationState->IO->Framerate);
-        ImGui::Text("FPS: %.1f ", applicationState->IO->Framerate);
 
+        ImGui::Text("8086");
+        ImGui::Separator();
+
+        ImGui::Text("Memory capacity: %llu KB", processor->MemorySize / Kilobytes(1));
+        ImGui::Text("Loaded program size: %u bytes", processor->ProgramSize);
+        ImGui::Text("Instruction count: %u", applicationState->LoadedProgramInstructionCount);
+        ImGui::Text("Estimated cycle count: %u", applicationState->LoadedProgramCycleCount);
+        ImGui::Text("");
+
+        ImGui::Text("Instructions executed: %u", processor->InstructionCount);
+
+        if(applicationState->Diagnostics_ExecutionStalled)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+            ImGui::Text("Execution timed out!");
+            ImGui::PopStyleColor(1);
+        }
         ImGui::Text("");
 
         ImGui::Text("Memory");
         ImGui::Separator();
-        ImGui::Text("Permanent arena: %.2f / %.f KB (%.2f%%)",
+        ImGui::Text("Permanent arena usage: %.2f / %.f KB (%.2f%%)",
                     (F64)memory->PermanentArena.Used / (F64)Kilobytes(1),
                     (F64)memory->PermanentArena.Size / (F64)Kilobytes(1),
-                    (F64)memory->PermanentArena.Used / (F64)memory->PermanentArena.Size);
-        ImGui::Text("Per-frame arena: %.2f / %.f KB (%.2f%%)",
+                    (F64)memory->PermanentArena.Used / (F64)memory->PermanentArena.Size * 100);
+        ImGui::Text("Per-frame arena usage: %.2f / %.f KB (%.2f%%)",
                     (F64)memory->FrameArena.Used / (F64)Kilobytes(1),
                     (F64)memory->FrameArena.Size / (F64)Kilobytes(1),
-                    (F64)memory->FrameArena.Used / (F64)memory->FrameArena.Size);
-        ImGui::Text("Max per-frame arena: %.2f KB", (F64)applicationState->MaxScratchMemoryUsage / (F64)Kilobytes(1));
-        ImGui::Text("Instruction arena: %llu / %llu KB (%.2f%%)",
+                    (F64)memory->FrameArena.Used / (F64)memory->FrameArena.Size * 100);
+        ImGui::Text("Per-frame arena max usage: %.2f KB", (F64)applicationState->MaxScratchMemoryUsage / (F64)Kilobytes(1));
+        ImGui::Text("Instruction arena usage: %llu / %llu KB (%.2f%%)",
                     memory->InstructionsArena.Used / Kilobytes(1),
                     memory->InstructionsArena.Size / Kilobytes(1),
-                    (F64)memory->InstructionsArena.Used / (F64)memory->InstructionsArena.Size);
+                    (F64)memory->InstructionsArena.Used / (F64)memory->InstructionsArena.Size * 100);
         ImGui::Text("Total used: %.3f MB (%.2f%%)",
                     (F64)memory->TotalSize / (F64)Megabytes(1),
-                    (F64)(memory->PermanentArena.Used + memory->FrameArena.Used + memory->InstructionsArena.Used) / (F64)memory->TotalSize);
+                    (F64)(memory->PermanentArena.Used + memory->FrameArena.Used + memory->InstructionsArena.Used) / (F64)memory->TotalSize * 100);
+        ImGui::Text("");
+
+        ImGui::Text("Performance");
+        ImGui::Separator();
+        ImGui::Text("Average ms/frame: %.3f", 1000.0f / applicationState->IO->Framerate);
+        ImGui::Text("FPS: %.1f ", applicationState->IO->Framerate);
         ImGui::Text("");
 
         ImGui::End();
     }
-#endif
 }
 
 
@@ -316,11 +352,11 @@ global_function void DrawGui(application_state *applicationState, application_me
     ShowMainMenuBar(applicationState);
 
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    ShowAssemblyWindow(applicationState, &memory->InstructionsArena, &memory->FrameArena);
+    ShowDisassemblyWindow(applicationState, processor, &memory->InstructionsArena, &memory->FrameArena);
     ShowRegistersWindow(applicationState, processor);
     ShowMemoryWindow(applicationState, &memory->FrameArena, processor);
 
-    ShowDiagnosticsWindow(applicationState, memory);
+    ShowDiagnosticsWindow(applicationState, memory, processor);
 
     // ImGui::ShowDemoWindow();
     // ImGui::ShowStackToolWindow();
