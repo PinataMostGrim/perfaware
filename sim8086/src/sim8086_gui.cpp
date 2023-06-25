@@ -67,7 +67,8 @@ global_function void ShowMainMenuBar(application_state *applicationState)
 }
 
 
-global_function void ShowDisassemblyWindow(application_state *applicationState, memory_arena *instructionArena, memory_arena *frameArena)
+global_function void ShowDisassemblyWindow(application_state *applicationState, processor_8086 *processor,
+                                           memory_arena *instructionArena, memory_arena *frameArena)
 {
     size_t instructionCount = instructionArena->Used / sizeof(instruction);
     instruction *instructions = (instruction *)instructionArena->BasePtr;
@@ -79,23 +80,32 @@ global_function void ShowDisassemblyWindow(application_state *applicationState, 
     {
         instruction currentInstruction = instructions[i];
 
-        // TODO (Aaron): Consider how to more cleanly pick buffer sizes here
+        if (processor->IP == currentInstruction.Address)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+        }
+
         char buffer[64];
         sprintf(buffer, "%i", i + 1);
-        if (ImGui::Selectable(buffer, applicationState->Assembly_SelectedLine == i)) { applicationState->Assembly_SelectedLine = i; }
+        if (ImGui::Selectable(buffer, applicationState->Disassembly_SelectedLine == i)) { applicationState->Disassembly_SelectedLine = i; }
 
         sprintf(buffer, "0x%.8x", currentInstruction.Address);
-        ImGui::SameLine(60);
+        ImGui::SameLine(50);
         ImGui::Text("%s", buffer);
 
         char *assemblyPtr = GetInstructionMnemonic(&currentInstruction, frameArena);
-        ImGui::SameLine(200);
+        ImGui::SameLine(160);
         ImGui::Text("%s", assemblyPtr);
 
         if (ImGui::IsItemHovered())
         {
             char *bitsString = GetInstructionBitsMnemonic(instructions[i], frameArena);
             ImGui::SetTooltip("%s", bitsString);
+        }
+
+        if (processor->IP == currentInstruction.Address)
+        {
+            ImGui::PopStyleColor(1);
         }
     }
 

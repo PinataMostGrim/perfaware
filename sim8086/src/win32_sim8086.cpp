@@ -1,5 +1,4 @@
 /* TODO (Aaron):
-    - Highlight instruction we are currently on in assembly window
     - Add char pointer to 'instruction' so we only have to generate the instruction mnemonic once
     - ExecuteInstruction() takes a memory arena for 'output'
 

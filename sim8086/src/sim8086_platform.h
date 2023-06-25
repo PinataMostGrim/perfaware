@@ -41,7 +41,7 @@ typedef struct
     // GUI
     ImGuiIO *IO;
     ImVec4 ClearColor;
-    U32 Assembly_SelectedLine;
+    U32 Disassembly_SelectedLine;
     U32 Memory_StartAddress;
 
 #if SIM8086_DIAGNOSTICS
