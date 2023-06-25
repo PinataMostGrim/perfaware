@@ -1375,3 +1375,15 @@ static void ExecuteInstruction(processor_8086 *processor, instruction *instructi
     printf(" ip:0x%x->0x%x", processor->PrevIP, processor->IP);
     PrintFlagDiffs(oldFlags, processor->Flags);
 }
+
+
+// Note (Aaron): Resets the processor's execution state
+static void ResetProcessorExecution(processor_8086 *processor)
+{
+    processor->IP = 0;
+    processor->PrevIP = 0;
+    MemorySet((U8 *)&processor->Registers, 0, sizeof(processor->Registers));
+    processor->Flags = 0;
+    processor->InstructionCount = 0;
+    processor->TotalClockCount = 0;
+}

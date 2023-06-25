@@ -35,6 +35,8 @@ typedef struct
     // SIM8086
     B32 ProgramLoaded;
     B32 LoadFailure;
+    U32 LoadedProgramInstructionCount;
+    U32 LoadedProgramCycleCount;
 
     // GUI
     ImGuiIO *IO;

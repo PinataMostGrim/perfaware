@@ -72,6 +72,8 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
 
         // reset the instruction pointer
         processor->IP = 0;
+        applicationState->LoadedProgramInstructionCount = processor->InstructionCount;
+        applicationState->LoadedProgramCycleCount = processor->TotalClockCount;
         applicationState->ProgramLoaded = TRUE;
     }
 

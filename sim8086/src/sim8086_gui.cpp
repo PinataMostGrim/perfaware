@@ -270,7 +270,7 @@ global_function void ShowMemoryWindow(application_state *applicationState, memor
 }
 
 
-global_function void ShowDiagnosticsWindow(application_state *applicationState, application_memory *memory)
+global_function void ShowDiagnosticsWindow(application_state *applicationState, application_memory *memory, processor_8086 *processor)
 {
 #if SIM8086_DIAGNOSTICS
     if (applicationState->Diagnostics_ShowWindow)
@@ -305,6 +305,17 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
                     (F64)(memory->PermanentArena.Used + memory->FrameArena.Used + memory->InstructionsArena.Used) / (F64)memory->TotalSize);
         ImGui::Text("");
 
+        ImGui::Text("8086");
+        ImGui::Separator();
+
+        ImGui::Text("Memory capacity: %lu KB", processor->MemorySize / Kilobytes(1));
+        ImGui::Text("Loaded program size: %lu bytes", processor->ProgramSize);
+        ImGui::Text("Instruction count: %lu", applicationState->LoadedProgramInstructionCount);
+        ImGui::Text("Cycle count: %lu", applicationState->LoadedProgramCycleCount);
+        ImGui::Text("");
+
+        ImGui::Text("Instructions executed: %lu", processor->InstructionCount);
+
         ImGui::End();
     }
 #endif
@@ -320,7 +331,7 @@ global_function void DrawGui(application_state *applicationState, application_me
     ShowRegistersWindow(applicationState, processor);
     ShowMemoryWindow(applicationState, &memory->FrameArena, processor);
 
-    ShowDiagnosticsWindow(applicationState, memory);
+    ShowDiagnosticsWindow(applicationState, memory, processor);
 
     // ImGui::ShowDemoWindow();
     // ImGui::ShowStackToolWindow();

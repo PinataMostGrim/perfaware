@@ -247,6 +247,7 @@ static void ReadInstructionStream(processor_8086 *processor, instruction *instru
 static void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand);
 static U8 CalculateEffectiveAddressClocks(instruction_operand *operand);
 static instruction DecodeNextInstruction(processor_8086 *processor);
+static void ExecuteInstruction(processor_8086 *processor, instruction *instruction);
 
 static U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide);
 static U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister);
