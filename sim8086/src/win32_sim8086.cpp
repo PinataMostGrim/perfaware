@@ -56,9 +56,9 @@ global_variable char *DLL_FILENAME = (char *)"sim8086_application.dll";
 global_variable char *DLL_TEMP_FILENAME = (char *)"sim8086_application_temp.dll";
 global_variable char *DLL_LOCK_FILENAME = (char *)"sim8086_lock.tmp";
 
-global_variable U64 PERMANENT_ARENA_SIZE = Megabytes(10);
-global_variable U64 INSTRUCTION_ARENA_SIZE = Megabytes(10);
-global_variable U64 FRAME_ARENA_SIZE = Megabytes(10);
+global_variable U64 PERMANENT_ARENA_SIZE = Megabytes(2);
+global_variable U64 INSTRUCTION_ARENA_SIZE = Megabytes(1);
+global_variable U64 FRAME_ARENA_SIZE = Megabytes(1);
 
 global_variable U32 FILE_PATH_BUFFER_SIZE = 512;
 
