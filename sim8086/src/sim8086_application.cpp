@@ -70,11 +70,37 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
             MemoryCopy(nextInstructionPtr, &nextInstruction, sizeof(instruction));
         }
 
-        // reset the instruction pointer
-        processor->IP = 0;
         applicationState->LoadedProgramInstructionCount = processor->InstructionCount;
         applicationState->LoadedProgramCycleCount = processor->TotalClockCount;
+
+        // Reset processor state to prepare for simulated execution
+        ResetProcessorExecution(processor);
         applicationState->ProgramLoaded = TRUE;
+    }
+
+    // handle input
+    if (ImGui::IsKeyPressed(ImGuiKey_F5))
+    {
+        // execute entire program
+        while(!HasProcessorFinishedExecution(processor))
+        {
+            instruction inst = DecodeNextInstruction(processor);
+            ExecuteInstruction(processor, &inst);
+        }
+    }
+    else if(ImGui::IsKeyPressed(ImGuiKey_F8))
+    {
+        // reset program
+        ResetProcessorExecution(processor);
+    }
+    else if (ImGui::IsKeyPressed(ImGuiKey_F10))
+    {
+        // execute single instruction
+        if (!HasProcessorFinishedExecution(processor))
+        {
+            instruction inst = DecodeNextInstruction(processor);
+            ExecuteInstruction(processor, &inst);
+        }
     }
 
     DrawGui(applicationState, memory, processor);

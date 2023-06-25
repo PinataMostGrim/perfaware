@@ -1387,3 +1387,8 @@ static void ResetProcessorExecution(processor_8086 *processor)
     processor->InstructionCount = 0;
     processor->TotalClockCount = 0;
 }
+static B32 HasProcessorFinishedExecution(processor_8086 *processor)
+{
+    B32 result = processor->IP >= processor->ProgramSize;
+    return result;
+}

@@ -38,6 +38,15 @@ global_function void ShowMainMenuBar(application_state *applicationState)
         //     ImGui::EndMenu();
         // }
 
+        if (ImGui::BeginMenu("Control"))
+        {
+            if (ImGui::MenuItem("Run program", "F5", false, false)) {}  // Disabled item
+            if (ImGui::MenuItem("Reset program", "F8", false, false)) {}  // Disabled item
+            if (ImGui::MenuItem("Step instruction", "F10", false, false)) {}  // Disabled item
+
+            ImGui::EndMenu();
+        }
+
         if (ImGui::BeginMenu("View"))
         {
 

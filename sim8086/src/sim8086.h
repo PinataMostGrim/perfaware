@@ -253,4 +253,7 @@ static U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide);
 static U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister);
 static U8 GetRegisterFlag(processor_8086 *processor, register_flags flag);
 
+static B32 HasProcessorFinishedExecution(processor_8086 *processor);
+static void ResetProcessorExecution(processor_8086 *processor);
+
 #endif //SIM8086_H

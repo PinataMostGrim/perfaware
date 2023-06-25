@@ -1,8 +1,4 @@
 /* TODO (Aaron):
-    - Add hotkeys for controlling program
-        - Run program
-        - Step forward
-        - Reset
 
     - Memory Window
         - Add text input field for selecting address location
