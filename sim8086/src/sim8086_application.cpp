@@ -86,10 +86,7 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
     {
         // execute entire program
         U32 safetyCounter = 0;
-
-#if SIM8086_DIAGNOSTICS
-            applicationState->Diagnostics_ExecutionStalled = false;
-#endif
+        applicationState->Diagnostics_ExecutionStalled = false;
 
         while(!HasProcessorFinishedExecution(processor))
         {
@@ -99,9 +96,7 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
             safetyCounter++;
             if (safetyCounter > HALT_GUARD_COUNT)
             {
-#if SIM8086_DIAGNOSTICS
                 applicationState->Diagnostics_ExecutionStalled = true;
-#endif
                 break;
             }
         }
@@ -110,11 +105,7 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
     {
         // reset program
         ResetProcessorExecution(processor);
-
-#if SIM8086_DIAGNOSTICS
         applicationState->Diagnostics_ExecutionStalled = false;
-#endif
-
     }
     else if (ImGui::IsKeyPressed(ImGuiKey_F10))
     {
@@ -125,9 +116,7 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
             ExecuteInstruction(processor, &inst);
         }
 
-#if SIM8086_DIAGNOSTICS
-            applicationState->Diagnostics_ExecutionStalled = false;
-#endif
+        applicationState->Diagnostics_ExecutionStalled = false;
     }
 
     DrawGui(applicationState, memory, processor);

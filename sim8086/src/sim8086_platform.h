@@ -44,12 +44,10 @@ typedef struct
     U32 Disassembly_SelectedLine;
     U32 Memory_StartAddress;
 
-#if SIM8086_DIAGNOSTICS
     // Diagnostics
     bool Diagnostics_ShowWindow;
     bool Diagnostics_ExecutionStalled;
     U64 MaxScratchMemoryUsage;
-#endif
 
 } application_state;
 

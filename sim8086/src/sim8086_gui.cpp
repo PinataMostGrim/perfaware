@@ -291,17 +291,29 @@ global_function void ShowMemoryWindow(application_state *applicationState, memor
 
 global_function void ShowDiagnosticsWindow(application_state *applicationState, application_memory *memory, processor_8086 *processor)
 {
-#if SIM8086_DIAGNOSTICS
     if (applicationState->Diagnostics_ShowWindow)
     {
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
         ImGui::Begin("Diagnostics", &applicationState->Diagnostics_ShowWindow, windowFlags);
 
-        ImGui::Text("Performance");
-        ImGui::Separator();
-        ImGui::Text("Average ms/frame: %.3f", 1000.0f / applicationState->IO->Framerate);
-        ImGui::Text("FPS: %.1f ", applicationState->IO->Framerate);
 
+        ImGui::Text("8086");
+        ImGui::Separator();
+
+        ImGui::Text("Memory capacity: %llu KB", processor->MemorySize / Kilobytes(1));
+        ImGui::Text("Loaded program size: %u bytes", processor->ProgramSize);
+        ImGui::Text("Instruction count: %u", applicationState->LoadedProgramInstructionCount);
+        ImGui::Text("Estimated cycle count: %u", applicationState->LoadedProgramCycleCount);
+        ImGui::Text("");
+
+        ImGui::Text("Instructions executed: %u", processor->InstructionCount);
+
+        if(applicationState->Diagnostics_ExecutionStalled)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+            ImGui::Text("Execution timed out!");
+            ImGui::PopStyleColor(1);
+        }
         ImGui::Text("");
 
         ImGui::Text("Memory");
@@ -324,27 +336,14 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
                     (F64)(memory->PermanentArena.Used + memory->FrameArena.Used + memory->InstructionsArena.Used) / (F64)memory->TotalSize * 100);
         ImGui::Text("");
 
-        ImGui::Text("8086");
+        ImGui::Text("Performance");
         ImGui::Separator();
-
-        ImGui::Text("Memory capacity: %lu KB", processor->MemorySize / Kilobytes(1));
-        ImGui::Text("Loaded program size: %lu bytes", processor->ProgramSize);
-        ImGui::Text("Instruction count: %lu", applicationState->LoadedProgramInstructionCount);
-        ImGui::Text("Cycle count: %lu", applicationState->LoadedProgramCycleCount);
+        ImGui::Text("Average ms/frame: %.3f", 1000.0f / applicationState->IO->Framerate);
+        ImGui::Text("FPS: %.1f ", applicationState->IO->Framerate);
         ImGui::Text("");
-
-        ImGui::Text("Instructions executed: %lu", processor->InstructionCount);
-
-        if(applicationState->Diagnostics_ExecutionStalled)
-        {
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-            ImGui::Text("Execution timed out!");
-            ImGui::PopStyleColor(1);
-        }
 
         ImGui::End();
     }
-#endif
 }
 
 
