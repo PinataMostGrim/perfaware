@@ -296,16 +296,16 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
 
         ImGui::Text("Memory");
         ImGui::Separator();
-        ImGui::Text("Permanent arena: %.2f / %.f KB (%.2f%%)",
+        ImGui::Text("Permanent arena usage: %.2f / %.f KB (%.2f%%)",
                     (F64)memory->PermanentArena.Used / (F64)Kilobytes(1),
                     (F64)memory->PermanentArena.Size / (F64)Kilobytes(1),
                     (F64)memory->PermanentArena.Used / (F64)memory->PermanentArena.Size);
-        ImGui::Text("Per-frame arena: %.2f / %.f KB (%.2f%%)",
+        ImGui::Text("Per-frame arena usage: %.2f / %.f KB (%.2f%%)",
                     (F64)memory->FrameArena.Used / (F64)Kilobytes(1),
                     (F64)memory->FrameArena.Size / (F64)Kilobytes(1),
                     (F64)memory->FrameArena.Used / (F64)memory->FrameArena.Size);
-        ImGui::Text("Max per-frame arena: %.2f KB", (F64)applicationState->MaxScratchMemoryUsage / (F64)Kilobytes(1));
-        ImGui::Text("Instruction arena: %llu / %llu KB (%.2f%%)",
+        ImGui::Text("Per-frame arena max usage: %.2f KB", (F64)applicationState->MaxScratchMemoryUsage / (F64)Kilobytes(1));
+        ImGui::Text("Instruction arena usage: %llu / %llu KB (%.2f%%)",
                     memory->InstructionsArena.Used / Kilobytes(1),
                     memory->InstructionsArena.Size / Kilobytes(1),
                     (F64)memory->InstructionsArena.Used / (F64)memory->InstructionsArena.Size);
