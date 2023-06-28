@@ -96,6 +96,7 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
             instruction inst = DecodeNextInstruction(processor);
             ExecuteInstruction(processor, &inst);
 
+            // TODO (Aaron): How to better handle programs that do not halt?
             safetyCounter++;
             if (safetyCounter > HALT_GUARD_COUNT)
             {

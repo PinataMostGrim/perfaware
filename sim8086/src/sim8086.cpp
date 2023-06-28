@@ -133,6 +133,7 @@ global_function void ReadInstructionStream(processor_8086 *processor, instructio
         printf("\tbyteCount: %i\n", byteCount);
 
         Assert(FALSE && "Attempted to read outside of program memory");
+        // TODO (Aaron): Need to support Win32 and not immediately exit
         exit(1);
     }
 
@@ -1080,6 +1081,7 @@ global_function U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B
     {
         printf("[ERROR] Attempted to load out-of-bounds memory: 0x%x (out of 0x%x)", effectiveAddress, processor->MemorySize);
         Assert(FALSE && "Attempted to load out-of-bounds memory");
+        // TODO (Aaron): Need to support Win32 and not immediately exit
         exit(1);
     }
 
@@ -1104,6 +1106,7 @@ global_function void SetMemory(processor_8086 *processor, U32 effectiveAddress, 
     {
         printf("[ERROR] Attempted to set out-of-bounds memory: 0x%x (out of 0x%x)", effectiveAddress, processor->MemorySize);
         Assert(FALSE && "Attempted to set out-of-bounds memory");
+        // TODO (Aaron): Need to support Win32 and not immediately exit
         exit(1);
     }
 
@@ -1224,6 +1227,7 @@ global_function void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
 }
 
 
+// TODO (Aaron): Use a memory arena to hold output
 global_function void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
 {
     U8 oldFlags = processor->Flags;

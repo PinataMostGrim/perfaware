@@ -1,8 +1,9 @@
 /* TODO (Aaron):
-    - Add char pointer to 'instruction' so we only have to generate the instruction mnemonic once
-    - ExecuteInstruction() takes a memory arena for 'output'
+    - Add an "Output" window
+        - ExecuteInstruction() takes a memory arena for 'output'
 
     - Memory Window
+        - Turn memory area into a table and place controls at the bottom?
         - Add text input field for selecting address location
         - Highlight instruction blocks in memory window when selecting instruction in disassembly window
         - Add "dump memory to file" button
@@ -12,6 +13,7 @@
     - Try moving GUI initialization into platform layer
 
     - Add a ScratchArena when I need it
+        - This is basically the per-frame arena now, as it isn't being used currently
     - Convert to length based strings
 
     - Add feedback to main window titlebar (loaded program name, etc)
@@ -304,6 +306,7 @@ int CALLBACK WinMain(
     // allocate application memory
     application_memory memory = {};
 
+    // TODO (Aaron): Figure out a better way to configure arena sizes
     memory_index arenaSizes[] = { Megabytes(2), Megabytes(1), Megabytes(1), Megabytes(1) };
     Assert((ArrayCount(arenaSizes) == ArrayCount(memory.Arenas))
            && "arenaSizes count must match memory.Arenas count");

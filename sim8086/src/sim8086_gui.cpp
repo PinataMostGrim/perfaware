@@ -40,6 +40,9 @@ global_function void ShowMainMenuBar(application_state *applicationState)
 
         if (ImGui::BeginMenu("Control"))
         {
+            // TODO (Aaron): Hmmm... how do I process control from here?
+            //  - Seems messy creating sim8086_application.h and making methods for this
+
             if (ImGui::MenuItem("Run program", "F5", false, false)) {}  // Disabled item
             if (ImGui::MenuItem("Reset program", "F8", false, false)) {}  // Disabled item
             if (ImGui::MenuItem("Step instruction", "F10", false, false)) {}  // Disabled item
