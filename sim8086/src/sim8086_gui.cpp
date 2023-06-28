@@ -85,11 +85,13 @@ global_function void ShowDisassemblyWindow(application_state *applicationState, 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
         }
 
-        char buffer[64];
-        sprintf(buffer, "%i", i + 1);
+        const U8 BUFFER_SIZE = 64;
+        char buffer[BUFFER_SIZE];
+
+        snprintf(buffer, BUFFER_SIZE, "%i", i + 1);
         if (ImGui::Selectable(buffer, applicationState->Disassembly_SelectedLine == i)) { applicationState->Disassembly_SelectedLine = i; }
 
-        sprintf(buffer, "0x%.8x", currentInstruction.Address);
+        snprintf(buffer, BUFFER_SIZE, "0x%.8x", currentInstruction.Address);
         ImGui::SameLine(50);
         ImGui::Text("%s", buffer);
 
@@ -118,20 +120,21 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
 
     ImGuiTableFlags tableFlags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
 
+    const U8 BUFFER_SIZE = 64;
+    char buffer[BUFFER_SIZE];
+
     // instruction pointer
     if (ImGui::BeginTable("instruction_pointer", 1, tableFlags))
     {
-        char buffer[56];
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        sprintf(buffer, "Instruction pointer: 0x%.32x", processor->IP);
+        snprintf(buffer, BUFFER_SIZE, "Instruction pointer: 0x%.32x", processor->IP);
         ImGui::TextUnformatted(buffer);
         ImGui::EndTable();
     }
 
     // al / ah / cl / ch / dl / dh / bl / bh
     {
-        char buffer[32];
         register_id registers[] = {
             Reg_al, Reg_ah,
             Reg_cl, Reg_ch,
@@ -146,11 +149,11 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
             {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                sprintf(buffer, "%s: 0x%.8x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
+                snprintf(buffer, BUFFER_SIZE, "%s: 0x%.8x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
                 ImGui::TextUnformatted(buffer);
 
                 ImGui::TableNextColumn();
-                sprintf(buffer, "%s: 0x%.8x", GetRegisterMnemonic(registers[i+1]), GetRegisterValue(processor, registers[i+1]));
+                snprintf(buffer, BUFFER_SIZE, "%s: 0x%.8x", GetRegisterMnemonic(registers[i+1]), GetRegisterValue(processor, registers[i+1]));
                 ImGui::TextUnformatted(buffer);
             }
 
@@ -160,7 +163,6 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
 
     // ax / cx / dx / bx
     {
-        char buffer[32];
         register_id registers[] ={ Reg_ax, Reg_cx, Reg_dx, Reg_bx };
 
         if (ImGui::BeginTable("registers_full", 1, tableFlags))
@@ -169,7 +171,7 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
             {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                sprintf(buffer, "%s: 0x%.16x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
+                snprintf(buffer, BUFFER_SIZE, "%s: 0x%.16x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
                 ImGui::TextUnformatted(buffer);
             }
 
@@ -180,7 +182,6 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
     // sp / bp / si / di
     if (ImGui::BeginTable("registers_1", 1, tableFlags))
     {
-        char buffer[32];
         register_id registers[] ={ Reg_sp, Reg_bp, Reg_si, Reg_di };
 
         for (int i = 0; i < ArrayCount(registers); i++)
@@ -188,7 +189,7 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
             ImGui::TableNextRow();
 
             ImGui::TableNextColumn();
-            sprintf(buffer, "%s: 0x%.16x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
+            snprintf(buffer, BUFFER_SIZE, "%s: 0x%.16x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
             ImGui::TextUnformatted(buffer);
         }
 
@@ -198,14 +199,13 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
     // flags
     if (ImGui::BeginTable("flags", 6, tableFlags))
     {
-        char buffer[32];
         register_flags flags[] ={ RegisterFlag_CF, RegisterFlag_PF, RegisterFlag_AF, RegisterFlag_ZF, RegisterFlag_SF, RegisterFlag_OF };
 
         ImGui::TableNextRow();
         for (int i = 0; i < ArrayCount(flags); i++)
         {
             ImGui::TableNextColumn();
-            sprintf(buffer, "%s: 0x%.1u", GetRegisterFlagMnemonic(flags[i]), GetRegisterFlag(processor, flags[i]));
+            snprintf(buffer, BUFFER_SIZE, "%s: 0x%.1u", GetRegisterFlagMnemonic(flags[i]), GetRegisterFlag(processor, flags[i]));
             ImGui::TextUnformatted(buffer);
         }
 
@@ -222,8 +222,8 @@ global_function void ShowMemoryWindow(application_state *applicationState, proce
     U32 bytesDisplayed = Kilobytes(8);
     U32 minimumBytesDisplayed = 512;
 
-    // TODO (Aaron): Consider how to more cleanly pick buffer sizes here
-    char buffer[64];
+    const U8 BUFFER_SIZE = 64;
+    char buffer[BUFFER_SIZE];
     U32 maxMemoryAddress = processor->MemorySize - 1;
 
     ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
@@ -259,7 +259,7 @@ global_function void ShowMemoryWindow(application_state *applicationState, proce
     Assert((startAddress >= 0) && "Invalid start address");
     Assert((endAddress < processor->MemorySize) && "Invalid end address");
 
-    sprintf(buffer, "Range: 0x%.2llx - 0x%.2llx", startAddress, endAddress);
+    snprintf(buffer, BUFFER_SIZE, "Range: 0x%.2llx - 0x%.2llx", startAddress, endAddress);
     ImGui::Text("%s", buffer);
     ImGui::Separator();
 
@@ -267,7 +267,7 @@ global_function void ShowMemoryWindow(application_state *applicationState, proce
     for (U64 i = startAddress; i < endAddress; i += bytesPerLine)
     {
         // display address
-        sprintf(buffer, "%.16llx", i);
+        snprintf(buffer, BUFFER_SIZE, "%.16llx", i);
         ImGui::Text("0x%s:", buffer);
 
         F32 offset = 150;
