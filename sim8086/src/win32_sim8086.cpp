@@ -1,8 +1,9 @@
 /* TODO (Aaron):
-    - Add char pointer to 'instruction' so we only have to generate the instruction mnemonic once
-    - ExecuteInstruction() takes a memory arena for 'output'
+    - Add an "Output" window
+        - ExecuteInstruction() takes a memory arena for 'output'
 
     - Memory Window
+        - Turn memory area into a table and place controls at the bottom?
         - Add text input field for selecting address location
         - Highlight instruction blocks in memory window when selecting instruction in disassembly window
         - Add "dump memory to file" button
@@ -12,6 +13,7 @@
     - Try moving GUI initialization into platform layer
 
     - Add a ScratchArena when I need it
+        - This is basically the per-frame arena now, as it isn't being used currently
     - Convert to length based strings
 
     - Add feedback to main window titlebar (loaded program name, etc)
@@ -55,11 +57,6 @@
 global_variable char *DLL_FILENAME = (char *)"sim8086_application.dll";
 global_variable char *DLL_TEMP_FILENAME = (char *)"sim8086_application_temp.dll";
 global_variable char *DLL_LOCK_FILENAME = (char *)"sim8086_lock.tmp";
-
-global_variable U64 PERMANENT_ARENA_SIZE = Megabytes(2);
-global_variable U64 INSTRUCTION_ARENA_SIZE = Megabytes(1);
-global_variable U64 FRAME_ARENA_SIZE = Megabytes(1);
-
 global_variable U32 FILE_PATH_BUFFER_SIZE = 512;
 
 global_variable ImVec4 CLEAR_COLOR = {0.45f, 0.55f, 0.60f, 1.00};
@@ -308,7 +305,17 @@ int CALLBACK WinMain(
 
     // allocate application memory
     application_memory memory = {};
-    memory.TotalSize = PERMANENT_ARENA_SIZE + INSTRUCTION_ARENA_SIZE + FRAME_ARENA_SIZE;
+
+    // TODO (Aaron): Figure out a better way to configure arena sizes
+    memory_index arenaSizes[] = { Megabytes(2), Megabytes(1), Megabytes(1), Megabytes(1) };
+    Assert((ArrayCount(arenaSizes) == ArrayCount(memory.Arenas))
+           && "arenaSizes count must match memory.Arenas count");
+
+    for (int i = 0; i < ArrayCount(arenaSizes); ++i)
+    {
+        memory.TotalSize += arenaSizes[i];
+    }
+
     memory.BackingStore = VirtualAlloc(0, memory.TotalSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
     if (!memory.BackingStore)
     {
@@ -317,16 +324,17 @@ int CALLBACK WinMain(
     }
 
     // partition out memory arenas
+    U8 *arenaStartPtr = (U8 *)memory.BackingStore;
+    memory.IsInitialized = TRUE;
+    for (int i = 0; i < ArrayCount(memory.Arenas); ++i)
     {
-        ArenaInitialize(&memory.PermanentArena, PERMANENT_ARENA_SIZE, (U8 *)memory.BackingStore);
+        ArenaInitialize(&memory.Arenas[i], arenaSizes[i], arenaStartPtr);
+        arenaStartPtr += arenaSizes[i];
 
-        U8 *instructionsArenaPtr = ((U8 *)memory.BackingStore) + memory.PermanentArena.Size;
-        ArenaInitialize(&memory.InstructionsArena, INSTRUCTION_ARENA_SIZE, instructionsArenaPtr);
-
-        U8 *frameArenaPtr = ((U8 *)memory.BackingStore) + memory.PermanentArena.Size + memory.InstructionsArena.Size;
-        ArenaInitialize(&memory.FrameArena, FRAME_ARENA_SIZE, frameArenaPtr);
-
-        memory.IsInitialized = (memory.PermanentArena.BasePtr && memory.InstructionsArena.BasePtr && memory.FrameArena.BasePtr);
+        if (!memory.Arenas[i].BasePtr)
+        {
+            memory.IsInitialized = FALSE;
+        }
     }
 
 

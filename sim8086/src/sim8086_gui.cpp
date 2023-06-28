@@ -40,6 +40,9 @@ global_function void ShowMainMenuBar(application_state *applicationState)
 
         if (ImGui::BeginMenu("Control"))
         {
+            // TODO (Aaron): Hmmm... how do I process control from here?
+            //  - Seems messy creating sim8086_application.h and making methods for this
+
             if (ImGui::MenuItem("Run program", "F5", false, false)) {}  // Disabled item
             if (ImGui::MenuItem("Reset program", "F8", false, false)) {}  // Disabled item
             if (ImGui::MenuItem("Step instruction", "F10", false, false)) {}  // Disabled item
@@ -85,22 +88,22 @@ global_function void ShowDisassemblyWindow(application_state *applicationState, 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
         }
 
-        char buffer[64];
-        sprintf(buffer, "%i", i + 1);
+        const U8 BUFFER_SIZE = 64;
+        char buffer[BUFFER_SIZE];
+
+        snprintf(buffer, BUFFER_SIZE, "%i", i + 1);
         if (ImGui::Selectable(buffer, applicationState->Disassembly_SelectedLine == i)) { applicationState->Disassembly_SelectedLine = i; }
 
-        sprintf(buffer, "0x%.8x", currentInstruction.Address);
+        snprintf(buffer, BUFFER_SIZE, "0x%.8x", currentInstruction.Address);
         ImGui::SameLine(50);
         ImGui::Text("%s", buffer);
 
-        char *assemblyPtr = GetInstructionMnemonic(&currentInstruction, frameArena);
         ImGui::SameLine(160);
-        ImGui::Text("%s", assemblyPtr);
+        ImGui::Text("%s", currentInstruction.InstructionMnemonic);
 
         if (ImGui::IsItemHovered())
         {
-            char *bitsString = GetInstructionBitsMnemonic(instructions[i], frameArena);
-            ImGui::SetTooltip("%s", bitsString);
+            ImGui::SetTooltip("%s", instructions[i].BitsMnemonic);
         }
 
         if (processor->IP == currentInstruction.Address)
@@ -120,20 +123,21 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
 
     ImGuiTableFlags tableFlags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
 
+    const U8 BUFFER_SIZE = 64;
+    char buffer[BUFFER_SIZE];
+
     // instruction pointer
     if (ImGui::BeginTable("instruction_pointer", 1, tableFlags))
     {
-        char buffer[56];
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        sprintf(buffer, "Instruction pointer: 0x%.32x", processor->IP);
+        snprintf(buffer, BUFFER_SIZE, "Instruction pointer: 0x%.32x", processor->IP);
         ImGui::TextUnformatted(buffer);
         ImGui::EndTable();
     }
 
     // al / ah / cl / ch / dl / dh / bl / bh
     {
-        char buffer[32];
         register_id registers[] = {
             Reg_al, Reg_ah,
             Reg_cl, Reg_ch,
@@ -148,11 +152,11 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
             {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                sprintf(buffer, "%s: 0x%.8x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
+                snprintf(buffer, BUFFER_SIZE, "%s: 0x%.8x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
                 ImGui::TextUnformatted(buffer);
 
                 ImGui::TableNextColumn();
-                sprintf(buffer, "%s: 0x%.8x", GetRegisterMnemonic(registers[i+1]), GetRegisterValue(processor, registers[i+1]));
+                snprintf(buffer, BUFFER_SIZE, "%s: 0x%.8x", GetRegisterMnemonic(registers[i+1]), GetRegisterValue(processor, registers[i+1]));
                 ImGui::TextUnformatted(buffer);
             }
 
@@ -162,7 +166,6 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
 
     // ax / cx / dx / bx
     {
-        char buffer[32];
         register_id registers[] ={ Reg_ax, Reg_cx, Reg_dx, Reg_bx };
 
         if (ImGui::BeginTable("registers_full", 1, tableFlags))
@@ -171,7 +174,7 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
             {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                sprintf(buffer, "%s: 0x%.16x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
+                snprintf(buffer, BUFFER_SIZE, "%s: 0x%.16x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
                 ImGui::TextUnformatted(buffer);
             }
 
@@ -182,7 +185,6 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
     // sp / bp / si / di
     if (ImGui::BeginTable("registers_1", 1, tableFlags))
     {
-        char buffer[32];
         register_id registers[] ={ Reg_sp, Reg_bp, Reg_si, Reg_di };
 
         for (int i = 0; i < ArrayCount(registers); i++)
@@ -190,7 +192,7 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
             ImGui::TableNextRow();
 
             ImGui::TableNextColumn();
-            sprintf(buffer, "%s: 0x%.16x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
+            snprintf(buffer, BUFFER_SIZE, "%s: 0x%.16x", GetRegisterMnemonic(registers[i]), GetRegisterValue(processor, registers[i]));
             ImGui::TextUnformatted(buffer);
         }
 
@@ -200,14 +202,13 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
     // flags
     if (ImGui::BeginTable("flags", 6, tableFlags))
     {
-        char buffer[32];
         register_flags flags[] ={ RegisterFlag_CF, RegisterFlag_PF, RegisterFlag_AF, RegisterFlag_ZF, RegisterFlag_SF, RegisterFlag_OF };
 
         ImGui::TableNextRow();
         for (int i = 0; i < ArrayCount(flags); i++)
         {
             ImGui::TableNextColumn();
-            sprintf(buffer, "%s: 0x%.1u", GetRegisterFlagMnemonic(flags[i]), GetRegisterFlag(processor, flags[i]));
+            snprintf(buffer, BUFFER_SIZE, "%s: 0x%.1u", GetRegisterFlagMnemonic(flags[i]), GetRegisterFlag(processor, flags[i]));
             ImGui::TextUnformatted(buffer);
         }
 
@@ -218,14 +219,14 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
 }
 
 
-global_function void ShowMemoryWindow(application_state *applicationState, memory_arena *frameArena, processor_8086 *processor)
+global_function void ShowMemoryWindow(application_state *applicationState, processor_8086 *processor)
 {
     U8 bytesPerLine = 16;
     U32 bytesDisplayed = Kilobytes(8);
     U32 minimumBytesDisplayed = 512;
 
-    // TODO (Aaron): Consider how to more cleanly pick buffer sizes here
-    char buffer[64];
+    const U8 BUFFER_SIZE = 64;
+    char buffer[BUFFER_SIZE];
     U32 maxMemoryAddress = processor->MemorySize - 1;
 
     ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
@@ -261,7 +262,7 @@ global_function void ShowMemoryWindow(application_state *applicationState, memor
     Assert((startAddress >= 0) && "Invalid start address");
     Assert((endAddress < processor->MemorySize) && "Invalid end address");
 
-    sprintf(buffer, "Range: 0x%.2llx - 0x%.2llx", startAddress, endAddress);
+    snprintf(buffer, BUFFER_SIZE, "Range: 0x%.2llx - 0x%.2llx", startAddress, endAddress);
     ImGui::Text("%s", buffer);
     ImGui::Separator();
 
@@ -269,7 +270,7 @@ global_function void ShowMemoryWindow(application_state *applicationState, memor
     for (U64 i = startAddress; i < endAddress; i += bytesPerLine)
     {
         // display address
-        sprintf(buffer, "%.16llx", i);
+        snprintf(buffer, BUFFER_SIZE, "%.16llx", i);
         ImGui::Text("0x%s:", buffer);
 
         F32 offset = 150;
@@ -286,6 +287,18 @@ global_function void ShowMemoryWindow(application_state *applicationState, memor
     }
 
     ImGui::End();
+}
+
+
+inline
+global_function void _ImGuiTextLabelUsedTotalPercentage(char *label, char *units, F64 used, F64 total)
+{
+    ImGui::Text("%s: %.2f / %.f %s (%.2f%%)",
+                label,
+                used,
+                total,
+                units,
+                used / total * 100);
 }
 
 
@@ -318,22 +331,45 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
 
         ImGui::Text("Memory");
         ImGui::Separator();
-        ImGui::Text("Permanent arena usage: %.2f / %.f KB (%.2f%%)",
-                    (F64)memory->PermanentArena.Used / (F64)Kilobytes(1),
-                    (F64)memory->PermanentArena.Size / (F64)Kilobytes(1),
-                    (F64)memory->PermanentArena.Used / (F64)memory->PermanentArena.Size * 100);
-        ImGui::Text("Per-frame arena usage: %.2f / %.f KB (%.2f%%)",
-                    (F64)memory->FrameArena.Used / (F64)Kilobytes(1),
-                    (F64)memory->FrameArena.Size / (F64)Kilobytes(1),
-                    (F64)memory->FrameArena.Used / (F64)memory->FrameArena.Size * 100);
-        ImGui::Text("Per-frame arena max usage: %.2f KB", (F64)applicationState->MaxScratchMemoryUsage / (F64)Kilobytes(1));
-        ImGui::Text("Instruction arena usage: %llu / %llu KB (%.2f%%)",
-                    memory->InstructionsArena.Used / Kilobytes(1),
-                    memory->InstructionsArena.Size / Kilobytes(1),
-                    (F64)memory->InstructionsArena.Used / (F64)memory->InstructionsArena.Size * 100);
-        ImGui::Text("Total used: %.3f MB (%.2f%%)",
-                    (F64)memory->TotalSize / (F64)Megabytes(1),
-                    (F64)(memory->PermanentArena.Used + memory->FrameArena.Used + memory->InstructionsArena.Used) / (F64)memory->TotalSize * 100);
+
+        _ImGuiTextLabelUsedTotalPercentage(
+            (char *)"Permanent",
+            (char *)"KB",
+            (F64)memory->PermanentArena.Used / Kilobytes(1),
+            (F64)memory->PermanentArena.Size / Kilobytes(1));
+
+        _ImGuiTextLabelUsedTotalPercentage(
+            (char *)"Per-frame",
+            (char *)"KB",
+            (F64)memory->FrameArena.Used / Kilobytes(1),
+            (F64)memory->FrameArena.Size / Kilobytes(1));
+
+        ImGui::Text("Per-frame max: %.2f KB", (F64)applicationState->MaxScratchMemoryUsage / (F64)Kilobytes(1));
+
+        _ImGuiTextLabelUsedTotalPercentage(
+            (char *)"Instructions",
+            (char *)"KB",
+            (F64)memory->InstructionsArena.Used / Kilobytes(1),
+            (F64)memory->InstructionsArena.Size / Kilobytes(1));
+
+        _ImGuiTextLabelUsedTotalPercentage(
+            (char *)"Instruction strings",
+            (char *)"KB",
+            (F64)memory->InstructionStringsArena.Used / Kilobytes(1),
+            (F64)memory->InstructionStringsArena.Size / Kilobytes(1));
+
+        U64 totalUsed = 0;
+        for (int i = 0; i < ArrayCount(memory->Arenas); ++i)
+        {
+            totalUsed += memory->Arenas[i].Used;
+        }
+
+        _ImGuiTextLabelUsedTotalPercentage(
+            (char *)"Total",
+            (char *)"MB",
+            (F64)totalUsed / Megabytes(1),
+            (F64)memory->TotalSize / Megabytes(1));
+
         ImGui::Text("");
 
         ImGui::Text("Performance");
@@ -354,7 +390,7 @@ global_function void DrawGui(application_state *applicationState, application_me
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
     ShowDisassemblyWindow(applicationState, processor, &memory->InstructionsArena, &memory->FrameArena);
     ShowRegistersWindow(applicationState, processor);
-    ShowMemoryWindow(applicationState, &memory->FrameArena, processor);
+    ShowMemoryWindow(applicationState, processor);
 
     ShowDiagnosticsWindow(applicationState, memory, processor);
 

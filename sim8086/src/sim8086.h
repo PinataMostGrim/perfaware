@@ -239,6 +239,9 @@ struct instruction
 
     U8 ClockCount = 0;
     U8 EAClockCount = 0;
+
+    char *InstructionMnemonic;
+    char *BitsMnemonic;
 };
 
 

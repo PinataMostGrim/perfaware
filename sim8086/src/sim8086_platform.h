@@ -22,9 +22,17 @@ typedef struct
     void *BackingStore;
     U64 TotalSize;
 
-    memory_arena PermanentArena;
-    memory_arena FrameArena;
-    memory_arena InstructionsArena;
+    union
+    {
+        memory_arena Arenas[4];
+        struct
+        {
+            memory_arena PermanentArena;
+            memory_arena FrameArena;
+            memory_arena InstructionsArena;
+            memory_arena InstructionStringsArena;
+        };
+    };
 
     B32 IsInitialized;
 } application_memory;
