@@ -287,6 +287,18 @@ global_function void ShowMemoryWindow(application_state *applicationState, proce
 }
 
 
+inline
+global_function void _ImGuiTextLabelUsedTotalPercentage(char *label, char *units, F64 used, F64 total)
+{
+    ImGui::Text("%s: %.2f / %.f %s (%.2f%%)",
+                label,
+                used,
+                total,
+                units,
+                used / total * 100);
+}
+
+
 global_function void ShowDiagnosticsWindow(application_state *applicationState, application_memory *memory, processor_8086 *processor)
 {
     if (applicationState->Diagnostics_ShowWindow)
@@ -316,29 +328,45 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
 
         ImGui::Text("Memory");
         ImGui::Separator();
-        ImGui::Text("Permanent arena usage: %.2f / %.f KB (%.2f%%)",
-                    (F64)memory->PermanentArena.Used / (F64)Kilobytes(1),
-                    (F64)memory->PermanentArena.Size / (F64)Kilobytes(1),
-                    (F64)memory->PermanentArena.Used / (F64)memory->PermanentArena.Size * 100);
-        ImGui::Text("Per-frame arena usage: %.2f / %.f KB (%.2f%%)",
-                    (F64)memory->FrameArena.Used / (F64)Kilobytes(1),
-                    (F64)memory->FrameArena.Size / (F64)Kilobytes(1),
-                    (F64)memory->FrameArena.Used / (F64)memory->FrameArena.Size * 100);
-        ImGui::Text("Per-frame arena max usage: %.2f KB", (F64)applicationState->MaxScratchMemoryUsage / (F64)Kilobytes(1));
-        ImGui::Text("Instruction arena usage: %llu / %llu KB (%.2f%%)",
-                    memory->InstructionsArena.Used / Kilobytes(1),
-                    memory->InstructionsArena.Size / Kilobytes(1),
-                    (F64)memory->InstructionsArena.Used / (F64)memory->InstructionsArena.Size * 100);
+
+        _ImGuiTextLabelUsedTotalPercentage(
+            (char *)"Permanent",
+            (char *)"KB",
+            (F64)memory->PermanentArena.Used / Kilobytes(1),
+            (F64)memory->PermanentArena.Size / Kilobytes(1));
+
+        _ImGuiTextLabelUsedTotalPercentage(
+            (char *)"Per-frame",
+            (char *)"KB",
+            (F64)memory->FrameArena.Used / Kilobytes(1),
+            (F64)memory->FrameArena.Size / Kilobytes(1));
+
+        ImGui::Text("Per-frame max: %.2f KB", (F64)applicationState->MaxScratchMemoryUsage / (F64)Kilobytes(1));
+
+        _ImGuiTextLabelUsedTotalPercentage(
+            (char *)"Instructions",
+            (char *)"KB",
+            (F64)memory->InstructionsArena.Used / Kilobytes(1),
+            (F64)memory->InstructionsArena.Size / Kilobytes(1));
+
+        _ImGuiTextLabelUsedTotalPercentage(
+            (char *)"Instruction strings",
+            (char *)"KB",
+            (F64)memory->InstructionStringsArena.Used / Kilobytes(1),
+            (F64)memory->InstructionStringsArena.Size / Kilobytes(1));
 
         U64 totalUsed = 0;
         for (int i = 0; i < ArrayCount(memory->Arenas); ++i)
         {
             totalUsed += memory->Arenas[i].Used;
         }
-        ImGui::Text("Total used: %.3f / %.3f MB (%.2f%%)",
-                    (F64)totalUsed / (F64)Megabytes(1),
-                    (F64)memory->TotalSize / (F64)Megabytes(1),
-                    (F64)totalUsed / (F64)memory->TotalSize * 100);
+
+        _ImGuiTextLabelUsedTotalPercentage(
+            (char *)"Total",
+            (char *)"MB",
+            (F64)totalUsed / Megabytes(1),
+            (F64)memory->TotalSize / Megabytes(1));
+
         ImGui::Text("");
 
         ImGui::Text("Performance");
