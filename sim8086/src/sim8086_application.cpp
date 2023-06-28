@@ -29,7 +29,6 @@ C_LINKAGE SET_IMGUI_CONTEXT(SetImGuiContext)
 }
 
 
-
 C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
 {
     if (!applicationState->ProgramLoaded && !applicationState->LoadFailure)
@@ -65,11 +64,15 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
         fclose(file);
 
         // generate instructions from loaded program
-        instruction *instructionBuffer = (instruction *)memory->InstructionsArena.BasePtr;
+        ArenaClearZero(&memory->InstructionsArena);
+        ArenaClearZero(&memory->InstructionStringsArena);
+
         while (processor->IP < processor->ProgramSize)
         {
             instruction nextInstruction = DecodeNextInstruction(processor);
             instruction *nextInstructionPtr = ArenaPushStruct(&memory->InstructionsArena, instruction);
+            nextInstruction.InstructionMnemonic = GetInstructionMnemonic(&nextInstruction, &memory->InstructionStringsArena);
+            nextInstruction.BitsMnemonic = GetInstructionBitsMnemonic(&nextInstruction, &memory->InstructionStringsArena);
             MemoryCopy(nextInstructionPtr, &nextInstruction, sizeof(instruction));
         }
 

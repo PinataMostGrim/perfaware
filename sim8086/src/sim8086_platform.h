@@ -24,12 +24,13 @@ typedef struct
 
     union
     {
-        memory_arena Arenas[3];
+        memory_arena Arenas[4];
         struct
         {
             memory_arena PermanentArena;
             memory_arena FrameArena;
             memory_arena InstructionsArena;
+            memory_arena InstructionStringsArena;
         };
     };
 

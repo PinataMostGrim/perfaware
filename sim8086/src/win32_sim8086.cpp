@@ -303,8 +303,10 @@ int CALLBACK WinMain(
 
     // allocate application memory
     application_memory memory = {};
-    memory_index arenaSizes[] = { Megabytes(2), Megabytes(1), Megabytes(1) };
-    Assert((ArrayCount(arenaSizes) == ArrayCount(memory.Arenas)) && "arenaSizes count must match memory.Arenas count");
+
+    memory_index arenaSizes[] = { Megabytes(2), Megabytes(1), Megabytes(1), Megabytes(1) };
+    Assert((ArrayCount(arenaSizes) == ArrayCount(memory.Arenas))
+           && "arenaSizes count must match memory.Arenas count");
 
     for (int i = 0; i < ArrayCount(arenaSizes); ++i)
     {

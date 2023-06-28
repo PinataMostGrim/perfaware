@@ -93,14 +93,12 @@ global_function void ShowDisassemblyWindow(application_state *applicationState, 
         ImGui::SameLine(50);
         ImGui::Text("%s", buffer);
 
-        char *assemblyPtr = GetInstructionMnemonic(&currentInstruction, frameArena);
         ImGui::SameLine(160);
-        ImGui::Text("%s", assemblyPtr);
+        ImGui::Text("%s", currentInstruction.InstructionMnemonic);
 
         if (ImGui::IsItemHovered())
         {
-            char *bitsString = GetInstructionBitsMnemonic(instructions[i], frameArena);
-            ImGui::SetTooltip("%s", bitsString);
+            ImGui::SetTooltip("%s", instructions[i].BitsMnemonic);
         }
 
         if (processor->IP == currentInstruction.Address)
@@ -218,7 +216,7 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
 }
 
 
-global_function void ShowMemoryWindow(application_state *applicationState, memory_arena *frameArena, processor_8086 *processor)
+global_function void ShowMemoryWindow(application_state *applicationState, processor_8086 *processor)
 {
     U8 bytesPerLine = 16;
     U32 bytesDisplayed = Kilobytes(8);
@@ -361,7 +359,7 @@ global_function void DrawGui(application_state *applicationState, application_me
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
     ShowDisassemblyWindow(applicationState, processor, &memory->InstructionsArena, &memory->FrameArena);
     ShowRegistersWindow(applicationState, processor);
-    ShowMemoryWindow(applicationState, &memory->FrameArena, processor);
+    ShowMemoryWindow(applicationState, processor);
 
     ShowDiagnosticsWindow(applicationState, memory, processor);
 

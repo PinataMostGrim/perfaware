@@ -254,17 +254,17 @@ global_function char *GetInstructionMnemonic(instruction *instruction, memory_ar
 }
 
 
-global_function char *GetInstructionBitsMnemonic(instruction inst, memory_arena *arena)
+global_function char *GetInstructionBitsMnemonic(instruction *inst, memory_arena *arena)
 {
     char *result;
     result = (char *)arena->PositionPtr;
 
-    for (U8 i = 0; i < inst.Bits.ByteCount; ++i)
+    for (U8 i = 0; i < inst->Bits.ByteCount; ++i)
     {
         for (U8 j = 0; j < 8; j++)
         {
             U8 mask = 128 >> j;
-            U8 bit = (inst.Bits.Bytes[i] & mask) >> (7 - j);
+            U8 bit = (inst->Bits.Bytes[i] & mask) >> (7 - j);
             ArenaPushString(arena, bit == 1 ? (char *)"1": (char *)"0");
         }
     }
