@@ -1,10 +1,10 @@
 /*  TODO (Aaron):
-    - Add usage printout
 */
 
 #pragma warning(disable:4996)
 
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,16 +28,24 @@
 
 typedef struct
 {
+    union
+    {
+        metric_timing Subtimings[8];
+        struct
+        {
+            metric_timing Startup;
+            metric_timing JSONLexing;
+            metric_timing JSONParsing;
+            metric_timing StackOperations;
+            metric_timing HaversineDistance;
+            metric_timing Validation;
+            metric_timing SumCalculation;
+            metric_timing MiscOperations;
+        } _sub_timings;
+    };
+
+    metric_timing Total;
     U64 CPUFrequency;
-    U64 Startup;
-    U64 JSONLexing;
-    U64 JSONParsing;
-    U64 StackOperations;
-    U64 HaversineDistance;
-    U64 Validation;
-    U64 SumCalculation;
-    U64 MiscOperations;
-    U64 TotalTime;
 } haversine_processor_metrics;
 
 
@@ -79,16 +87,13 @@ typedef struct
 
 global_function void InitializeProcessorMetrics(haversine_processor_metrics *metrics)
 {
+    for (int i = 0; i < ArrayCount(metrics->Subtimings); ++i)
+    {
+        InitializeMetricTiming(&metrics->Subtimings[i]);
+    }
+
+    InitializeMetricTiming(&metrics->Total);
     metrics->CPUFrequency = 0;
-    metrics->Startup = 0;
-    metrics->JSONLexing = 0;
-    metrics->JSONParsing = 0;
-    metrics->StackOperations = 0;
-    metrics->HaversineDistance = 0;
-    metrics->Validation = 0;
-    metrics->SumCalculation = 0;
-    metrics->MiscOperations = 0;
-    metrics->TotalTime = 0;
 }
 
 
@@ -198,23 +203,22 @@ global_function void PrintHaversineDistance(V2F64 point0, V2F64 point1, F64 dist
 }
 
 
-#if ENABLE_TIMINGS
 inline void StartCPUTiming(metric_timing *timing)
 {
+#if ENABLE_TIMINGS
     timing->Start = ReadCPUTimer();
-}
-
-
-inline void EndCPUTimingAndIncrementMetric(metric_timing *timing, U64 *metric)
-{
-    timing->End = ReadCPUTimer();
-    timing->Duration = timing->End - timing->Start;
-    *metric += timing->Duration;
-}
-#else
-inline void StartCPUTiming(metric_timing *timing) {}
-inline void EndCPUTimingAndIncrementMetric(metric_timing *timing, U64 *metric) {}
 #endif
+}
+
+
+inline void EndCPUTimingAndIncrementMetric(metric_timing *timing)
+{
+#if ENABLE_TIMINGS
+    timing->End = ReadCPUTimer();
+    U64 duration = timing->End - timing->Start;
+    timing->Duration += duration;
+#endif
+}
 
 
 inline void PrintTiming(char *timingName, U64 timing, U64 totalTime, U8 tabCount)
@@ -225,7 +229,6 @@ inline void PrintTiming(char *timingName, U64 timing, U64 totalTime, U8 tabCount
         printf("\t");
     }
     printf("%llu (%.2f%s)\n", timing, ((F64)timing / (F64)totalTime) * 100.0f, "%");
-
 }
 
 
@@ -236,32 +239,14 @@ int main()
     InitializeProcessorMetrics(&metrics);
     metrics.CPUFrequency = GetCPUFrequency(200);
 
-    // initialize timings
-    metric_timing startupTiming;
-    metric_timing totalTiming;
-    metric_timing jsonLexingTimings;
-    metric_timing jsonParsingTimings;
-    metric_timing stackOperationTimings;
-    metric_timing haversineDistanceTimings;
-    metric_timing validationTimings;
-    metric_timing sumCalculationTimings;
-    metric_timing miscOperationTimings;
+    static_assert(sizeof(metrics.Subtimings) == sizeof(metrics._sub_timings),
+                  "Union mismatch - Timings array does not match the number of timings in _haversine_timings struct");
 
-    InitializeMetricTiming(&startupTiming);
-    InitializeMetricTiming(&totalTiming);
-    InitializeMetricTiming(&jsonLexingTimings);
-    InitializeMetricTiming(&jsonParsingTimings);
-    InitializeMetricTiming(&stackOperationTimings);
-    InitializeMetricTiming(&haversineDistanceTimings);
-    InitializeMetricTiming(&validationTimings);
-    InitializeMetricTiming(&sumCalculationTimings);
-    InitializeMetricTiming(&miscOperationTimings);
-
-    // Note (Aaron): Avoid using StartCPUTiming() for the totalTiming so we can
+    // Note (Aaron): Avoid using StartCPUTiming() for the Total timing so we can
     // disable the timings methods and get a sense of how much of an impact they
     // have on execution times.
-    totalTiming.Start = ReadCPUTimer();
-    StartCPUTiming(&startupTiming);
+    metrics.Total.Start = ReadCPUTimer();
+    StartCPUTiming(&metrics._sub_timings.Startup);
 
     // open data file
     char *dataFilename = DATA_FILENAME;
@@ -315,34 +300,34 @@ int main()
     pairs_context context;
     InitializePairsContext(&context);
 
-    EndCPUTimingAndIncrementMetric(&startupTiming, &metrics.Startup);
+    EndCPUTimingAndIncrementMetric(&metrics._sub_timings.Startup);
 
     for (;;)
     {
-        StartCPUTiming(&jsonLexingTimings);
+        StartCPUTiming(&metrics._sub_timings.JSONLexing);
         haversine_token nextToken = GetNextToken(dataFile);
-        EndCPUTimingAndIncrementMetric(&jsonLexingTimings, &metrics.JSONLexing);
+        EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONLexing);
 
-        StartCPUTiming(&miscOperationTimings);
+        StartCPUTiming(&metrics._sub_timings.MiscOperations);
         stats.TokenCount++;
         stats.MaxTokenLength = nextToken.Length > stats.MaxTokenLength
             ? nextToken.Length
             : stats.MaxTokenLength;
-        EndCPUTimingAndIncrementMetric(&miscOperationTimings, &metrics.MiscOperations);
+        EndCPUTimingAndIncrementMetric(&metrics._sub_timings.MiscOperations);
 
 #if 0
         printf("[INFO] %lli: ", stats.TokenCount);
         PrintToken(&nextToken);
 #endif
 
-        StartCPUTiming(&jsonParsingTimings);
+        StartCPUTiming(&metrics._sub_timings.JSONParsing);
         if (nextToken.Type == Token_EOF)
         {
 #if 0
             printf("\n");
             printf("[INFO] EOF reached\n");
 #endif
-            EndCPUTimingAndIncrementMetric(&jsonParsingTimings, &metrics.JSONParsing);
+            EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
             break;
         }
 
@@ -352,7 +337,7 @@ int main()
             || nextToken.Type == Token_scope_open
             || nextToken.Type == Token_scope_close)
         {
-            EndCPUTimingAndIncrementMetric(&jsonParsingTimings, &metrics.JSONParsing);
+            EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
             continue;
         }
 
@@ -372,13 +357,13 @@ int main()
             if (!context.ArrayStartToken && nextToken.Type == Token_array_start)
             {
                 context.ArrayStartToken = tokenPtr;
-                EndCPUTimingAndIncrementMetric(&jsonParsingTimings, &metrics.JSONParsing);
+                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
             if (!context.ArrayStartToken)
             {
-                EndCPUTimingAndIncrementMetric(&jsonParsingTimings, &metrics.JSONParsing);
+                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
@@ -390,7 +375,7 @@ int main()
 
                 context.ArrayStartToken = 0;
                 context.PairsToken = 0;
-                EndCPUTimingAndIncrementMetric(&jsonParsingTimings, &metrics.JSONParsing);
+                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
@@ -404,7 +389,7 @@ int main()
                     exit(1);
                 }
                 context.X0Token = tokenPtr;
-                EndCPUTimingAndIncrementMetric(&jsonParsingTimings, &metrics.JSONParsing);
+                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
@@ -417,7 +402,7 @@ int main()
                     exit(1);
                 }
                 context.Y0Token = tokenPtr;
-                EndCPUTimingAndIncrementMetric(&jsonParsingTimings, &metrics.JSONParsing);
+                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
@@ -430,7 +415,7 @@ int main()
                     exit(1);
                 }
                 context.X1Token = tokenPtr;
-                EndCPUTimingAndIncrementMetric(&jsonParsingTimings, &metrics.JSONParsing);
+                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
@@ -443,16 +428,16 @@ int main()
                     exit(1);
                 }
                 context.Y1Token = tokenPtr;
-                EndCPUTimingAndIncrementMetric(&jsonParsingTimings, &metrics.JSONParsing);
+                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
-            EndCPUTimingAndIncrementMetric(&jsonParsingTimings, &metrics.JSONParsing);
+            EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
 
             // process a Haversine point pair once we have parsed its values
             if (context.X0Token && context.Y0Token && context.X1Token && context.Y1Token)
             {
-                StartCPUTiming(&stackOperationTimings);
+                StartCPUTiming(&metrics._sub_timings.StackOperations);
                 haversine_token y1Value = PopToken(&tokenStack);
                 PopToken(&tokenStack);
                 haversine_token x1Value = PopToken(&tokenStack);
@@ -474,17 +459,17 @@ int main()
 
                 V2F64 point0 = GetVectorFromCoordinateTokens(x0Value, y0Value);
                 V2F64 point1 = GetVectorFromCoordinateTokens(x1Value, y1Value);
-                EndCPUTimingAndIncrementMetric(&stackOperationTimings, &metrics.StackOperations);
+                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.StackOperations);
 
-                StartCPUTiming(&haversineDistanceTimings);
+                StartCPUTiming(&metrics._sub_timings.HaversineDistance);
                 F64 distance = ReferenceHaversine(point0.x, point0.y, point1.x, point1.y, EARTH_RADIUS);
-                EndCPUTimingAndIncrementMetric(&haversineDistanceTimings, &metrics.HaversineDistance);
+                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.HaversineDistance);
 
 #if 0
                 PrintHaversineDistance(point0, point1, distance);
 #endif
 
-                StartCPUTiming(&validationTimings);
+                StartCPUTiming(&metrics._sub_timings.Validation);
                 F64 answerDistance;
                 fread(&answerDistance, sizeof(F64), 1, answerFile);
 
@@ -495,19 +480,19 @@ int main()
                     stats.CalculationErrors++;
                     printf("[WARN] Calculated distance diverges from answer value significantly (calculated: %f vs. answer: %f)\n", distance, answerDistance);
                 }
-                EndCPUTimingAndIncrementMetric(&validationTimings, &metrics.Validation);
+                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.Validation);
 
-                StartCPUTiming(&sumCalculationTimings);
+                StartCPUTiming(&metrics._sub_timings.SumCalculation);
                 stats.CalcualtedSum = ((stats.CalcualtedSum * (F64)stats.PairsProcessed) + distance) / (F64)(stats.PairsProcessed + 1);
                 stats.PairsProcessed++;
-                EndCPUTimingAndIncrementMetric(&sumCalculationTimings, &metrics.SumCalculation);
+                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.SumCalculation);
 
                 continue;
             }
         }
     }
 
-    StartCPUTiming(&miscOperationTimings);
+    StartCPUTiming(&metrics._sub_timings.MiscOperations);
     if (ferror(dataFile))
     {
         fclose(dataFile);
@@ -531,39 +516,34 @@ int main()
     printf("\n");
     PrintStats(&stats);
     printf("\n");
-    EndCPUTimingAndIncrementMetric(&miscOperationTimings, &metrics.MiscOperations);
+    EndCPUTimingAndIncrementMetric(&metrics._sub_timings.MiscOperations);
 
-    // Note (Aaron): As above, avoid using EndCPUTimingAndIncrementMetric() on totalTiming
+    // Note (Aaron): As above, avoid using EndCPUTimingAndIncrementMetric() on Total timing
     // and calculate the duration below so we can disable the timings methods and get a sense
     // for how much taking the timings affects the execution time.
-    totalTiming.End = ReadCPUTimer();
-    totalTiming.Duration = totalTiming.End - totalTiming.Start;
-    metrics.TotalTime += totalTiming.Duration;
-    F64 totalTimeMs = ((F64)metrics.TotalTime / (F64)metrics.CPUFrequency) * 1000.0f;
+    metrics.Total.End = ReadCPUTimer();
+    metrics.Total.Duration = metrics.Total.End - metrics.Total.Start;
+    F64 totalTimeMs = ((F64)metrics.Total.Duration / (F64)metrics.CPUFrequency) * 1000.0f;
 
 #if ENABLE_TIMINGS
-    S64 unaccounted = metrics.TotalTime
-        - metrics.Startup
-        - metrics.JSONLexing
-        - metrics.JSONParsing
-        - metrics.StackOperations
-        - metrics.HaversineDistance
-        - metrics.Validation
-        - metrics.SumCalculation
-        - metrics.MiscOperations;
+    S64 unaccounted = metrics.Total.Duration;
+    for (int i = 0; i < ArrayCount(metrics.Subtimings); ++i)
+    {
+        unaccounted -= metrics.Subtimings[i].Duration;
+    }
 
     Assert((unaccounted > 0) && "Subtracted more than the total time");
 
     printf("Timings:\n");
-    PrintTiming("Startup", metrics.Startup, metrics.TotalTime, 2);
-    PrintTiming("JSON Lexing", metrics.JSONLexing, metrics.TotalTime, 2);
-    PrintTiming("JSON Parsing", metrics.JSONParsing, metrics.TotalTime, 2);
-    PrintTiming("Stack Operations", metrics.StackOperations, metrics.TotalTime, 1);
-    PrintTiming("Haversine Distance", metrics.HaversineDistance, metrics.TotalTime, 1);
-    PrintTiming("Validation", metrics.Validation, metrics.TotalTime, 2);
-    PrintTiming("Sum Calculation", metrics.SumCalculation, metrics.TotalTime, 1);
-    PrintTiming("Misc Operations", metrics.MiscOperations, metrics.TotalTime, 1);
-    PrintTiming("Unaccounted", unaccounted, metrics.TotalTime, 2);
+    PrintTiming("Startup", metrics._sub_timings.Startup.Duration, metrics.Total.Duration, 2);
+    PrintTiming("JSON Lexing", metrics._sub_timings.JSONLexing.Duration, metrics.Total.Duration, 2);
+    PrintTiming("JSON Parsing", metrics._sub_timings.JSONParsing.Duration, metrics.Total.Duration, 2);
+    PrintTiming("Stack Operations", metrics._sub_timings.StackOperations.Duration, metrics.Total.Duration, 1);
+    PrintTiming("Haversine Distance", metrics._sub_timings.HaversineDistance.Duration, metrics.Total.Duration, 1);
+    PrintTiming("Validation", metrics._sub_timings.Validation.Duration, metrics.Total.Duration, 2);
+    PrintTiming("Sum Calculation", metrics._sub_timings.SumCalculation.Duration, metrics.Total.Duration, 1);
+    PrintTiming("Misc Operations", metrics._sub_timings.MiscOperations.Duration, metrics.Total.Duration, 1);
+    PrintTiming("Unaccounted", unaccounted, metrics.Total.Duration, 2);
     printf("\n");
 #endif
 
