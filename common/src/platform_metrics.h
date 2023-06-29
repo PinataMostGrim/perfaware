@@ -42,6 +42,22 @@ global_function void InitializeMetricTiming(metric_timing *timing)
 }
 
 
+inline
+global_function void StartCPUTiming(metric_timing *timing)
+{
+    timing->Start = ReadCPUTimer();
+}
+
+
+inline
+global_function void EndCPUTimingAndIncrementDuration(metric_timing *timing)
+{
+    timing->End = ReadCPUTimer();
+    U64 duration = timing->End - timing->Start;
+    timing->Duration += duration;
+}
+
+
 global_function U64 GetOSTimerFrequency()
 {
     LARGE_INTEGER frequency;

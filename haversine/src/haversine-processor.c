@@ -26,6 +26,15 @@
 #define EPSILON_FLOAT 0.001
 
 
+#if ENABLE_TIMINGS
+#define START_CPU_TIMING(timingPtr) StartCPUTiming(timingPtr);
+#define END_CPU_TIMING(timingPtr) EndCPUTimingAndIncrementDuration(timingPtr);
+#else
+#define START_CPU_TIMING(timingPtr)
+#define END_CPU_TIMING(timingPtr)
+#endif
+
+
 typedef struct
 {
     union
@@ -203,24 +212,6 @@ global_function void PrintHaversineDistance(V2F64 point0, V2F64 point1, F64 dist
 }
 
 
-inline void StartCPUTiming(metric_timing *timing)
-{
-#if ENABLE_TIMINGS
-    timing->Start = ReadCPUTimer();
-#endif
-}
-
-
-inline void EndCPUTimingAndIncrementMetric(metric_timing *timing)
-{
-#if ENABLE_TIMINGS
-    timing->End = ReadCPUTimer();
-    U64 duration = timing->End - timing->Start;
-    timing->Duration += duration;
-#endif
-}
-
-
 inline void PrintTiming(char *timingName, U64 timing, U64 totalTime, U8 tabCount)
 {
     printf("  %s:", timingName);
@@ -236,17 +227,18 @@ int main()
 {
     // calculate CPU frequency
     haversine_processor_metrics metrics;
-    InitializeProcessorMetrics(&metrics);
-    metrics.CPUFrequency = GetCPUFrequency(200);
 
     static_assert(sizeof(metrics.Subtimings) == sizeof(metrics._sub_timings),
                   "Union mismatch - Timings array does not match the number of timings in _haversine_timings struct");
+
+    InitializeProcessorMetrics(&metrics);
+    metrics.CPUFrequency = GetCPUFrequency(200);
 
     // Note (Aaron): Avoid using StartCPUTiming() for the Total timing so we can
     // disable the timings methods and get a sense of how much of an impact they
     // have on execution times.
     metrics.Total.Start = ReadCPUTimer();
-    StartCPUTiming(&metrics._sub_timings.Startup);
+    START_CPU_TIMING(&metrics._sub_timings.Startup);
 
     // open data file
     char *dataFilename = DATA_FILENAME;
@@ -300,34 +292,34 @@ int main()
     pairs_context context;
     InitializePairsContext(&context);
 
-    EndCPUTimingAndIncrementMetric(&metrics._sub_timings.Startup);
+    END_CPU_TIMING(&metrics._sub_timings.Startup);
 
     for (;;)
     {
-        StartCPUTiming(&metrics._sub_timings.JSONLexing);
+        START_CPU_TIMING(&metrics._sub_timings.JSONLexing);
         haversine_token nextToken = GetNextToken(dataFile);
-        EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONLexing);
+        END_CPU_TIMING(&metrics._sub_timings.JSONLexing);
 
-        StartCPUTiming(&metrics._sub_timings.MiscOperations);
+        START_CPU_TIMING(&metrics._sub_timings.MiscOperations);
         stats.TokenCount++;
         stats.MaxTokenLength = nextToken.Length > stats.MaxTokenLength
             ? nextToken.Length
             : stats.MaxTokenLength;
-        EndCPUTimingAndIncrementMetric(&metrics._sub_timings.MiscOperations);
+        END_CPU_TIMING(&metrics._sub_timings.MiscOperations);
 
 #if 0
         printf("[INFO] %lli: ", stats.TokenCount);
         PrintToken(&nextToken);
 #endif
 
-        StartCPUTiming(&metrics._sub_timings.JSONParsing);
+        START_CPU_TIMING(&metrics._sub_timings.JSONParsing);
         if (nextToken.Type == Token_EOF)
         {
 #if 0
             printf("\n");
             printf("[INFO] EOF reached\n");
 #endif
-            EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
+            END_CPU_TIMING(&metrics._sub_timings.JSONParsing);
             break;
         }
 
@@ -337,7 +329,7 @@ int main()
             || nextToken.Type == Token_scope_open
             || nextToken.Type == Token_scope_close)
         {
-            EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
+            END_CPU_TIMING(&metrics._sub_timings.JSONParsing);
             continue;
         }
 
@@ -357,13 +349,13 @@ int main()
             if (!context.ArrayStartToken && nextToken.Type == Token_array_start)
             {
                 context.ArrayStartToken = tokenPtr;
-                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
+                END_CPU_TIMING(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
             if (!context.ArrayStartToken)
             {
-                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
+                END_CPU_TIMING(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
@@ -375,7 +367,7 @@ int main()
 
                 context.ArrayStartToken = 0;
                 context.PairsToken = 0;
-                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
+                END_CPU_TIMING(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
@@ -389,7 +381,7 @@ int main()
                     exit(1);
                 }
                 context.X0Token = tokenPtr;
-                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
+                END_CPU_TIMING(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
@@ -402,7 +394,7 @@ int main()
                     exit(1);
                 }
                 context.Y0Token = tokenPtr;
-                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
+                END_CPU_TIMING(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
@@ -415,7 +407,7 @@ int main()
                     exit(1);
                 }
                 context.X1Token = tokenPtr;
-                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
+                END_CPU_TIMING(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
@@ -428,16 +420,16 @@ int main()
                     exit(1);
                 }
                 context.Y1Token = tokenPtr;
-                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
+                END_CPU_TIMING(&metrics._sub_timings.JSONParsing);
                 continue;
             }
 
-            EndCPUTimingAndIncrementMetric(&metrics._sub_timings.JSONParsing);
+            END_CPU_TIMING(&metrics._sub_timings.JSONParsing);
 
             // process a Haversine point pair once we have parsed its values
             if (context.X0Token && context.Y0Token && context.X1Token && context.Y1Token)
             {
-                StartCPUTiming(&metrics._sub_timings.StackOperations);
+                START_CPU_TIMING(&metrics._sub_timings.StackOperations);
                 haversine_token y1Value = PopToken(&tokenStack);
                 PopToken(&tokenStack);
                 haversine_token x1Value = PopToken(&tokenStack);
@@ -459,17 +451,17 @@ int main()
 
                 V2F64 point0 = GetVectorFromCoordinateTokens(x0Value, y0Value);
                 V2F64 point1 = GetVectorFromCoordinateTokens(x1Value, y1Value);
-                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.StackOperations);
+                END_CPU_TIMING(&metrics._sub_timings.StackOperations);
 
-                StartCPUTiming(&metrics._sub_timings.HaversineDistance);
+                START_CPU_TIMING(&metrics._sub_timings.HaversineDistance);
                 F64 distance = ReferenceHaversine(point0.x, point0.y, point1.x, point1.y, EARTH_RADIUS);
-                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.HaversineDistance);
+                END_CPU_TIMING(&metrics._sub_timings.HaversineDistance);
 
 #if 0
                 PrintHaversineDistance(point0, point1, distance);
 #endif
 
-                StartCPUTiming(&metrics._sub_timings.Validation);
+                START_CPU_TIMING(&metrics._sub_timings.Validation);
                 F64 answerDistance;
                 fread(&answerDistance, sizeof(F64), 1, answerFile);
 
@@ -480,19 +472,19 @@ int main()
                     stats.CalculationErrors++;
                     printf("[WARN] Calculated distance diverges from answer value significantly (calculated: %f vs. answer: %f)\n", distance, answerDistance);
                 }
-                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.Validation);
+                END_CPU_TIMING(&metrics._sub_timings.Validation);
 
-                StartCPUTiming(&metrics._sub_timings.SumCalculation);
+                START_CPU_TIMING(&metrics._sub_timings.SumCalculation);
                 stats.CalcualtedSum = ((stats.CalcualtedSum * (F64)stats.PairsProcessed) + distance) / (F64)(stats.PairsProcessed + 1);
                 stats.PairsProcessed++;
-                EndCPUTimingAndIncrementMetric(&metrics._sub_timings.SumCalculation);
+                END_CPU_TIMING(&metrics._sub_timings.SumCalculation);
 
                 continue;
             }
         }
     }
 
-    StartCPUTiming(&metrics._sub_timings.MiscOperations);
+    START_CPU_TIMING(&metrics._sub_timings.MiscOperations);
     if (ferror(dataFile))
     {
         fclose(dataFile);
@@ -516,9 +508,9 @@ int main()
     printf("\n");
     PrintStats(&stats);
     printf("\n");
-    EndCPUTimingAndIncrementMetric(&metrics._sub_timings.MiscOperations);
+    END_CPU_TIMING(&metrics._sub_timings.MiscOperations);
 
-    // Note (Aaron): As above, avoid using EndCPUTimingAndIncrementMetric() on Total timing
+    // Note (Aaron): As above, avoid using END_CPU_TIMING() on Total timing
     // and calculate the duration below so we can disable the timings methods and get a sense
     // for how much taking the timings affects the execution time.
     metrics.Total.End = ReadCPUTimer();
