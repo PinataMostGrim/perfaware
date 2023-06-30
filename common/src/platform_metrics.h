@@ -53,9 +53,14 @@ global_function void StartNamedTimingsProfile();
 global_function void EndNamedTimingsProfile();
 global_function void PrintNamedTimingsProfile();
 
-#define START_NAMED_TIMING(name); named_timing *name##TimingPtr = &Profile.Timings[__COUNTER__]; name##TimingPtr->Name = #name; name##TimingPtr->Start = ReadCPUTimer();
+// Note (Aaron): Use the following macros to start and end named timings within the same scope.
+#define START_NAMED_TIMING(name) named_timing *name##TimingPtr = &Profile.Timings[__COUNTER__]; name##TimingPtr->Name = #name; name##TimingPtr->Start = ReadCPUTimer();
 #define END_NAMED_TIMING(name); name##TimingPtr->End = ReadCPUTimer(); name##TimingPtr->Duration += (name##TimingPtr->End - name##TimingPtr->Start);
 
+// Note (Aaron): The following macros can be used to control the scope a named timing is created in
+// and to re-use the same timing later in the same scope.
+#define PREWARM_NAMED_TIMING(name) named_timing *name##TimingPtr = &Profile.Timings[__COUNTER__]; name##TimingPtr->Name = #name;
+#define RESTART_NAMED_TIMING(name) name##TimingPtr->Start = ReadCPUTimer();
 
 global_function U64 GetOSTimerFrequency();
 global_function U64 ReadOSTimer();
@@ -164,7 +169,7 @@ global_function void PrintNamedTimingsProfile()
 
     printf("  Unaccounted: %llu (%.2f%s)\n\n", unaccounted, ((F64)unaccounted / (F64)Profile.Duration) * 100.0f, "%");
     printf("Total cycles: %.4llu\n", Profile.Duration);
-    printf("Total time: %.4fms (CPU freq %llu)\n", totalTimeMs, Profile.CPUFrequency);
+    printf("Total time:   %.4fms (CPU freq %llu)\n", totalTimeMs, Profile.CPUFrequency);
 }
 
 
