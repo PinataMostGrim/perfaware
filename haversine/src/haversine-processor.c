@@ -223,6 +223,37 @@ inline void PrintTiming(char *timingName, U64 timing, U64 totalTime, U8 tabCount
 }
 
 
+global_function void PrintMetrics(haversine_processor_metrics *metrics)
+{
+#if ENABLE_TIMINGS
+    F64 totalTimeMs = ((F64)metrics->Total.Duration / (F64)metrics->CPUFrequency) * 1000.0f;
+
+    S64 unaccounted = metrics->Total.Duration;
+    for (int i = 0; i < ArrayCount(metrics->Subtimings); ++i)
+    {
+        unaccounted -= metrics->Subtimings[i].Duration;
+    }
+
+    Assert((unaccounted > 0) && "Subtracted more than the total time");
+
+    printf("Timings:\n");
+    PrintTiming("Startup", metrics->_sub_timings.Startup.Duration, metrics->Total.Duration, 2);
+    PrintTiming("JSON Lexing", metrics->_sub_timings.JSONLexing.Duration, metrics->Total.Duration, 2);
+    PrintTiming("JSON Parsing", metrics->_sub_timings.JSONParsing.Duration, metrics->Total.Duration, 2);
+    PrintTiming("Stack Operations", metrics->_sub_timings.StackOperations.Duration, metrics->Total.Duration, 1);
+    PrintTiming("Haversine Distance", metrics->_sub_timings.HaversineDistance.Duration, metrics->Total.Duration, 1);
+    PrintTiming("Validation", metrics->_sub_timings.Validation.Duration, metrics->Total.Duration, 2);
+    PrintTiming("Sum Calculation", metrics->_sub_timings.SumCalculation.Duration, metrics->Total.Duration, 1);
+    PrintTiming("Misc Operations", metrics->_sub_timings.MiscOperations.Duration, metrics->Total.Duration, 1);
+    PrintTiming("Unaccounted", unaccounted, metrics->Total.Duration, 2);
+    printf("\n");
+
+    printf("  Total time: %.4fms (CPU freq %llu)\n", totalTimeMs, metrics->CPUFrequency);
+    printf("\n");
+#endif
+}
+
+
 int main()
 {
     // calculate CPU frequency
@@ -515,32 +546,8 @@ int main()
     // for how much taking the timings affects the execution time.
     metrics.Total.End = ReadCPUTimer();
     metrics.Total.Duration = metrics.Total.End - metrics.Total.Start;
-    F64 totalTimeMs = ((F64)metrics.Total.Duration / (F64)metrics.CPUFrequency) * 1000.0f;
 
-#if ENABLE_TIMINGS
-    S64 unaccounted = metrics.Total.Duration;
-    for (int i = 0; i < ArrayCount(metrics.Subtimings); ++i)
-    {
-        unaccounted -= metrics.Subtimings[i].Duration;
-    }
-
-    Assert((unaccounted > 0) && "Subtracted more than the total time");
-
-    printf("Timings:\n");
-    PrintTiming("Startup", metrics._sub_timings.Startup.Duration, metrics.Total.Duration, 2);
-    PrintTiming("JSON Lexing", metrics._sub_timings.JSONLexing.Duration, metrics.Total.Duration, 2);
-    PrintTiming("JSON Parsing", metrics._sub_timings.JSONParsing.Duration, metrics.Total.Duration, 2);
-    PrintTiming("Stack Operations", metrics._sub_timings.StackOperations.Duration, metrics.Total.Duration, 1);
-    PrintTiming("Haversine Distance", metrics._sub_timings.HaversineDistance.Duration, metrics.Total.Duration, 1);
-    PrintTiming("Validation", metrics._sub_timings.Validation.Duration, metrics.Total.Duration, 2);
-    PrintTiming("Sum Calculation", metrics._sub_timings.SumCalculation.Duration, metrics.Total.Duration, 1);
-    PrintTiming("Misc Operations", metrics._sub_timings.MiscOperations.Duration, metrics.Total.Duration, 1);
-    PrintTiming("Unaccounted", unaccounted, metrics.Total.Duration, 2);
-    printf("\n");
-#endif
-
-    printf("  Total time: %.4fms (CPU freq %llu)\n", totalTimeMs, metrics.CPUFrequency);
-    printf("\n");
+    PrintMetrics(&metrics);
 
     return 0;
 }
