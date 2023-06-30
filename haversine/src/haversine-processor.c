@@ -39,21 +39,21 @@ typedef struct
 {
     union
     {
-        metric_timing Subtimings[8];
+        general_timing Subtimings[8];
         struct
         {
-            metric_timing Startup;
-            metric_timing JSONLexing;
-            metric_timing JSONParsing;
-            metric_timing StackOperations;
-            metric_timing HaversineDistance;
-            metric_timing Validation;
-            metric_timing SumCalculation;
-            metric_timing MiscOperations;
+            general_timing Startup;
+            general_timing JSONLexing;
+            general_timing JSONParsing;
+            general_timing StackOperations;
+            general_timing HaversineDistance;
+            general_timing Validation;
+            general_timing SumCalculation;
+            general_timing MiscOperations;
         } _sub_timings;
     };
 
-    metric_timing Total;
+    general_timing Total;
     U64 CPUFrequency;
 } haversine_processor_metrics;
 
@@ -98,10 +98,10 @@ global_function void InitializeProcessorMetrics(haversine_processor_metrics *met
 {
     for (int i = 0; i < ArrayCount(metrics->Subtimings); ++i)
     {
-        InitializeMetricTiming(&metrics->Subtimings[i]);
+        InitializeGeneralTiming(&metrics->Subtimings[i]);
     }
 
-    InitializeMetricTiming(&metrics->Total);
+    InitializeGeneralTiming(&metrics->Total);
     metrics->CPUFrequency = 0;
 }
 
