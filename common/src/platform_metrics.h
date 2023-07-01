@@ -17,8 +17,8 @@
 
 typedef struct
 {
-    S64 Start;
-    S64 End;
+    U64 Start;
+    U64 End;
     S64 Duration;
 } general_timing;
 
