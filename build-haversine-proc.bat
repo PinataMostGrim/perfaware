@@ -36,5 +36,7 @@ IF NOT %ERRORLEVEL% == 0 (
 )
 
 :: Compile and link
+:: Execute this line instead to view application after the pre-processor has been applied
+::cl -E %COMPILER_FLAGS% %INCLUDES% %SOURCES% -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS% | clang-format -style="Microsoft" > temp.txt
 cl %COMPILER_FLAGS% %INCLUDES% %SOURCES% -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS%
 popd
