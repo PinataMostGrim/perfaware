@@ -11,9 +11,9 @@ The original homework assignment program from Part 1 of the course. A command li
 
 
 ### win32_sim8086
-A Win32 version of the original 8086 simulator with a GUI. Inspired by Jeremy English's [Sim8088](https://codeberg.org/jeng/Sim8088) and [RemedyBG](https://remedybg.handmade.network/). This likewise is my attempt to gain some familiarity using IMGUI (and [DearImGui](https://github.com/ocornut/imgui) specifically). Currently only possesses a Windows layer but a Linux layer will be produced eventually.
+A Win32 version of the original 8086 simulator with a GUI. Inspired by Jeremy English's [Sim8088](https://codeberg.org/jeng/Sim8088) and [RemedyBG](https://remedybg.handmade.network/). This likewise is my attempt to gain some familiarity using IMGUI (and [DearImGui](https://github.com/ocornut/imgui) specifically). This project currently only possesses a Windows layer but a Linux layer will be produced eventually.
 
-This project is built by executing [build-win32-wi8086.bat](build-win32-wi8086.bat). On an interesting note, the program features Handmade Hero-style hot-loading of the application layer, which is extremely handy while building a GUI (Casey is a genius). Simply make your changes to the GUI script with the application running and re-execute the build script.
+Built by executing [build-win32-wi8086.bat](build-win32-wi8086.bat). On an interesting note, the program features Handmade Hero-style hot-loading of the application layer, which is extremely handy while building a GUI. Casey is a genius. To take advantage of hot-reloading, simply make your changes to the GUI script with the application running and re-execute the build script.
 
 ![image](assets/win32_sim8086_50.png "screenshot")
 
@@ -22,4 +22,4 @@ Part of the homework assignment for Part 2. Generates the Haversine distance pai
 
 
 ### haversine-proc
-The second half of the homework assignment for Part 2. Consumes the Haversine distance pairs created by the generator. Build by executing [build-haversine-proc.bat](build-haversine-proc.bat).
+More homework for Part 2. Consumes the Haversine distance pairs created by the generator. Build by executing [build-haversine-proc.bat](build-haversine-proc.bat).
