@@ -18,8 +18,8 @@
 
 
 // global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
-// global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0039_more_movs";
-global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0041_add_sub_cmp_jnz";
+global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0039_more_movs";
+// global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0041_add_sub_cmp_jnz";
 
 
 
@@ -94,7 +94,7 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
         while(!HasProcessorFinishedExecution(processor))
         {
             instruction inst = DecodeNextInstruction(processor);
-            ExecuteInstruction(processor, &inst);
+            ExecuteInstruction(processor, &inst, &memory->OutputArena);
 
             // TODO (Aaron): How to better handle programs that do not halt?
             safetyCounter++;
@@ -109,6 +109,7 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
     {
         // reset program
         ResetProcessorExecution(processor);
+        ArenaClearZero(&memory->OutputArena);
         applicationState->Diagnostics_ExecutionStalled = false;
     }
     else if (ImGui::IsKeyPressed(ImGuiKey_F10))
@@ -117,7 +118,7 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
         if (!HasProcessorFinishedExecution(processor))
         {
             instruction inst = DecodeNextInstruction(processor);
-            ExecuteInstruction(processor, &inst);
+            ExecuteInstruction(processor, &inst, &memory->OutputArena);
         }
 
         applicationState->Diagnostics_ExecutionStalled = false;

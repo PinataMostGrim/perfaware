@@ -449,12 +449,10 @@ int CALLBACK WinMain(
             break;
         }
 
-        if (memory.FrameArena.Used > applicationState.MaxScratchMemoryUsage)
+        if (memory.OutputArena.Used > applicationState.MaxScratchMemoryUsage)
         {
-            applicationState.MaxScratchMemoryUsage = memory.FrameArena.Used;
+            applicationState.MaxScratchMemoryUsage = memory.OutputArena.Used;
         }
-
-        ArenaClear(&memory.FrameArena);
 
         // Hot-load code if necessary
         FILETIME dllWriteTime = Win32GetLastWriteTime(win32Context.DLLPath);

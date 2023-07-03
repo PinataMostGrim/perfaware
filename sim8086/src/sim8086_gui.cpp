@@ -290,6 +290,37 @@ global_function void ShowMemoryWindow(application_state *applicationState, proce
 }
 
 
+global_function void ShowOutputWindow(memory_arena *outputArena)
+{
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
+    ImGui::Begin("Output", NULL, windowFlags);
+
+    // TODO (Aaron): Make a safety counter for testing
+
+    if (outputArena->Used == 0)
+    {
+        ImGui::End();
+        return;
+    }
+
+    U8 *readHead = outputArena->BasePtr;
+    for (;;)
+    {
+        char *str = (char *)readHead;
+        U64 length = GetStringLength(str);
+        if (length == 0)
+        {
+            break;
+        }
+
+        ImGui::Text("%s", str);
+        readHead += (length + 1);
+    }
+
+    ImGui::End();
+}
+
+
 inline
 global_function void _ImGuiTextLabelUsedTotalPercentage(char *label, char *units, F64 used, F64 total)
 {
@@ -339,14 +370,6 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
             (F64)memory->PermanentArena.Size / Kilobytes(1));
 
         _ImGuiTextLabelUsedTotalPercentage(
-            (char *)"Per-frame",
-            (char *)"KB",
-            (F64)memory->FrameArena.Used / Kilobytes(1),
-            (F64)memory->FrameArena.Size / Kilobytes(1));
-
-        ImGui::Text("Per-frame max: %.2f KB", (F64)applicationState->MaxScratchMemoryUsage / (F64)Kilobytes(1));
-
-        _ImGuiTextLabelUsedTotalPercentage(
             (char *)"Instructions",
             (char *)"KB",
             (F64)memory->InstructionsArena.Used / Kilobytes(1),
@@ -357,6 +380,12 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
             (char *)"KB",
             (F64)memory->InstructionStringsArena.Used / Kilobytes(1),
             (F64)memory->InstructionStringsArena.Size / Kilobytes(1));
+
+        _ImGuiTextLabelUsedTotalPercentage(
+            (char *)"Output window",
+            (char *)"KB",
+            (F64)memory->OutputArena.Used / Kilobytes(1),
+            (F64)memory->OutputArena.Size / Kilobytes(1));
 
         U64 totalUsed = 0;
         for (int i = 0; i < ArrayCount(memory->Arenas); ++i)
@@ -388,9 +417,10 @@ global_function void DrawGui(application_state *applicationState, application_me
     ShowMainMenuBar(applicationState);
 
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    ShowDisassemblyWindow(applicationState, processor, &memory->InstructionsArena, &memory->FrameArena);
+    ShowDisassemblyWindow(applicationState, processor, &memory->InstructionsArena, &memory->OutputArena);
     ShowRegistersWindow(applicationState, processor);
     ShowMemoryWindow(applicationState, processor);
+    ShowOutputWindow(&memory->OutputArena);
 
     ShowDiagnosticsWindow(applicationState, memory, processor);
 
