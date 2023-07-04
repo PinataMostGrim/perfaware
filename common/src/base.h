@@ -1,9 +1,15 @@
+/* Note (Aaron):
+Based heavily on Allen Webster's base layer.
+    source: https://www.youtube.com/watch?v=8fJ4vWrkS4o&list=PLT6InxK-XQvNKTyLXk6H6KKy12UYS_KDL
+
+Base layer conforms to the following principles:
+- No OS dependencies
+- No external dependencies
+- Minimal testing
+*/
+
 #ifndef BASE_H
 #define BASE_H
-
-// Note (Aaron):
-// Based heavily on Allen Webster's base layer.
-//  source: https://www.youtube.com/watch?v=8fJ4vWrkS4o&list=PLT6InxK-XQvNKTyLXk6H6KKy12UYS_KDL&index=1
 
 // +------------------------------+
 // Note (Aaron): Helper Macros
@@ -228,6 +234,17 @@ global_function U64 GetStringLength(char *str)
 
     return count;
 }
+
+
+// +------------------------------+
+// Note (Aaron): Linked list macros
+
+#define SLLQueuePush_N(f,l,n,next)  ((f)==0?\
+                                        (f)=(l)=(n):\
+                                        ((l)->next=(n),(l)=(n)),\
+                                        (n)->next=0)
+
+#define SLLQueuePush(f, l, n) SLLQueuePush_N(f, l, n, Next)
 
 
 // +------------------------------+

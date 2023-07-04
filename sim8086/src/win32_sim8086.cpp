@@ -37,8 +37,7 @@
 #include <GL/GL.h>
 #include <tchar.h>
 
-#include "base.h"
-#include "memory_arena.h"
+#include "base_inc.h"
 #include "win32_sim8086.h"
 #include "sim8086_platform.h"
 #include "sim8086.h"
