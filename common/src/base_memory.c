@@ -1,3 +1,10 @@
+/* TODO (Aaron):
+    - Add run-time handling for when assertions would fail
+        - What behaviour would we expect?
+        - Return a null pointer?
+        - Casey mentioned that he always returns a stub that can be used but is zeroed out every frame
+*/
+
 #include "base.h"
 #include "base_memory.h"
 
@@ -15,6 +22,7 @@ global_function void *MemorySet(uint8_t *destPtr, int c, size_t count)
 
 global_function void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
 {
+    // TODO (Aaron): Return instead? Or does this assert catch cases we want to know about?
     Assert(size > 0 && "Attempted to copy 0 bytes");
 
     unsigned char *source = (unsigned char *)sourcePtr;

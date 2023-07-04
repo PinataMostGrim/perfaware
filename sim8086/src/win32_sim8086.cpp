@@ -1,6 +1,14 @@
 /* TODO (Aaron):
+    - **Convert to length based strings**
+        - I think converting to length based strings will be really important to do now
+        - It will simplify the arena push string logic a lot
+        - We can build up a string in a buffer using concatination, and then push the whole thing into an arena
+
+    - Automatically dock windows on first load or force them to dock
+
     - Add an "Output" window
         - ExecuteInstruction() takes a memory arena for 'output'
+        - Add menu item for opening / closing the window
 
     - Memory Window
         - Turn memory area into a table and place controls at the bottom?
@@ -8,20 +16,24 @@
         - Highlight instruction blocks in memory window when selecting instruction in disassembly window
         - Add "dump memory to file" button
 
+    - Disassembly window
+        - Highlight final instruction even if we've exited the program
+
     - Add breakpoints
 
     - Try moving GUI initialization into platform layer
 
     - Add a ScratchArena when I need it
         - This is basically the per-frame arena now, as it isn't being used currently
-    - Convert to length based strings
-
     - Add feedback to main window titlebar (loaded program name, etc)
     - Add a file menu to open / load files
         - Use hard-coded value for now
     - Give processor or file error feedback via GUI
 
     - Add V2F32 (and others from base.h) macros to imconfig.h so I can use my own math types
+
+    - Pick a casing scheme for struct members
+        - Some struct use uppercase and some use lower case
 */
 
 #include "imgui.h"
