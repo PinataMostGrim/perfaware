@@ -50,41 +50,6 @@ Base layer conforms to the following principles:
 #define Clamp(a, x, b) (((x) < (a)) ? (a) : ((b) < (x)) ? (b) : (x))
 
 
-// +------------------------------+
-// Note (Aaron): Helper Functions
-
-global_function void *MemorySet(uint8_t *destPtr, int c, size_t count)
-{
-    Assert(count > 0 && "Attempted to set 0 bytes");
-
-    unsigned char *dest = (unsigned char *)destPtr;
-    while(count--) *dest++ = (unsigned char)c;
-
-    return destPtr;
-}
-
-
-global_function void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
-{
-    // TODO (Aaron): Return instead? Or does this assert catch cases we want to know about?
-    Assert(size > 0 && "Attempted to copy 0 bytes");
-
-    unsigned char *source = (unsigned char *)sourcePtr;
-    unsigned char *dest = (unsigned char *)destPtr;
-    while(size--) *dest++ = *source++;
-
-    return destPtr;
-}
-
-
-global_function U64 GetStringLength(char *str)
-{
-    U64 count = 0;
-    while(*str++) count++;
-
-    return count;
-}
-
 
 // +------------------------------+
 // Note (Aaron): Linked list macros

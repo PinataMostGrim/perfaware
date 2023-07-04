@@ -3,11 +3,21 @@
 #ifndef BASE_STRING_H
 #define BASE_STRING_H
 
-#include "memory_arena.h"
 #include <stdarg.h>
 #include <stdio.h>
 
 #include "base_types.h"
+#include "base_memory.h"
+
+
+// +------------------------------+
+// Note (Aaron): C strings
+global_function U64 GetStringLength(char *str);
+global_function char *ArenaPushString(memory_arena *arena, char *str);
+
+
+// +------------------------------+
+// Note (Aaron): Length based strings
 
 typedef struct
 {

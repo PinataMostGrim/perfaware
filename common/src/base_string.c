@@ -1,6 +1,32 @@
 #include "base.h"
 #include "base_string.h"
+#include "base_memory.h"
 
+
+// +------------------------------+
+// Note (Aaron): C strings
+
+global_function U64 GetStringLength(char *str)
+{
+    U64 count = 0;
+    while(*str++) count++;
+
+    return count;
+}
+
+
+global_function char *ArenaPushString(memory_arena *arena, char *str)
+{
+    U64 strLength = GetStringLength(str);
+    char *result = (char *)ArenaPushSize(arena, strLength);
+    MemoryCopy(result, str, strLength);
+
+    return result;
+}
+
+
+// +------------------------------+
+// Note (Aaron): Length based strings
 
 global_function String8 str8(U8 *str, U64 size)
 {
