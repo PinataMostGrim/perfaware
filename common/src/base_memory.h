@@ -11,9 +11,12 @@
 global_function void *MemorySet(uint8_t *destPtr, int c, size_t count);
 global_function void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size);
 
-#define MemoryZero(p, z)        MemorySet((p), 0, (z))
-#define MemoryZeroStruct(p)     MemoryZero((p), sizeof(*(p)))
-#define MemoryZeroArray(p)      MemoryZero((p), sizeof(p))
+// #define MemoryZero(p, z)        MemorySet((p), 0, (z))
+// #define MemoryZeroStruct(p)     MemoryZero((p), sizeof(*(p)))
+// #define MemoryZeroArray(p)      MemoryZero((p), sizeof(p))
+
+// #define MemoryCopyStruct(d, s)  MemoryCopy((d), sizeof(*(p))
+// #define MemoryCopyArray(d, s)
 
 
 // +------------------------------+

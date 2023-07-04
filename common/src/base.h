@@ -49,6 +49,18 @@ Base layer conforms to the following principles:
 #define Min(x, y) ((x) < (y)) ? (x) : (y)
 #define Clamp(a, x, b) (((x) < (a)) ? (a) : ((b) < (x)) ? (b) : (x))
 
+#define Stringify_(S) #S
+#define Stringify(S) Stringify_(S)
+#define Glue_(A, B) A##B
+#define Glue(A, B) Glue_(A, B)
+
+// Note (Aaron): These may not be compatible with all compilers, but implementation can be switched based on context
+#define IntFromPtr(p) (unsigned long long)((char *)p - (char *)0)
+#define PtrFromInt(n) (void *)((char *)0 + (n))
+
+// Note (Aaron): Can't read or write from a member using this macro, but can abstractly represent the member.
+#define Member(T, m) (((T*)0)->m)
+#define OffsetOfMember(T, m) IntFromPtr(&Member(T,m))
 
 
 // +------------------------------+
