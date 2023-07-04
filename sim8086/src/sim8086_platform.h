@@ -28,9 +28,9 @@ typedef struct
         struct
         {
             memory_arena PermanentArena;
+            memory_arena FrameArena;
             memory_arena InstructionsArena;
             memory_arena InstructionStringsArena;
-            memory_arena OutputArena;
         };
     };
 

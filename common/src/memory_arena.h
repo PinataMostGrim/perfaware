@@ -25,7 +25,6 @@ global_function void *ArenaPushSizeZero(memory_arena *arena, memory_index size);
 
 global_function void *ArenaPushData(memory_arena *arena, memory_index size, U8 *sourcePtr);
 global_function char *ArenaPushString(memory_arena *arena, char *str);
-global_function char *ArenaPushStringConcat(memory_arena *arena, char *str);
 
 global_function void *ArenaPopSize(memory_arena *arena, memory_index size);
 #define ArenaPopStruct(arena, type) (type *)ArenaPopSize(arena, sizeof(type))

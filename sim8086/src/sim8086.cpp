@@ -1198,80 +1198,38 @@ global_function void SetOperandValue(processor_8086 *processor, instruction_oper
 }
 
 
-// TODO (Aaron): Potentially move into memory_arena.c?
-// TODO (Aaron): Test this
-global_function char *ArenaCircularPushString(memory_arena *arena, char *str, B8 concat)
-{
-    size_t length = strlen(str);
-    Assert((arena->Size > arena->Used) && "Memory arena cannot use more space than it has allocated");
-    size_t unused = arena->Size - arena->Used;
-    if (length > unused)
-    {
-        ArenaClear(arena);
-    }
-
-    if (concat)
-    {
-        return ArenaPushStringConcat(arena, str);
-    }
-    else
-    {
-        return ArenaPushString(arena, str);
-    }
-}
-
-
-global_function void PrintFlagDiffs(U8 oldFlags, U8 newFlags, memory_arena *outputArena)
+global_function void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
 {
     if (oldFlags == newFlags)
     {
         return;
     }
 
-    // printf(" flags:");
-    ArenaCircularPushString(outputArena, (char *)" flags:", TRUE);
+    printf(" flags:");
 
     // Flags that are changing to 0
-    // if ((oldFlags & RegisterFlag_CF) && !(newFlags & RegisterFlag_CF)) { printf("C"); }
-    // if ((oldFlags & RegisterFlag_PF) && !(newFlags & RegisterFlag_PF)) { printf("P"); }
-    // if ((oldFlags & RegisterFlag_AF) && !(newFlags & RegisterFlag_AF)) { printf("A"); }
-    // if ((oldFlags & RegisterFlag_ZF) && !(newFlags & RegisterFlag_ZF)) { printf("Z"); }
-    // if ((oldFlags & RegisterFlag_SF) && !(newFlags & RegisterFlag_SF)) { printf("S"); }
-    // if ((oldFlags & RegisterFlag_OF) && !(newFlags & RegisterFlag_OF)) { printf("O"); }
+    if ((oldFlags & RegisterFlag_CF) && !(newFlags & RegisterFlag_CF)) { printf("C"); }
+    if ((oldFlags & RegisterFlag_PF) && !(newFlags & RegisterFlag_PF)) { printf("P"); }
+    if ((oldFlags & RegisterFlag_AF) && !(newFlags & RegisterFlag_AF)) { printf("A"); }
+    if ((oldFlags & RegisterFlag_ZF) && !(newFlags & RegisterFlag_ZF)) { printf("Z"); }
+    if ((oldFlags & RegisterFlag_SF) && !(newFlags & RegisterFlag_SF)) { printf("S"); }
+    if ((oldFlags & RegisterFlag_OF) && !(newFlags & RegisterFlag_OF)) { printf("O"); }
 
-    if ((oldFlags & RegisterFlag_CF) && !(newFlags & RegisterFlag_CF)) { ArenaCircularPushString(outputArena, (char *)"C", TRUE); }
-    if ((oldFlags & RegisterFlag_PF) && !(newFlags & RegisterFlag_PF)) { ArenaCircularPushString(outputArena, (char *)"P", TRUE); }
-    if ((oldFlags & RegisterFlag_AF) && !(newFlags & RegisterFlag_AF)) { ArenaCircularPushString(outputArena, (char *)"A", TRUE); }
-    if ((oldFlags & RegisterFlag_ZF) && !(newFlags & RegisterFlag_ZF)) { ArenaCircularPushString(outputArena, (char *)"Z", TRUE); }
-    if ((oldFlags & RegisterFlag_SF) && !(newFlags & RegisterFlag_SF)) { ArenaCircularPushString(outputArena, (char *)"S", TRUE); }
-    if ((oldFlags & RegisterFlag_OF) && !(newFlags & RegisterFlag_OF)) { ArenaCircularPushString(outputArena, (char *)"O", TRUE); }
-
-
-    // printf("->");
-    ArenaCircularPushString(outputArena, (char *)"->", TRUE);
+    printf("->");
 
     // Flags that are changing to 1
-    // if (!(oldFlags & RegisterFlag_CF) && (newFlags & RegisterFlag_CF)) { printf("C"); }
-    // if (!(oldFlags & RegisterFlag_PF) && (newFlags & RegisterFlag_PF)) { printf("P"); }
-    // if (!(oldFlags & RegisterFlag_AF) && (newFlags & RegisterFlag_AF)) { printf("A"); }
-    // if (!(oldFlags & RegisterFlag_ZF) && (newFlags & RegisterFlag_ZF)) { printf("Z"); }
-    // if (!(oldFlags & RegisterFlag_SF) && (newFlags & RegisterFlag_SF)) { printf("S"); }
-    // if (!(oldFlags & RegisterFlag_OF) && (newFlags & RegisterFlag_OF)) { printf("O"); }
-
-    if (!(oldFlags & RegisterFlag_CF) && (newFlags & RegisterFlag_CF)) { ArenaCircularPushString(outputArena, (char *)"C", TRUE); }
-    if (!(oldFlags & RegisterFlag_PF) && (newFlags & RegisterFlag_PF)) { ArenaCircularPushString(outputArena, (char *)"P", TRUE); }
-    if (!(oldFlags & RegisterFlag_AF) && (newFlags & RegisterFlag_AF)) { ArenaCircularPushString(outputArena, (char *)"A", TRUE); }
-    if (!(oldFlags & RegisterFlag_ZF) && (newFlags & RegisterFlag_ZF)) { ArenaCircularPushString(outputArena, (char *)"Z", TRUE); }
-    if (!(oldFlags & RegisterFlag_SF) && (newFlags & RegisterFlag_SF)) { ArenaCircularPushString(outputArena, (char *)"S", TRUE); }
-    if (!(oldFlags & RegisterFlag_OF) && (newFlags & RegisterFlag_OF)) { ArenaCircularPushString(outputArena, (char *)"O", TRUE); }
+    if (!(oldFlags & RegisterFlag_CF) && (newFlags & RegisterFlag_CF)) { printf("C"); }
+    if (!(oldFlags & RegisterFlag_PF) && (newFlags & RegisterFlag_PF)) { printf("P"); }
+    if (!(oldFlags & RegisterFlag_AF) && (newFlags & RegisterFlag_AF)) { printf("A"); }
+    if (!(oldFlags & RegisterFlag_ZF) && (newFlags & RegisterFlag_ZF)) { printf("Z"); }
+    if (!(oldFlags & RegisterFlag_SF) && (newFlags & RegisterFlag_SF)) { printf("S"); }
+    if (!(oldFlags & RegisterFlag_OF) && (newFlags & RegisterFlag_OF)) { printf("O"); }
 }
 
 
-global_function void ExecuteInstruction(processor_8086 *processor, instruction *instruction, memory_arena *outputArena)
+// TODO (Aaron): Use a memory arena to hold output
+global_function void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
 {
-    // TODO (Aaron): Decide how to pick a better value here
-    const U8 BUFFER_SIZE = 64;
-    char buffer[BUFFER_SIZE];
     U8 oldFlags = processor->Flags;
 
     // TODO (Aaron): A lot of redundant code here
@@ -1292,18 +1250,10 @@ global_function void ExecuteInstruction(processor_8086 *processor, instruction *
 
             if (operand0.Type == Operand_Register && oldValue != sourceValue)
             {
-                // printf(" %s:0x%x->0x%x",
-                //        GetRegisterMnemonic(operand0.Register),
-                //        oldValue,
-                //        sourceValue);
-
-                snprintf(buffer, BUFFER_SIZE,
-                         " %s:0x%x->0x%x",
-                         GetRegisterMnemonic(operand0.Register),
-                         oldValue,
-                         sourceValue);
-
-                ArenaCircularPushString(outputArena, buffer, TRUE);
+                printf(" %s:0x%x->0x%x",
+                       GetRegisterMnemonic(operand0.Register),
+                       oldValue,
+                       sourceValue);
             }
 
             break;
@@ -1329,18 +1279,10 @@ global_function void ExecuteInstruction(processor_8086 *processor, instruction *
 
                 if (oldValue != finalValue)
                 {
-                    // printf(" %s:0x%x->0x%x",
-                    //        GetRegisterMnemonic(operand0.Register),
-                    //        value0,
-                    //        finalValue);
-
-                    snprintf(buffer, BUFFER_SIZE,
-                             " %s:0x%x->0x%x",
+                    printf(" %s:0x%x->0x%x",
                            GetRegisterMnemonic(operand0.Register),
                            value0,
                            finalValue);
-
-                    ArenaCircularPushString(outputArena, buffer, TRUE);
                 }
             }
 
@@ -1367,18 +1309,10 @@ global_function void ExecuteInstruction(processor_8086 *processor, instruction *
 
                 if (oldValue != finalValue)
                 {
-                    // printf(" %s:0x%x->0x%x",
-                    //        GetRegisterMnemonic(operand0.Register),
-                    //        value0,
-                    //        finalValue);
-
-                    snprintf(buffer, BUFFER_SIZE,
-                             " %s:0x%x->0x%x",
+                    printf(" %s:0x%x->0x%x",
                            GetRegisterMnemonic(operand0.Register),
                            value0,
                            finalValue);
-
-                    ArenaCircularPushString(outputArena, buffer, TRUE);
                 }
             }
 
@@ -1441,18 +1375,12 @@ global_function void ExecuteInstruction(processor_8086 *processor, instruction *
 
         default:
         {
-            // printf("unsupported instruction");
-            snprintf(buffer, BUFFER_SIZE, "unsupported instruction");
-            ArenaCircularPushString(outputArena, buffer, TRUE);
+            printf("unsupported instruction");
         }
     }
 
-    // printf(" ip:0x%x->0x%x", processor->PrevIP, processor->IP);
-    snprintf(buffer, BUFFER_SIZE, " ip:0x%x->0x%x", processor->PrevIP, processor->IP);
-    ArenaCircularPushString(outputArena, buffer, TRUE);
-
-    PrintFlagDiffs(oldFlags, processor->Flags, outputArena);
-    ArenaCircularPushString(outputArena, (char *)" ", FALSE);
+    printf(" ip:0x%x->0x%x", processor->PrevIP, processor->IP);
+    PrintFlagDiffs(oldFlags, processor->Flags);
 }
 
 
@@ -1473,4 +1401,3 @@ global_function B32 HasProcessorFinishedExecution(processor_8086 *processor)
     B32 result = processor->IP >= processor->ProgramSize;
     return result;
 }
-

@@ -129,7 +129,7 @@ global_function char *GetInstructionMnemonic(instruction *instruction, memory_ar
     char buffer[128] = "";
 
     sprintf(buffer, "%s ", GetOpMnemonic(instruction->OpType));
-    char *resultPtr = ArenaPushStringConcat(arena, buffer);
+    char *resultPtr = ArenaPushString(arena, buffer);
 
     const char *Separator = "";
 
@@ -145,7 +145,7 @@ global_function char *GetInstructionMnemonic(instruction *instruction, memory_ar
 
         if (GetStringLength((char *)Separator) > 0)
         {
-            ArenaPushStringConcat(arena, (char *)Separator);
+            ArenaPushString(arena, (char *)Separator);
         }
         Separator = ", ";
 
@@ -162,11 +162,11 @@ global_function char *GetInstructionMnemonic(instruction *instruction, memory_ar
                 {
                     if (operand.Memory.Flags & Memory_IsWide)
                     {
-                        ArenaPushStringConcat(arena, (char *)"word ");
+                        ArenaPushString(arena, (char *)"word ");
                     }
                     else
                     {
-                        ArenaPushStringConcat(arena, (char *)"byte ");
+                        ArenaPushString(arena, (char *)"byte ");
                     }
 
                 }
@@ -175,34 +175,34 @@ global_function char *GetInstructionMnemonic(instruction *instruction, memory_ar
                 if (operand.Memory.Flags & Memory_HasDirectAddress)
                 {
                     sprintf(buffer, "[%i]", operand.Memory.DirectAddress);
-                    ArenaPushStringConcat(arena, buffer);
+                    ArenaPushString(arena, buffer);
                     break;
                 }
 
                 // print memory with optional displacement
-                ArenaPushStringConcat(arena, (char *)"[");
-                ArenaPushStringConcat(arena, (char *)GetRegisterMnemonic(operand.Memory.Register));
+                ArenaPushString(arena, (char *)"[");
+                ArenaPushString(arena, (char *)GetRegisterMnemonic(operand.Memory.Register));
 
                 if (operand.Memory.Flags & Memory_HasDisplacement)
                 {
                     if (operand.Memory.Displacement >= 0)
                     {
                         sprintf(buffer, " + %i", operand.Memory.Displacement);
-                        ArenaPushStringConcat(arena, buffer);
+                        ArenaPushString(arena, buffer);
                     }
                     else
                     {
                         sprintf(buffer, " - %i", operand.Memory.Displacement * -1);
-                        ArenaPushStringConcat(arena, buffer);
+                        ArenaPushString(arena, buffer);
                     }
                 }
 
-                ArenaPushStringConcat(arena, (char *)"]");
+                ArenaPushString(arena, (char *)"]");
                 break;
             }
             case Operand_Register:
             {
-                ArenaPushStringConcat(arena, (char *)GetRegisterMnemonic(operand.Register));
+                ArenaPushString(arena, (char *)GetRegisterMnemonic(operand.Register));
                 break;
             }
             case Operand_Immediate:
@@ -224,7 +224,7 @@ global_function char *GetInstructionMnemonic(instruction *instruction, memory_ar
                     {
                         sprintf(buffer, "$%i", offset);
                     }
-                    ArenaPushStringConcat(arena, buffer);
+                    ArenaPushString(arena, buffer);
                     break;
                 }
 
@@ -236,13 +236,13 @@ global_function char *GetInstructionMnemonic(instruction *instruction, memory_ar
                          ? (S16) operand.Immediate.Value
                          : (U16) operand.Immediate.Value));
 
-                ArenaPushStringConcat(arena, buffer);
+                ArenaPushString(arena, buffer);
                 break;
             }
 
             default:
             {
-                ArenaPushStringConcat(arena, (char *)"?");
+                ArenaPushString(arena, (char *)"?");
             }
         }
     }
@@ -265,7 +265,7 @@ global_function char *GetInstructionBitsMnemonic(instruction *inst, memory_arena
         {
             U8 mask = 128 >> j;
             U8 bit = (inst->Bits.Bytes[i] & mask) >> (7 - j);
-            ArenaPushStringConcat(arena, bit == 1 ? (char *)"1": (char *)"0");
+            ArenaPushString(arena, bit == 1 ? (char *)"1": (char *)"0");
         }
     }
 

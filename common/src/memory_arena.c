@@ -54,26 +54,13 @@ global_function void *ArenaPushData(memory_arena *arena, memory_index size, U8 *
 }
 
 
-global_function char *_ArenaPushString(memory_arena *arena, char *str, B8 concat)
+global_function char *ArenaPushString(memory_arena *arena, char *str)
 {
-    // Note (Aaron): When concatenating, we don't include the null terminating character.
-    U64 strLength = GetStringLength(str) + (concat ? 0 : 1);
+    U64 strLength = GetStringLength(str);
     char *result = (char *)ArenaPushSize(arena, strLength);
     MemoryCopy(result, str, strLength);
 
     return result;
-}
-
-
-global_function char *ArenaPushString(memory_arena *arena, char *str)
-{
-    return _ArenaPushString(arena, str, FALSE);
-}
-
-
-global_function char *ArenaPushStringConcat(memory_arena *arena, char *str)
-{
-    return _ArenaPushString(arena, str, TRUE);
 }
 
 
@@ -91,16 +78,14 @@ global_function void *ArenaPopSize(memory_arena *arena, memory_index size)
 
 global_function void ArenaClear(memory_arena *arena)
 {
-    // TODO (Aaron): Test this
-    arena->PositionPtr = arena->BasePtr;
+    arena->PositionPtr = arena->PositionPtr;
     arena->Used = 0;
 }
 
 
 global_function void ArenaClearZero(memory_arena *arena)
 {
-    // TODO (Aaron): Test this
-    arena->PositionPtr = arena->BasePtr;
+    arena->PositionPtr = arena->PositionPtr;
     arena->Used = 0;
 
     MemorySet(arena->BasePtr, 0x0, arena->Size);
