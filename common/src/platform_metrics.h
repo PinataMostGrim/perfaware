@@ -5,6 +5,7 @@
 #define PLATFORM_METRICS_H
 
 #include "base.h"
+#include "base_types.h"
 
 
 // Note (Aaron): Increase this count as needed
