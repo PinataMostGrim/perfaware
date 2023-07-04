@@ -8,6 +8,7 @@
 #include <assert.h>
 
 #include "base.h"
+#include "base_types.h"
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 

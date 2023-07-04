@@ -9,17 +9,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "base.h"
-#include "memory_arena.h"
+#include "base_inc.h"
 #include "haversine.h"
 #include "haversine_lexer.h"
-#include "memory_arena.h"
 #define PLATFORM_METRICS_IMPLEMENTATION
 #include "platform_metrics.h"
 
+#include "base_types.c"
+#include "base_memory.c"
 #include "haversine.c"
 #include "haversine_lexer.c"
-#include "memory_arena.c"
 
 
 #define ENABLE_TIMINGS 1

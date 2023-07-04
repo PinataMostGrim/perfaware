@@ -1,7 +1,7 @@
 #ifndef HAVERSINE_H
 #define HAVERSINE_H
 
-#include "base.h"
+#include "base_types.h"
 
 #define EARTH_RADIUS 6372.8
 #define DATA_FILENAME "haversine-pairs.json"

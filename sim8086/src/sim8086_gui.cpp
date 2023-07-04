@@ -8,8 +8,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "base.h"
-#include "memory_arena.h"
+#include "base_types.h"
 #include "sim8086_platform.h"
 #include "sim8086_gui.h"
 #include "sim8086.h"

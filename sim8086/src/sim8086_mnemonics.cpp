@@ -1,6 +1,7 @@
 #include <stdio.h>
 
-#include "memory_arena.h"
+#include "base_memory.h"
+#include "base_string.h"
 #include "sim8086.h"
 
 

@@ -7,8 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "base.h"
-#include "memory_arena.h"
+#include "base_memory.h"
 #include "sim8086.h"
 #include "sim8086_mnemonics.h"
 

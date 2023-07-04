@@ -5,7 +5,8 @@
 #include <stdbool.h>
 
 #include "base.h"
-#include "memory_arena.h"
+#include "base_types.h"
+#include "base_memory.h"
 #include "sim8086.h"
 
 

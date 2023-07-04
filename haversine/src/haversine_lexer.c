@@ -5,12 +5,12 @@
         - This isn't going to be a general JSON parser (I have no interst in doing this) so this is a waste of time
 */
 
-#include "base.h"
-#include "haversine_lexer.h"
-
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
+
+#include "base.h"
+#include "haversine_lexer.h"
 
 
 global_variable const char *TokenMnemonics[] =

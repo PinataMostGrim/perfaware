@@ -1,8 +1,7 @@
 #ifndef SIM8086_MNEMONICS_H
 #define SIM8086_MNEMONICS_H
 
-#include "base.h"
-#include "memory_arena.h"
+#include "base_memory.h"
 #include "sim8086.h"
 
 global_function char const *GetOpMnemonic(operation_types op);

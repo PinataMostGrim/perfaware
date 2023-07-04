@@ -10,9 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "base.h"
+#include "base_inc.h"
 #include "haversine.h"
 
+#include "base_types.c"
 #include "haversine.c"
 
 #define CLUSTER_COUNT 16
