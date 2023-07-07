@@ -134,7 +134,7 @@ global_function haversine_token PopToken(token_stack *tokenStack)
     MemoryCopy(&result, tokenPtr, sizeof(haversine_token));
 
 #if HAVERSINE_SLOW
-    MemorySet((U8 *)tokenPtr, 0xff, sizeof(haversine_token));
+    MemorySet(tokenPtr, 0xff, sizeof(haversine_token));
 #endif
 
     // TODO (Aaron): Error handling?

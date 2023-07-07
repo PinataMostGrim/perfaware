@@ -9,7 +9,7 @@
 #include "base_memory.h"
 
 
-global_function void *MemorySet(uint8_t *destPtr, int c, size_t count)
+global_function void *MemorySet(void *destPtr, int c, size_t count)
 {
     Assert(count > 0 && "Attempted to set 0 bytes");
 
