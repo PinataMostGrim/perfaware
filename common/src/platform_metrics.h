@@ -39,7 +39,6 @@ typedef struct
 } timings_profile;
 
 
-global_function void InitializeNamedTiming(named_timing *timing, char *name);
 global_function void StartNamedTimingsProfile();
 global_function void EndNamedTimingsProfile();
 global_function void PrintNamedTimingsProfile();
@@ -81,27 +80,15 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait);
 #include <stdio.h>
 
 #include "base.h"
+#include "base_memory.h"
 
 
 global_variable timings_profile GlobalProfiler;
 
 
-global_function void InitializeNamedTiming(named_timing *timing, char *name)
-{
-    timing->Name = name;
-    timing->Start = 0;
-    timing->End = 0;
-    timing->HitCount = 0;
-    timing->TSCElapsed = 0;
-}
-
-
 global_function void StartNamedTimingsProfile()
 {
-    for (int i = 0; i < ArrayCount(GlobalProfiler.Timings); ++i)
-    {
-        InitializeNamedTiming(&GlobalProfiler.Timings[i], (char *)"");
-    }
+    MemoryZeroArray(GlobalProfiler.Timings);
 
     GlobalProfiler.End = 0;
     GlobalProfiler.Duration = 0;
@@ -206,7 +193,6 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait)
 
 #else // #if _WIN32
 
-global_function void InitializeNamedTiming(named_timing *timing, char *name) { Assert(FALSE && "Not implemented"); }
 global_function void StartNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
 global_function void EndNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
 global_function void PrintNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
