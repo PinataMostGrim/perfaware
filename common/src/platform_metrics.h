@@ -18,14 +18,6 @@
 
 typedef struct
 {
-    U64 Start;
-    U64 End;
-    S64 TSCElapsed;
-} general_timing;
-
-
-typedef struct
-{
     char *Name;
     U64 Start;
     U64 End;
@@ -45,10 +37,6 @@ typedef struct
     U64 CPUFrequency;
 } timings_profile;
 
-
-global_function void InitializeGeneralTiming(general_timing *timing);
-global_function void StartCPUTiming(general_timing *timing);
-global_function void EndCPUTimingAndIncrementDuration(general_timing *timing);
 
 global_function void InitializeNamedTiming(named_timing *timing, char *name);
 global_function void StartNamedTimingsProfile();
@@ -93,30 +81,6 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait);
 
 
 global_variable timings_profile GlobalProfiler;
-
-
-global_function void InitializeGeneralTiming(general_timing *timing)
-{
-    timing->Start = 0;
-    timing->End = 0;
-    timing->TSCElapsed = 0;
-}
-
-
-inline
-global_function void StartCPUTiming(general_timing *timing)
-{
-    timing->Start = ReadCPUTimer();
-}
-
-
-inline
-global_function void EndCPUTimingAndIncrementDuration(general_timing *timing)
-{
-    timing->End = ReadCPUTimer();
-    U64 duration = timing->End - timing->Start;
-    timing->TSCElapsed += duration;
-}
 
 
 global_function void InitializeNamedTiming(named_timing *timing, char *name)
@@ -238,10 +202,6 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait)
 }
 
 #else // #if _WIN32
-
-global_function void InitializeGeneralTiming(general_timing *timing) { Assert(FALSE && "Not implemented"); }
-global_function void StartCPUTiming(general_timing *timing) { Assert(FALSE && "Not implemented"); }
-global_function void EndCPUTimingAndIncrementDuration(general_timing *timing) { Assert(FALSE && "Not implemented"); }
 
 global_function void InitializeNamedTiming(named_timing *timing, char *name) { Assert(FALSE && "Not implemented"); }
 global_function void StartNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
