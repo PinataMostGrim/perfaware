@@ -20,6 +20,7 @@ typedef struct
 {
     char *Name;
     U64 Start;
+    // Note (Aaron): End is used primarily to detect orphaned timings (started but not ended)
     U64 End;
     U64 HitCount;
     S64 TSCElapsed;
@@ -47,6 +48,7 @@ global_function void PrintNamedTimingsProfile();
 #define START_NAMED_TIMING(name)    named_timing *name##TimingPtr = &GlobalProfiler.Timings[__COUNTER__]; \
                                     name##TimingPtr->Name = #name; \
                                     name##TimingPtr->Start = ReadCPUTimer(); \
+                                    name##TimingPtr->End = 0; \
                                     name##TimingPtr->HitCount++;
 
 #define END_NAMED_TIMING(name)      name##TimingPtr->End = ReadCPUTimer(); \
@@ -58,6 +60,7 @@ global_function void PrintNamedTimingsProfile();
                                     name##TimingPtr->Name = #name;
 
 #define RESTART_NAMED_TIMING(name)  name##TimingPtr->Start = ReadCPUTimer(); \
+                                    name##TimingPtr->End = 0; \
                                     name##TimingPtr->HitCount++;
 
 
