@@ -15,12 +15,18 @@
 // A higher number is more accurate.
 #define CPU_FREQUENCY_MS 200
 
+// Note (Aaron): Enable this to check for timings that have been started but not ended or vice versa
+#define DETECT_ORPHAN_TIMINGS 0
+
 
 typedef struct
 {
     U64 Start;
     U64 TSCElapsed;
     U64 HitCount;
+#if DETECT_ORPHAN_TIMINGS
+    U64 EndCount;
+#endif
     char *Label;
 } timing_block;
 
@@ -40,18 +46,35 @@ global_function void StartTimingsProfile();
 global_function void EndTimingsProfile();
 global_function void PrintTimingsProfile();
 
-// Note (Aaron): The following macros can be used to control the scope a named timing is created in
-// so it can be re-used later in the same scope.
-#define PREWARM_TIMING(label)   timing_block *label##BlockPtr = &GlobalProfiler.Timings[__COUNTER__ + 1];
-#define RESTART_TIMING(label)   label##BlockPtr->Start = ReadCPUTimer();
-
 // Note (Aaron): Use the following macros to start and end named timings within the same scope.
+#if DETECT_ORPHAN_TIMINGS
 #define START_TIMING(label)     timing_block *label##BlockPtr = &GlobalProfiler.Timings[__COUNTER__ + 1]; \
+                                Assert(label##BlockPtr->HitCount == label##BlockPtr->EndCount); \
+                                label##BlockPtr->Label = #label; \
+                                label##BlockPtr->HitCount++; \
                                 label##BlockPtr->Start = ReadCPUTimer();
 
 #define END_TIMING(label)       label##BlockPtr->TSCElapsed += ReadCPUTimer() - label##BlockPtr->Start; \
+                                label##BlockPtr->EndCount++;\
+                                Assert(label##BlockPtr->HitCount == label##BlockPtr->EndCount);
+
+#else
+#define START_TIMING(label)     timing_block *label##BlockPtr = &GlobalProfiler.Timings[__COUNTER__ + 1]; \
                                 label##BlockPtr->Label = #label; \
-                                label##BlockPtr->HitCount++;
+                                label##BlockPtr->HitCount++; \
+                                label##BlockPtr->Start = ReadCPUTimer();
+
+#define END_TIMING(label)       label##BlockPtr->TSCElapsed += ReadCPUTimer() - label##BlockPtr->Start;
+#endif // DETECT_ORPHAN_TIMINGS
+
+
+// Note (Aaron): The following macros can be used to control the scope a named timing is created in
+// so it can be re-used later in the same scope.
+#define PREWARM_TIMING(label)   timing_block *label##BlockPtr = &GlobalProfiler.Timings[__COUNTER__ + 1]; \
+                                label##BlockPtr->Label = #label;
+
+#define RESTART_TIMING(label)   label##BlockPtr->HitCount++; \
+                                label##BlockPtr->Start = ReadCPUTimer();
 
 
 global_function U64 GetOSTimerFrequency();
@@ -117,6 +140,10 @@ global_function void PrintTimingsProfile()
             break;
         }
 
+#if DETECT_ORPHAN_TIMINGS
+        Assert((timingPtr->HitCount == timingPtr->EndCount)
+               && "Timing started but not finished or finished without starting");
+#endif
 
         F64 percent = ((F64)timingPtr->TSCElapsed / (F64)GlobalProfiler.TSCElapsed) * 100.0f;
         printf("  %s[%llu]: %llu (%.2f%s)\n", timingPtr->Label, timingPtr->HitCount, timingPtr->TSCElapsed, percent, "%");
