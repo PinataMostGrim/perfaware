@@ -287,7 +287,7 @@ int main()
             break;
         }
 
-        // skip tokens we aren't (currently) interested in
+        // skip token types we aren't (currently) interested in
         if (nextToken.Type == Token_assignment
             || nextToken.Type == Token_delimiter
             || nextToken.Type == Token_scope_open
@@ -445,6 +445,10 @@ int main()
 
                 continue;
             }
+        }
+        else
+        {
+            END_TIMING_(JSONParsing);
         }
     }
 
