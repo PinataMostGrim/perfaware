@@ -29,19 +29,19 @@
 #define START_PROFILE() StartTimingsProfile();
 #define END_PROFILE() EndTimingsProfile();
 #define PRINT_PROFILE() PrintTimingsProfile();
-#define START_TIMING(name) START_NAMED_TIMING(name)
-#define END_TIMING(name) END_NAMED_TIMING(name)
-#define PREWARM_TIMING(name) PREWARM_NAMED_TIMING(name)
-#define RESTART_TIMING(name) RESTART_NAMED_TIMING(name)
+#define START_TIMING_(label) START_TIMING(label)
+#define END_TIMING_(label) END_TIMING(label)
+#define PREWARM_TIMING_(label) PREWARM_TIMING(label)
+#define RESTART_TIMING_(label) RESTART_TIMING(label)
 
 #else
 #define START_PROFILE()
 #define END_PROFILE()
 #define PRINT_PROFILE()
-#define START_TIMING(name)
-#define END_TIMING(name)
-#define PREWARM_TIMING(name)
-#define RESTART_TIMING(name)
+#define START_TIMING_(label)
+#define END_TIMING_(label)
+#define PREWARM_TIMING_(label)
+#define RESTART_TIMING(label)
 #endif
 
 
@@ -201,7 +201,7 @@ inline void PrintTiming(char *timingName, U64 timing, U64 totalTime, U8 tabCount
 int main()
 {
     START_PROFILE();
-    START_TIMING(Startup);
+    START_TIMING_(Startup);
 
     // open data file
     char *dataFilename = DATA_FILENAME;
@@ -255,35 +255,35 @@ int main()
     pairs_context context;
     InitializePairsContext(&context);
 
-    END_TIMING(Startup);
-    PREWARM_TIMING(MiscOperations);
+    END_TIMING_(Startup);
+    PREWARM_TIMING_(MiscOperations);
 
     for (;;)
     {
-        START_TIMING(JSONLexing);
+        START_TIMING_(JSONLexing);
         haversine_token nextToken = GetNextToken(dataFile);
-        END_TIMING(JSONLexing);
+        END_TIMING_(JSONLexing);
 
-        RESTART_TIMING(MiscOperations);
+        RESTART_TIMING_(MiscOperations);
         stats.TokenCount++;
         stats.MaxTokenLength = nextToken.Length > stats.MaxTokenLength
             ? nextToken.Length
             : stats.MaxTokenLength;
-        END_TIMING(MiscOperations);
+        END_TIMING_(MiscOperations);
 
 #if 0
         printf("[INFO] %lli: ", stats.TokenCount);
         PrintToken(&nextToken);
 #endif
 
-        START_TIMING(JSONParsing);
+        START_TIMING_(JSONParsing);
         if (nextToken.Type == Token_EOF)
         {
 #if 0
             printf("\n");
             printf("[INFO] EOF reached\n");
 #endif
-            END_TIMING(JSONParsing);
+            END_TIMING_(JSONParsing);
             break;
         }
 
@@ -293,7 +293,7 @@ int main()
             || nextToken.Type == Token_scope_open
             || nextToken.Type == Token_scope_close)
         {
-            END_TIMING(JSONParsing);
+            END_TIMING_(JSONParsing);
             continue;
         }
 
@@ -313,13 +313,13 @@ int main()
             if (!context.ArrayStartToken && nextToken.Type == Token_array_start)
             {
                 context.ArrayStartToken = tokenPtr;
-                END_TIMING(JSONParsing);
+                END_TIMING_(JSONParsing);
                 continue;
             }
 
             if (!context.ArrayStartToken)
             {
-                END_TIMING(JSONParsing);
+                END_TIMING_(JSONParsing);
                 continue;
             }
 
@@ -331,7 +331,7 @@ int main()
 
                 context.ArrayStartToken = 0;
                 context.PairsToken = 0;
-                END_TIMING(JSONParsing);
+                END_TIMING_(JSONParsing);
                 continue;
             }
 
@@ -345,7 +345,7 @@ int main()
                     exit(1);
                 }
                 context.X0Token = tokenPtr;
-                END_TIMING(JSONParsing);
+                END_TIMING_(JSONParsing);
                 continue;
             }
 
@@ -358,7 +358,7 @@ int main()
                     exit(1);
                 }
                 context.Y0Token = tokenPtr;
-                END_TIMING(JSONParsing);
+                END_TIMING_(JSONParsing);
                 continue;
             }
 
@@ -371,7 +371,7 @@ int main()
                     exit(1);
                 }
                 context.X1Token = tokenPtr;
-                END_TIMING(JSONParsing);
+                END_TIMING_(JSONParsing);
                 continue;
             }
 
@@ -384,16 +384,16 @@ int main()
                     exit(1);
                 }
                 context.Y1Token = tokenPtr;
-                END_TIMING(JSONParsing);
+                END_TIMING_(JSONParsing);
                 continue;
             }
 
-            END_TIMING(JSONParsing);
+            END_TIMING_(JSONParsing);
 
             // process a Haversine point pair once we have parsed its values
             if (context.X0Token && context.Y0Token && context.X1Token && context.Y1Token)
             {
-                START_TIMING(StackOperations);
+                START_TIMING_(StackOperations);
                 haversine_token y1Value = PopToken(&tokenStack);
                 PopToken(&tokenStack);
                 haversine_token x1Value = PopToken(&tokenStack);
@@ -415,17 +415,17 @@ int main()
 
                 V2F64 point0 = GetVectorFromCoordinateTokens(x0Value, y0Value);
                 V2F64 point1 = GetVectorFromCoordinateTokens(x1Value, y1Value);
-                END_TIMING(StackOperations);
+                END_TIMING_(StackOperations);
 
-                START_TIMING(HaversineDistance);
+                START_TIMING_(HaversineDistance);
                 F64 distance = ReferenceHaversine(point0.x, point0.y, point1.x, point1.y, EARTH_RADIUS);
-                END_TIMING(HaversineDistance);
+                END_TIMING_(HaversineDistance);
 
 #if 0
                 PrintHaversineDistance(point0, point1, distance);
 #endif
 
-                START_TIMING(Validation);
+                START_TIMING_(Validation);
                 F64 answerDistance;
                 fread(&answerDistance, sizeof(F64), 1, answerFile);
 
@@ -436,19 +436,19 @@ int main()
                     stats.CalculationErrors++;
                     printf("[WARN] Calculated distance diverges from answer value significantly (calculated: %f vs. answer: %f)\n", distance, answerDistance);
                 }
-                END_TIMING(Validation);
+                END_TIMING_(Validation);
 
-                START_TIMING(SumCalculation);
+                START_TIMING_(SumCalculation);
                 stats.CalcualtedSum = ((stats.CalcualtedSum * (F64)stats.PairsProcessed) + distance) / (F64)(stats.PairsProcessed + 1);
                 stats.PairsProcessed++;
-                END_TIMING(SumCalculation);
+                END_TIMING_(SumCalculation);
 
                 continue;
             }
         }
     }
 
-    RESTART_TIMING(MiscOperations);
+    RESTART_TIMING_(MiscOperations);
     if (ferror(dataFile))
     {
         fclose(dataFile);
@@ -472,7 +472,7 @@ int main()
     printf("\n");
     PrintStats(&stats);
     printf("\n");
-    END_TIMING(MiscOperations);
+    END_TIMING_(MiscOperations);
 
     END_PROFILE();
     PRINT_PROFILE();

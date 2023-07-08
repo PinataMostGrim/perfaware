@@ -18,20 +18,11 @@
 
 typedef struct
 {
+    U64 Start;
     U64 TSCElapsed;
     U64 HitCount;
     char *Label;
-} named_timing;
-
-
-typedef struct
-{
-    U64 Start;
-    U64 End;
-    U64 Index;
-    U64 TSCElapsed;
-    char *Label;
-} timings_block;
+} timing_block;
 
 
 typedef struct
@@ -39,7 +30,7 @@ typedef struct
     U64 Start;
     U64 TSCElapsed;
     U64 CPUFrequency;
-    named_timing Timings[MAX_NAMED_TIMINGS];
+    timing_block Timings[MAX_NAMED_TIMINGS];
     B8 Started;
     B8 Ended;
 } timings_profile;
@@ -49,24 +40,18 @@ global_function void StartTimingsProfile();
 global_function void EndTimingsProfile();
 global_function void PrintTimingsProfile();
 
-// Note (Aaron): Use the following macros to start and end named timings within the same scope.
-#define START_NAMED_TIMING(name)    timings_block name##Block = {0}; \
-                                    name##Block.Index = __COUNTER__ + 1; \
-                                    name##Block.Label = #name; \
-                                    name##Block.Start = ReadCPUTimer();
-
-#define END_NAMED_TIMING(name)      name##Block.TSCElapsed = ReadCPUTimer() - name##Block.Start; \
-                                    GlobalProfiler.Timings[name##Block.Index].Label = name##Block.Label; \
-                                    GlobalProfiler.Timings[name##Block.Index].TSCElapsed += name##Block.TSCElapsed; \
-                                    GlobalProfiler.Timings[name##Block.Index].HitCount++;
-
 // Note (Aaron): The following macros can be used to control the scope a named timing is created in
-// and to re-use the same timing later in the same scope.
-#define PREWARM_NAMED_TIMING(name)  timings_block name##Block = {0}; \
-                                    name##Block.Index = __COUNTER__ + 1; \
-                                    name##Block.Label = #name; \
+// so it can be re-used later in the same scope.
+#define PREWARM_TIMING(label)   timing_block *label##BlockPtr = &GlobalProfiler.Timings[__COUNTER__ + 1];
+#define RESTART_TIMING(label)   label##BlockPtr->Start = ReadCPUTimer();
 
-#define RESTART_NAMED_TIMING(name)  name##Block.Start = ReadCPUTimer();
+// Note (Aaron): Use the following macros to start and end named timings within the same scope.
+#define START_TIMING(label)     timing_block *label##BlockPtr = &GlobalProfiler.Timings[__COUNTER__ + 1]; \
+                                label##BlockPtr->Start = ReadCPUTimer();
+
+#define END_TIMING(label)       label##BlockPtr->TSCElapsed += ReadCPUTimer() - label##BlockPtr->Start; \
+                                label##BlockPtr->Label = #label; \
+                                label##BlockPtr->HitCount++;
 
 
 global_function U64 GetOSTimerFrequency();
@@ -126,7 +111,7 @@ global_function void PrintTimingsProfile()
     // Note (Aaron): Timer at index 0 represents "no timer" and should be skipped
     for (int i = 1; i < ArrayCount(GlobalProfiler.Timings); ++i)
     {
-        named_timing *timingPtr = &GlobalProfiler.Timings[i];
+        timing_block *timingPtr = &GlobalProfiler.Timings[i];
         if (!timingPtr->Label)
         {
             break;
