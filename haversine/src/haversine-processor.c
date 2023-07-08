@@ -26,9 +26,9 @@
 
 
 #if ENABLE_TIMINGS
-#define START_PROFILE() StartNamedTimingsProfile();
-#define END_PROFILE() EndNamedTimingsProfile();
-#define PRINT_PROFILE() PrintNamedTimingsProfile();
+#define START_PROFILE() StartTimingsProfile();
+#define END_PROFILE() EndTimingsProfile();
+#define PRINT_PROFILE() PrintTimingsProfile();
 #define START_TIMING(name) START_NAMED_TIMING(name)
 #define END_TIMING(name) END_NAMED_TIMING(name)
 #define PREWARM_TIMING(name) PREWARM_NAMED_TIMING(name)

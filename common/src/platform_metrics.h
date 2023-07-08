@@ -18,12 +18,9 @@
 
 typedef struct
 {
-    char *Name;
-    U64 Start;
-    // Note (Aaron): End is used primarily to detect orphaned timings (started but not ended)
-    U64 End;
+    U64 TSCElapsed;
     U64 HitCount;
-    S64 TSCElapsed;
+    char *Label;
 } named_timing;
 
 
@@ -31,36 +28,45 @@ typedef struct
 {
     U64 Start;
     U64 End;
-    U64 Duration;
-    named_timing Timings[MAX_NAMED_TIMINGS];
-    B32 Started;
-    B32 Ended;
+    U64 Index;
+    U64 TSCElapsed;
+    char *Label;
+} timings_block;
+
+
+typedef struct
+{
+    U64 Start;
+    U64 TSCElapsed;
     U64 CPUFrequency;
+    named_timing Timings[MAX_NAMED_TIMINGS];
+    B8 Started;
+    B8 Ended;
 } timings_profile;
 
 
-global_function void StartNamedTimingsProfile();
-global_function void EndNamedTimingsProfile();
-global_function void PrintNamedTimingsProfile();
+global_function void StartTimingsProfile();
+global_function void EndTimingsProfile();
+global_function void PrintTimingsProfile();
 
 // Note (Aaron): Use the following macros to start and end named timings within the same scope.
-#define START_NAMED_TIMING(name)    named_timing *name##TimingPtr = &GlobalProfiler.Timings[__COUNTER__]; \
-                                    name##TimingPtr->Name = #name; \
-                                    name##TimingPtr->Start = ReadCPUTimer(); \
-                                    name##TimingPtr->End = 0; \
-                                    name##TimingPtr->HitCount++;
+#define START_NAMED_TIMING(name)    timings_block name##Block = {0}; \
+                                    name##Block.Index = __COUNTER__ + 1; \
+                                    name##Block.Label = #name; \
+                                    name##Block.Start = ReadCPUTimer();
 
-#define END_NAMED_TIMING(name)      name##TimingPtr->End = ReadCPUTimer(); \
-                                    name##TimingPtr->TSCElapsed += (name##TimingPtr->End - name##TimingPtr->Start);
+#define END_NAMED_TIMING(name)      name##Block.TSCElapsed = ReadCPUTimer() - name##Block.Start; \
+                                    GlobalProfiler.Timings[name##Block.Index].Label = name##Block.Label; \
+                                    GlobalProfiler.Timings[name##Block.Index].TSCElapsed += name##Block.TSCElapsed; \
+                                    GlobalProfiler.Timings[name##Block.Index].HitCount++;
 
 // Note (Aaron): The following macros can be used to control the scope a named timing is created in
 // and to re-use the same timing later in the same scope.
-#define PREWARM_NAMED_TIMING(name)  named_timing *name##TimingPtr = &GlobalProfiler.Timings[__COUNTER__];\
-                                    name##TimingPtr->Name = #name;
+#define PREWARM_NAMED_TIMING(name)  timings_block name##Block = {0}; \
+                                    name##Block.Index = __COUNTER__ + 1; \
+                                    name##Block.Label = #name; \
 
-#define RESTART_NAMED_TIMING(name)  name##TimingPtr->Start = ReadCPUTimer(); \
-                                    name##TimingPtr->End = 0; \
-                                    name##TimingPtr->HitCount++;
+#define RESTART_NAMED_TIMING(name)  name##Block.Start = ReadCPUTimer();
 
 
 global_function U64 GetOSTimerFrequency();
@@ -86,12 +92,11 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait);
 global_variable timings_profile GlobalProfiler;
 
 
-global_function void StartNamedTimingsProfile()
+global_function void StartTimingsProfile()
 {
     MemoryZeroArray(GlobalProfiler.Timings);
 
-    GlobalProfiler.End = 0;
-    GlobalProfiler.Duration = 0;
+    GlobalProfiler.TSCElapsed = 0;
     GlobalProfiler.Started = TRUE;
     GlobalProfiler.Ended = FALSE;
 
@@ -100,43 +105,44 @@ global_function void StartNamedTimingsProfile()
 }
 
 
-global_function void EndNamedTimingsProfile()
+global_function void EndTimingsProfile()
 {
-    GlobalProfiler.End = ReadCPUTimer();
-    GlobalProfiler.Duration = GlobalProfiler.End - GlobalProfiler.Start;
+    Assert(GlobalProfiler.Started && "Profile has not been started");
+
+    GlobalProfiler.TSCElapsed = ReadCPUTimer() - GlobalProfiler.Start;
     GlobalProfiler.Ended = TRUE;
 }
 
 
-global_function void PrintNamedTimingsProfile()
+global_function void PrintTimingsProfile()
 {
+    Assert(GlobalProfiler.Started && "Profile has not been started");
     Assert(GlobalProfiler.Ended && "Profile has not been ended");
 
-    F64 totalTimeMs = ((F64)GlobalProfiler.Duration / (F64)GlobalProfiler.CPUFrequency) * 1000.0f;
-    S64 unaccounted = GlobalProfiler.Duration;
+    F64 totalTimeMs = ((F64)GlobalProfiler.TSCElapsed / (F64)GlobalProfiler.CPUFrequency) * 1000.0f;
+    S64 unaccounted = GlobalProfiler.TSCElapsed;
 
     printf("Timings (cycles):\n");
-    for (int i = 0; i < ArrayCount(GlobalProfiler.Timings); ++i)
+    // Note (Aaron): Timer at index 0 represents "no timer" and should be skipped
+    for (int i = 1; i < ArrayCount(GlobalProfiler.Timings); ++i)
     {
         named_timing *timingPtr = &GlobalProfiler.Timings[i];
-        if (timingPtr->Start == 0 && timingPtr->End == 0)
+        if (!timingPtr->Label)
         {
             break;
         }
 
-        Assert((timingPtr->Start != 0 && timingPtr->End != 0)
-               && "Timing started but not finished or finished without starting");
 
-        F64 percent = ((F64)timingPtr->TSCElapsed / (F64)GlobalProfiler.Duration) * 100.0f;
-        printf("  %s[%llu]: %llu (%.2f%s)\n", timingPtr->Name, timingPtr->HitCount, timingPtr->TSCElapsed, percent, "%");
+        F64 percent = ((F64)timingPtr->TSCElapsed / (F64)GlobalProfiler.TSCElapsed) * 100.0f;
+        printf("  %s[%llu]: %llu (%.2f%s)\n", timingPtr->Label, timingPtr->HitCount, timingPtr->TSCElapsed, percent, "%");
         unaccounted -= timingPtr->TSCElapsed;
     }
 
     Assert(unaccounted > 0 && "Unaccounted cycles can't be less than zero!");
 
-    F64 percent = ((F64)unaccounted / (F64)GlobalProfiler.Duration) * 100.0f;
+    F64 percent = ((F64)unaccounted / (F64)GlobalProfiler.TSCElapsed) * 100.0f;
     printf("  Unaccounted: %llu (%.2f%s)\n\n", unaccounted, percent, "%");
-    printf("Total cycles: %.4llu\n", GlobalProfiler.Duration);
+    printf("Total cycles: %.4llu\n", GlobalProfiler.TSCElapsed);
     printf("Total time:   %.4fms (CPU freq %llu)\n", totalTimeMs, GlobalProfiler.CPUFrequency);
 }
 
