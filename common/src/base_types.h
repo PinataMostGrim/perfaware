@@ -1,3 +1,7 @@
+/* TODO (Aaron):
+    - Resolve the nonstandard extension use for nameless structs / unions in C
+*/
+
 // Note (Aaron): Typedefs
 
 #ifndef BASE_TYPES_H
