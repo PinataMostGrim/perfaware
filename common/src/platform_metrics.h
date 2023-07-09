@@ -171,7 +171,7 @@ global_function void PrintTimingsProfile()
         if (!timingPtr->HitCount)
         {
             Assert(!timingPtr->Label && "Timing has a label; most likely RESTART_TIMING has not been called");
-            break;
+            continue;
         }
 
         Assert(timingPtr->Label && "Timing missing label; most likely END_TIMING has not been called");
