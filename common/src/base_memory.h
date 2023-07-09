@@ -8,17 +8,15 @@
 // +------------------------------+
 // Note (Aaron): Memory modification
 
-global_function void *MemorySet(uint8_t *destPtr, int c, size_t count);
+global_function void *MemorySet(void *destPtr, int c, size_t count);
 global_function void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size);
 
-// TODO (Aaron): Test these
-// #define MemoryZero(p, z)        MemorySet((p), 0, (z))
-// #define MemoryZeroStruct(p)     MemoryZero((p), sizeof(*(p)))
-// #define MemoryZeroArray(p)      MemoryZero((p), sizeof(p))
+#define MemoryZero(ptr, count)  MemorySet((ptr), 0, (count))
+#define MemoryZeroStruct(ptr)   MemoryZero((ptr), sizeof(*(ptr)))
+#define MemoryZeroArray(array)  MemoryZero((array), sizeof(array))
 
-// TODO (Aaron): Test these
-// #define MemoryCopyStruct(d, s)  MemoryCopy((d), sizeof(*(p))
-// #define MemoryCopyArray(d, s)
+#define MemoryCopyStruct(destPtr, sourcePtr)    MemoryCopy((destPtr), (sourcePtr), Min(sizeof(*(destPtr)), sizeof(*(sourcePtr))))
+#define MemoryCopyArray(destArray, sourceArray) MemoryCopy((destArray), (sourceArray), Min(sizeof(sourceArray), sizeof(destArray)))
 
 
 // +------------------------------+

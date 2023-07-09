@@ -30,6 +30,8 @@
         - Use hard-coded value for now
     - Give processor or file error feedback via GUI
 
+    - Update build batch files to output product of pre-processor into a correctly named file for debugging?
+
     - Add V2F32 (and others from base.h) macros to imconfig.h so I can use my own math types
 
     - Pick a casing scheme for struct members

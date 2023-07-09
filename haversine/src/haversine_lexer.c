@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include "base.h"
+#include "base_memory.h"
 #include "haversine_lexer.h"
 
 
@@ -91,7 +92,7 @@ global_function haversine_token GetNextToken(FILE *file)
 {
     haversine_token token;
     token.Type = Token_invalid;
-    MemorySet((U8 *)token.String, 0, sizeof(token.String));
+    MemorySet(token.String, 0, sizeof(token.String));
     token.Length = 0;
 
     for (int i = 0; i < MAX_TOKEN_LENGTH; ++i)
@@ -103,7 +104,7 @@ global_function haversine_token GetNextToken(FILE *file)
         if (nextChar == 0)
         {
             token.Type = Token_EOF;
-            MemorySet((U8 *)token.String, 0, sizeof(token.String));
+            MemorySet(token.String, 0, sizeof(token.String));
             return token;
         }
 

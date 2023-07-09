@@ -1388,7 +1388,7 @@ global_function void ResetProcessorExecution(processor_8086 *processor)
 {
     processor->IP = 0;
     processor->PrevIP = 0;
-    MemorySet((U8 *)&processor->Registers, 0, sizeof(processor->Registers));
+    MemorySet(&processor->Registers, 0, sizeof(processor->Registers));
     processor->Flags = 0;
     processor->InstructionCount = 0;
     processor->TotalClockCount = 0;
