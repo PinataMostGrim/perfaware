@@ -31,15 +31,17 @@ typedef struct
 } timing_entry;
 
 
-typedef struct
+typedef struct timing_block timing_block;
+struct timing_block
 {
     U32 TimingIndex;
     U32 ParentTimingIndex;
     U64 Start;
     U64 TSCElapsed;
     U64 TSCElapsedChildren;
+    timing_block *ParentBlock;
     char *Label;
-} timing_block;
+};
 
 
 typedef struct
@@ -59,47 +61,20 @@ global_function void StartTimingsProfile();
 global_function void EndTimingsProfile();
 global_function void PrintTimingsProfile();
 
-#if DETECT_ORPHAN_TIMINGS
-// Note (Aaron): To detect orphaned timers:
-// - HitCount must be incremented when START_TIMING or RESTART_TIMING is invoked,
-//   and then decremented when END_TIMING is invoked to offset the existing increment.
-// - EndCount must be incremented when END_TIMING is invoked
-#define DETECT_ORPHAN_INCREMENT_HIT_COUNT(label)    GlobalProfiler.Timings[label##Block.TimingIndex].HitCount++;
-#define DETECT_ORPHAN_INCREMENT_END_COUNT(label)    label##TimingPtr->HitCount--; label##TimingPtr->EndCount++;
-#else
-#define DETECT_ORPHAN_INCREMENT_HIT_COUNT(label)
-#define DETECT_ORPHAN_INCREMENT_END_COUNT(label)
-#endif // DETECT_ORPHAN_TIMINGS
 
 // Note (Aaron): Use the following macros to start and end named timings within the same scope.
-#define START_TIMING(label)     timing_block label##Block = {0}; \
-                                label##Block.TimingIndex = __COUNTER__ + 1; \
-                                label##Block.Label = #label; \
-                                label##Block.ParentTimingIndex = GlobalProfilerParent; \
-                                GlobalProfilerParent = label##Block.TimingIndex; \
-                                DETECT_ORPHAN_INCREMENT_HIT_COUNT(label) \
-                                label##Block.Start = ReadCPUTimer();
+#define START_TIMING(label) timing_block label##Block = {0};                        \
+                            _StartTiming(&label##Block, __COUNTER__ + 1, #label);   \
 
-#define END_TIMING(label)       label##Block.TSCElapsed = ReadCPUTimer() - label##Block.Start; \
-                                GlobalProfilerParent = label##Block.ParentTimingIndex; \
-                                timing_entry *label##TimingPtr = &GlobalProfiler.Timings[label##Block.TimingIndex]; \
-                                label##TimingPtr->TSCElapsed += label##Block.TSCElapsed; \
-                                label##TimingPtr->HitCount++; \
-                                DETECT_ORPHAN_INCREMENT_END_COUNT(label) \
-                                label##TimingPtr->Label = label##Block.Label; \
-                                timing_entry *label##ParentTimingPtr = &GlobalProfiler.Timings[label##Block.ParentTimingIndex]; \
-                                label##ParentTimingPtr->TSCElapsedChildren += label##Block.TSCElapsed;
+#define END_TIMING(label)   _EndTiming(&label##Block);
+
 
 // Note (Aaron): The following macros can be used to control the scope a timing is created in
 // so it can be re-used later in the same scope.
 #define PREWARM_TIMING(label)   timing_block label##Block = {0}; \
-                                label##Block.TimingIndex = __COUNTER__ + 1; \
-                                label##Block.Label = #label;
+                                _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label)
 
-#define RESTART_TIMING(label)   label##Block.ParentTimingIndex = GlobalProfilerParent; \
-                                GlobalProfilerParent = label##Block.TimingIndex; \
-                                DETECT_ORPHAN_INCREMENT_HIT_COUNT(label) \
-                                label##Block.Start = ReadCPUTimer();
+#define RESTART_TIMING(label)   _RestartTiming(&label##Block);
 
 
 global_function U64 GetOSTimerFrequency();
@@ -123,7 +98,7 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait);
 
 
 global_variable timings_profile GlobalProfiler;
-global_variable U32 GlobalProfilerParent;
+global_variable timing_block *GlobalTimingBlock = NULL;
 
 
 global_function void StartTimingsProfile()
@@ -150,6 +125,77 @@ global_function void EndTimingsProfile()
 #if DETECT_ORPHAN_TIMINGS
     GlobalProfiler.Ended = TRUE;
 #endif
+}
+
+
+inline
+global_function void _StartTiming(timing_block *block, U32 timingIndex, char *label)
+{
+    block->TimingIndex = timingIndex;
+    block->Label = label;
+    block->ParentTimingIndex = GlobalTimingBlock ? GlobalTimingBlock->TimingIndex : 0;
+    block->ParentBlock = GlobalTimingBlock;
+    GlobalTimingBlock = block;
+#if DETECT_ORPHAN_TIMINGS
+    GlobalProfiler.Timings[block->TimingIndex].HitCount++;
+#endif
+    block->Start = ReadCPUTimer();
+}
+
+
+inline
+global_function void _EndTiming(timing_block *block)
+{
+    block->TSCElapsed = ReadCPUTimer() - block->Start;
+
+    timing_entry *timing = &GlobalProfiler.Timings[block->TimingIndex];
+    timing_entry *parentTiming = &GlobalProfiler.Timings[block->ParentTimingIndex];
+
+    timing->Label = block->Label;
+#if DETECT_ORPHAN_TIMINGS
+    timing->EndCount++;
+#else
+    timing->HitCount++;
+#endif
+
+    B8 selfIsParent = FALSE;
+    timing_block *parentBlock = block->ParentBlock;
+    while(parentBlock)
+    {
+        if (parentBlock->TimingIndex == block->TimingIndex)
+        {
+            selfIsParent = TRUE;
+            break;
+        }
+
+        parentBlock = parentBlock->ParentBlock;
+    }
+
+    timing->TSCElapsed += selfIsParent ? 0 : block->TSCElapsed;
+    parentTiming->TSCElapsedChildren += selfIsParent ? 0 : block->TSCElapsed;
+
+    GlobalTimingBlock = block->ParentBlock;
+}
+
+
+inline
+global_function void _PreWarmTiming(timing_block *block, U32 timingIndex, char *label)
+{
+    block->TimingIndex = timingIndex;
+    block->Label = label;
+}
+
+
+inline
+global_function void _RestartTiming(timing_block *block)
+{
+    block->ParentTimingIndex = GlobalTimingBlock ? GlobalTimingBlock->TimingIndex : 0;
+    block->ParentBlock = GlobalTimingBlock;
+    GlobalTimingBlock = block;
+#if DETECT_ORPHAN_TIMINGS
+    GlobalProfiler.Timings[block->TimingIndex].HitCount++;
+#endif
+    block->Start = ReadCPUTimer();
 }
 
 
