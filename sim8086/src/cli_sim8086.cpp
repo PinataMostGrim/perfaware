@@ -7,10 +7,14 @@
 #include "base_string.c"
 #include "sim8086.cpp"
 #include "sim8086_mnemonics.cpp"
+#define PLATFORM_METRICS_IMPLEMENTATION
+#include "platform_metrics.h"
 
 
 void PrintFlags(processor_8086 *processor, bool force = false)
 {
+    FUNCTION_TIMING;
+
     if (processor->Flags == 0 && !force)
     {
         return;
@@ -29,6 +33,8 @@ void PrintFlags(processor_8086 *processor, bool force = false)
 
 static void PrintInstruction(instruction *instruction)
 {
+    FUNCTION_TIMING;
+
     printf("%s ", GetOpMnemonic(instruction->OpType));
     const char *Separator = "";
 
@@ -125,6 +131,8 @@ static void PrintInstruction(instruction *instruction)
 
 static void PrintClocks(processor_8086 *processor, instruction *instruction)
 {
+    FUNCTION_TIMING;
+
     if (instruction->EAClockCount > 0)
     {
         printf(" Clocks: +%i (%i + %iea) = %i",
@@ -140,6 +148,8 @@ static void PrintClocks(processor_8086 *processor, instruction *instruction)
 
 static void PrintRegisters(processor_8086 *processor)
 {
+    FUNCTION_TIMING;
+
     register_id toDisplay[] =
     {
         Reg_ax,
@@ -182,6 +192,8 @@ static void PrintRegisters(processor_8086 *processor)
 
 void PrintUsage()
 {
+    FUNCTION_TIMING;
+
     printf("usage: sim8086 [--exec --show-clocks --dump --help] filename\n\n");
     printf("disassembles 8086/88 assembly and optionally simulates it. note: supports \na limited number of instructions.\n\n");
 
@@ -199,12 +211,16 @@ void PrintUsage()
 
 int main(int argc, char const *argv[])
 {
+    StartTimingsProfile();
+
     // TODO (Aaron): Need to move these elsewhere
     static_assert_8086(ArrayCount(OperationMnemonics) == Op_count,
               "OperationMnemonics does not accommodate all operation_types");
 
     static_assert_8086(ArrayCount(RegisterLookup) == Reg_mem_id_count,
                   "RegisterLookup does not contain definitions for all register IDs");
+
+    START_TIMING(ParseArgs);
 
     if (argc < 2 ||  argc > 5)
     {
@@ -260,8 +276,10 @@ int main(int argc, char const *argv[])
 
         filename = argv[i];
     }
+    END_TIMING(ParseArgs);
 
     // initialize processor
+    START_TIMING(InitProcessor)
     processor_8086 processor = {};
     processor.Memory = (U8 *)calloc(processor.MemorySize, sizeof(U8));
 
@@ -270,7 +288,9 @@ int main(int argc, char const *argv[])
         printf("ERROR: Unable to allocate main memory for 8086\n");
         exit(1);
     }
+    END_TIMING(InitProcessor)
 
+    START_TIMING(LoadProgramFromFile)
     FILE *file = {};
     file = fopen(filename, "rb");
 
@@ -296,6 +316,7 @@ int main(int argc, char const *argv[])
     }
 
     fclose(file);
+    END_TIMING(LoadProgramFromFile)
 
     // TODO (Aaron): Should I assert anything here?
     //  - Feedback for empty program?
@@ -305,6 +326,8 @@ int main(int argc, char const *argv[])
 
     while (processor.IP < processor.ProgramSize)
     {
+        START_TIMING(MainLoop)
+
         instruction instruction = DecodeNextInstruction(&processor);
         PrintInstruction(&instruction);
 
@@ -330,6 +353,7 @@ int main(int argc, char const *argv[])
 
         printf("\n");
 
+        END_TIMING(MainLoop)
         // TODO (Aaron): Test this. Will have to write an assembly specifically to do this as the listings provided
         // contain instructions I haven't supported yet.
         if (instruction.OpType == Op_ret && stopOnReturn)
@@ -349,6 +373,11 @@ int main(int argc, char const *argv[])
             DumpMemoryToFile(&processor, MemoryDumpFilename);
         }
     }
+
+    printf("\n");
+
+    EndTimingsProfile();
+    PrintTimingsProfile();
 
     return 0;
 }

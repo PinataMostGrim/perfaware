@@ -10,6 +10,7 @@
 #include "base_memory.h"
 #include "sim8086.h"
 #include "sim8086_mnemonics.h"
+#include "platform_metrics.h"
 
 
 // #pragma clang diagnostic ignored "-Wnull-dereference"
@@ -85,6 +86,8 @@ global_variable const char *MemoryDumpFilename = "memory.dat";
 
 global_function B32 DumpMemoryToFile(processor_8086 *processor, const char *filename)
 {
+    FUNCTION_TIMING;
+
     FILE *file = {};
     file = fopen(filename, "wb");
 
@@ -117,6 +120,8 @@ global_function B32 DumpMemoryToFile(processor_8086 *processor, const char *file
 // Advances both the instruction bits pointer and the processor's instruction pointer.
 global_function void ReadInstructionStream(processor_8086 *processor, instruction *instruction, U8 byteCount)
 {
+    FUNCTION_TIMING;
+
     // Note (Aaron): Currently only support 8086 instructions that have a maximum of 6 bytes.
     // In practice, we never read this many bytes at once.
     assert_8086(byteCount < 6);
@@ -152,6 +157,8 @@ global_function void ReadInstructionStream(processor_8086 *processor, instructio
 // Note (Aaron): Requires width, mod and rm to be decoded in the instruction first
 global_function void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand)
 {
+    FUNCTION_TIMING;
+
     // memory mode, no displacement
     if(instruction->ModBits == 0b0)
     {
@@ -230,6 +237,8 @@ global_function void ParseRmBits(processor_8086 *processor, instruction *instruc
 
 global_function U8 CalculateEffectiveAddressClocks(instruction_operand *operand)
 {
+    FUNCTION_TIMING;
+
     // TODO (Aaron): We could just return 0 clocks instead in the event this is false
     // if (operand->Type != Operand_Memory)
     // {
@@ -278,6 +287,8 @@ global_function U8 CalculateEffectiveAddressClocks(instruction_operand *operand)
 
 global_function instruction DecodeNextInstruction(processor_8086 *processor)
 {
+    FUNCTION_TIMING;
+
     processor->PrevIP = processor->IP;
     instruction instruction = {};
     instruction.Address = processor->IP;
@@ -962,6 +973,8 @@ global_function instruction DecodeNextInstruction(processor_8086 *processor)
 
 global_function U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister)
 {
+    FUNCTION_TIMING;
+
     U16 result = 0;
     register_info info = RegisterLookup[targetRegister];
 
@@ -1008,6 +1021,8 @@ global_function U16 GetRegisterValue(processor_8086 *processor, register_id targ
 
 global_function void SetRegisterValue(processor_8086 *processor, register_id targetRegister, U16 value)
 {
+    FUNCTION_TIMING;
+
     register_info info = RegisterLookup[targetRegister];
     // TODO (Aaron): I don't think this preserves values in a lower or higher segment of the register
     // if you are only wanting to write to one segment.
@@ -1018,12 +1033,16 @@ global_function void SetRegisterValue(processor_8086 *processor, register_id tar
 
 global_function U8 GetRegisterFlag(processor_8086 *processor, register_flags flag)
 {
+    FUNCTION_TIMING;
+
     return (processor->Flags & flag);
 }
 
 
 global_function void SetRegisterFlag(processor_8086 *processor, register_flags flag, B32 set)
 {
+    FUNCTION_TIMING;
+
     if (set)
     {
         processor->Flags |= flag;
@@ -1036,6 +1055,8 @@ global_function void SetRegisterFlag(processor_8086 *processor, register_flags f
 
 global_function void UpdateSignedRegisterFlag(processor_8086 *processor, register_id targetRegister, U16 value)
 {
+    FUNCTION_TIMING;
+
     register_info info = RegisterLookup[targetRegister];
     if (info.IsWide)
     {
@@ -1052,6 +1073,8 @@ global_function void UpdateSignedRegisterFlag(processor_8086 *processor, registe
 
 global_function U32 CalculateEffectiveAddress(processor_8086 *processor, instruction_operand operand)
 {
+    FUNCTION_TIMING;
+
     assert_8086(operand.Type == Operand_Memory);
 
     U32 effectiveAddress = 0;
@@ -1076,6 +1099,8 @@ global_function U32 CalculateEffectiveAddress(processor_8086 *processor, instruc
 
 global_function U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide)
 {
+    FUNCTION_TIMING;
+
     if (effectiveAddress >= processor->MemorySize)
     {
         printf("[ERROR] Attempted to load out-of-bounds memory: 0x%x (out of 0x%x)", effectiveAddress, processor->MemorySize);
@@ -1101,6 +1126,8 @@ global_function U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B
 
 global_function void SetMemory(processor_8086 *processor, U32 effectiveAddress, U16 value, B32 wide)
 {
+    FUNCTION_TIMING;
+
     if (effectiveAddress >= processor->MemorySize)
     {
         printf("[ERROR] Attempted to set out-of-bounds memory: 0x%x (out of 0x%x)", effectiveAddress, processor->MemorySize);
@@ -1126,6 +1153,8 @@ global_function void SetMemory(processor_8086 *processor, U32 effectiveAddress, 
 
 global_function U16 GetOperandValue(processor_8086 *processor, instruction_operand operand)
 {
+    FUNCTION_TIMING;
+
     U16 result = 0;
     switch (operand.Type)
     {
@@ -1160,6 +1189,8 @@ global_function U16 GetOperandValue(processor_8086 *processor, instruction_opera
 
 global_function void SetOperandValue(processor_8086 *processor, instruction_operand *operand, U16 value)
 {
+    FUNCTION_TIMING;
+
     // Only these two operand types are assignable
     assert_8086((operand->Type == Operand_Register) || operand->Type == Operand_Memory);
 
@@ -1199,6 +1230,8 @@ global_function void SetOperandValue(processor_8086 *processor, instruction_oper
 
 global_function void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
 {
+    FUNCTION_TIMING;
+
     if (oldFlags == newFlags)
     {
         return;
@@ -1229,6 +1262,8 @@ global_function void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
 // TODO (Aaron): Use a memory arena to hold output
 global_function void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
 {
+    FUNCTION_TIMING;
+
     U8 oldFlags = processor->Flags;
 
     // TODO (Aaron): A lot of redundant code here
@@ -1386,6 +1421,8 @@ global_function void ExecuteInstruction(processor_8086 *processor, instruction *
 // Note (Aaron): Resets the processor's execution state
 global_function void ResetProcessorExecution(processor_8086 *processor)
 {
+    FUNCTION_TIMING;
+
     processor->IP = 0;
     processor->PrevIP = 0;
     MemorySet(&processor->Registers, 0, sizeof(processor->Registers));
@@ -1397,6 +1434,8 @@ global_function void ResetProcessorExecution(processor_8086 *processor)
 
 global_function B32 HasProcessorFinishedExecution(processor_8086 *processor)
 {
+    FUNCTION_TIMING;
+
     B32 result = processor->IP >= processor->ProgramSize;
     return result;
 }
