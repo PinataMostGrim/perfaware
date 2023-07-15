@@ -19,14 +19,29 @@
 #define DETECT_ORPHAN_TIMINGS 0
 
 
+typedef struct timings_profile timings_profile;
 typedef struct zone_timing zone_timing;
+typedef struct zone_block zone_block;
+
+global_function void StartTimingsProfile();
+global_function void EndTimingsProfile();
+global_function void PrintTimingsProfile();
+global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label);
+global_function void _EndTiming(zone_block *block);
+
+global_function U64 GetOSTimerFrequency();
+global_function U64 ReadOSTimer();
+global_function U64 ReadCPUTimer();
+global_function U64 GetCPUFrequency(U64 millisecondsToWait);
+
+
 struct zone_timing
 {
     U64 TSCElapsed;
     U64 TSCElapsedChildren;
     U64 TSCElapsedOriginal;
     U64 HitCount;
-    char *Label;
+    char const *Label;
 
 #if DETECT_ORPHAN_TIMINGS
     U64 EndCount;
@@ -34,18 +49,31 @@ struct zone_timing
 };
 
 
-typedef struct zone_block zone_block;
 struct zone_block
 {
     U32 ParentIndex;
     U32 Index;
     U64 TSCElapsedOriginal;
     U64 Start;
-    char *Label;
+    char const *Label;
+
+#if __cplusplus
+    B8 AutoExecute;
+
+    zone_block(U32 index, char const *label, B8 autoExecute)
+    {
+        AutoExecute = autoExecute;
+        if (AutoExecute) _StartTiming(this, index, label);
+    }
+
+    ~zone_block(void)
+    {
+        if (AutoExecute) _EndTiming(this);
+    }
+#endif // __cplusplus
 };
 
 
-typedef struct timings_profile timings_profile;
 struct timings_profile
 {
     U64 Start;
@@ -60,16 +88,12 @@ struct timings_profile
 };
 
 
-global_function void StartTimingsProfile();
-global_function void EndTimingsProfile();
-global_function void PrintTimingsProfile();
-
-
+#ifndef __cplusplus //////////////////////////////////////////////////////////////////////////
 // Note (Aaron): Use the following macros to start and end named timings within the same scope.
-#define START_TIMING(label) zone_block label##Block = {0};                        \
-                            _StartTiming(&label##Block, __COUNTER__ + 1, #label);   \
+#define START_TIMING(label)     zone_block label##Block = {0};                       \
+                                _StartTiming(&label##Block, __COUNTER__ + 1, #label);
 
-#define END_TIMING(label)   _EndTiming(&label##Block);
+#define END_TIMING(label)       _EndTiming(&label##Block);
 
 
 // Note (Aaron): The following macros can be used to control the scope a timing is created in
@@ -79,11 +103,19 @@ global_function void PrintTimingsProfile();
 
 #define RESTART_TIMING(label)   _RestartTiming(&label##Block);
 
+#else ////////////////////////////////////////////////////////////////////////////////////////
+#define FUNCTION_TIMING         zone_block __func__##Block (__COUNTER__ + 1, __func__, TRUE);
+#define ZONE_TIMING(label)      zone_block label##Block (__COUNTER__ + 1, #label, TRUE);
 
-global_function U64 GetOSTimerFrequency();
-global_function U64 ReadOSTimer();
-global_function U64 ReadCPUTimer();
-global_function U64 GetCPUFrequency(U64 millisecondsToWait);
+#define START_TIMING(label)     zone_block label##Block (__COUNTER__ + 1, #label, FALSE); \
+                                _StartTiming(&label##Block, __COUNTER__ + 1, #label);
+
+#define END_TIMING(label)       _EndTiming(&label##Block);
+
+#define PREWARM_TIMING(label)   zone_block label##Block (__COUNTER__ + 1, #label, FALSE); \
+                                _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label);
+#define RESTART_TIMING(label)   _RestartTiming(&label##Block);
+#endif // __cplusplus ////////////////////////////////////////////////////////////////////////
 
 #endif // PLATFORM_METRICS_H
 
@@ -132,7 +164,7 @@ global_function void EndTimingsProfile()
 
 
 inline
-global_function void _StartTiming(zone_block *block, U32 timingIndex, char *label)
+global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label)
 {
     zone_timing *timing = &GlobalProfiler.Timings[timingIndex];
     block->TSCElapsedOriginal = timing->TSCElapsedOriginal;
@@ -174,7 +206,7 @@ global_function void _EndTiming(zone_block *block)
 
 
 inline
-global_function void _PreWarmTiming(zone_block *block, U32 timingIndex, char *label)
+global_function void _PreWarmTiming(zone_block *block, U32 timingIndex, char const *label)
 {
     block->Index = timingIndex;
     block->Label = label;
@@ -300,7 +332,7 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait)
     return cpuFrequency;
 }
 
-#else // #if _WIN32
+#else // _WIN32
 
 global_function void StartNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
 global_function void EndNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
