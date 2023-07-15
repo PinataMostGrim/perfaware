@@ -18,66 +18,46 @@
 // Note (Aaron): Enable this to check for timings that have been started but not ended or vice versa
 #define DETECT_ORPHAN_TIMINGS 0
 
-#define TOGGLE_IMPL 0
 
-
-#if TOGGLE_IMPL
-typedef struct
+typedef struct zone_timing zone_timing;
+struct zone_timing
 {
     U64 TSCElapsed;
     U64 TSCElapsedChildren;
+    U64 TSCElapsedOriginal;
     U64 HitCount;
+    char *Label;
+
 #if DETECT_ORPHAN_TIMINGS
     U64 EndCount;
-#endif
-    char *Label;
-} timing_entry;
+#endif // DETECT_ORPHAN_TIMINGS
+};
 
-typedef struct timing_block timing_block;
-struct timing_block
+
+typedef struct zone_block zone_block;
+struct zone_block
 {
-    U32 TimingIndex;
-    U32 ParentTimingIndex;
+    U32 ParentIndex;
+    U32 Index;
+    U64 TSCElapsedOriginal;
     U64 Start;
-    U64 TSCElapsed;
-    U64 TSCElapsedChildren;
-    timing_block *ParentBlock;
     char *Label;
 };
-#else // TOGGLE_IMPL
-
-typedef struct
-{
-    U64 TSCElapsed;
-    U64 TSCElapsedChildren;
-    U64 TSCElapsedAtRoot;
-    U64 HitCount;
-    char *Label;
-} timing_entry;
-
-typedef struct timing_block timing_block;
-struct timing_block
-{
-    U64 OldTSCElapsedAtRoot;
-    U64 Start;
-    U32 ParentTimingIndex;
-    U32 TimingIndex;
-    char *Label;
-};
-#endif
 
 
-typedef struct
+typedef struct timings_profile timings_profile;
+struct timings_profile
 {
     U64 Start;
     U64 TSCElapsed;
     U64 CPUFrequency;
-    timing_entry Timings[MAX_NAMED_TIMINGS];
+    zone_timing Timings[MAX_NAMED_TIMINGS];
+
 #if DETECT_ORPHAN_TIMINGS
     B8 Started;
     B8 Ended;
-#endif
-} timings_profile;
+#endif // DETECT_ORPHAN_TIMINGS
+};
 
 
 global_function void StartTimingsProfile();
@@ -86,7 +66,7 @@ global_function void PrintTimingsProfile();
 
 
 // Note (Aaron): Use the following macros to start and end named timings within the same scope.
-#define START_TIMING(label) timing_block label##Block = {0};                        \
+#define START_TIMING(label) zone_block label##Block = {0};                        \
                             _StartTiming(&label##Block, __COUNTER__ + 1, #label);   \
 
 #define END_TIMING(label)   _EndTiming(&label##Block);
@@ -94,10 +74,10 @@ global_function void PrintTimingsProfile();
 
 // Note (Aaron): The following macros can be used to control the scope a timing is created in
 // so it can be re-used later in the same scope.
-// #define PREWARM_TIMING(label)   timing_block label##Block = {0}; \
-//                                 _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label)
+#define PREWARM_TIMING(label)   zone_block label##Block = {0}; \
+                                _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label)
 
-// #define RESTART_TIMING(label)   _RestartTiming(&label##Block);
+#define RESTART_TIMING(label)   _RestartTiming(&label##Block);
 
 
 global_function U64 GetOSTimerFrequency();
@@ -121,11 +101,7 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait);
 
 
 global_variable timings_profile GlobalProfiler;
-#if TOGGLE_IMPL
-global_variable timing_block *GlobalTimingBlock = NULL;
-#else
 global_variable U32 GlobalProfilerParent = 0;
-#endif
 
 
 global_function void StartTimingsProfile()
@@ -133,128 +109,93 @@ global_function void StartTimingsProfile()
     MemoryZeroArray(GlobalProfiler.Timings);
 
     GlobalProfiler.TSCElapsed = 0;
+    GlobalProfiler.CPUFrequency = GetCPUFrequency(CPU_FREQUENCY_MS);
+
 #if DETECT_ORPHAN_TIMINGS
     GlobalProfiler.Started = TRUE;
     GlobalProfiler.Ended = FALSE;
-#endif
-    GlobalProfiler.CPUFrequency = GetCPUFrequency(CPU_FREQUENCY_MS);
+#endif // DETECT_ORPHAN_TIMINGS
+
     GlobalProfiler.Start = ReadCPUTimer();
 }
 
 
 global_function void EndTimingsProfile()
 {
+    GlobalProfiler.TSCElapsed = ReadCPUTimer() - GlobalProfiler.Start;
+
 #if DETECT_ORPHAN_TIMINGS
     Assert(GlobalProfiler.Started && "Profile has not been started");
-#endif
-
-    GlobalProfiler.TSCElapsed = ReadCPUTimer() - GlobalProfiler.Start;
-#if DETECT_ORPHAN_TIMINGS
     GlobalProfiler.Ended = TRUE;
-#endif
+#endif // DETECT_ORPHAN_TIMINGS
 }
 
 
 inline
-global_function void _StartTiming(timing_block *block, U32 timingIndex, char *label)
+global_function void _StartTiming(zone_block *block, U32 timingIndex, char *label)
 {
-#if TOGGLE_IMPL
-    block->TimingIndex = timingIndex;
-    block->Label = label;
-    block->ParentTimingIndex = GlobalTimingBlock ? GlobalTimingBlock->TimingIndex : 0;
-    block->ParentBlock = GlobalTimingBlock;
-    GlobalTimingBlock = block;
-#if DETECT_ORPHAN_TIMINGS
-    GlobalProfiler.Timings[block->TimingIndex].HitCount++;
-#endif
-    block->Start = ReadCPUTimer();
-#else // TOGGLE_IMPL
+    zone_timing *timing = &GlobalProfiler.Timings[timingIndex];
+    block->TSCElapsedOriginal = timing->TSCElapsedOriginal;
 
-    timing_entry *timing = &GlobalProfiler.Timings[timingIndex];
-    block->OldTSCElapsedAtRoot = timing->TSCElapsedAtRoot;
-
-    block->ParentTimingIndex = GlobalProfilerParent;
-    block->TimingIndex = timingIndex;
+    block->ParentIndex = GlobalProfilerParent;
+    block->Index = timingIndex;
     block->Label = label;
 
     GlobalProfilerParent = timingIndex;
 
+#if DETECT_ORPHAN_TIMINGS
+    GlobalProfiler.Timings[block->Index].HitCount++;
+#endif // DETECT_ORPHAN_TIMINGS
+
     block->Start = ReadCPUTimer();
-#endif
 }
 
 
 inline
-global_function void _EndTiming(timing_block *block)
+global_function void _EndTiming(zone_block *block)
 {
-#if TOGGLE_IMPL
-    block->TSCElapsed = ReadCPUTimer() - block->Start;
-
-    timing_entry *timing = &GlobalProfiler.Timings[block->TimingIndex];
-    timing_entry *parentTiming = &GlobalProfiler.Timings[block->ParentTimingIndex];
-
-    timing->Label = block->Label;
-#if DETECT_ORPHAN_TIMINGS
-    timing->EndCount++;
-#else // DETECT_ORPHAN_TIMINGS
-    timing->HitCount++;
-#endif
-
-    B8 selfIsParent = FALSE;
-    timing_block *parentBlock = block->ParentBlock;
-    while(parentBlock)
-    {
-        if (parentBlock->TimingIndex == block->TimingIndex)
-        {
-            selfIsParent = TRUE;
-            break;
-        }
-
-        parentBlock = parentBlock->ParentBlock;
-    }
-
-    timing->TSCElapsed += selfIsParent ? 0 : block->TSCElapsed;
-    parentTiming->TSCElapsedChildren += selfIsParent ? 0 : block->TSCElapsed;
-
-    GlobalTimingBlock = block->ParentBlock;
-#else // TOGGLE_IMPL
-
     U64 elapsed = ReadCPUTimer() - block->Start;
-    GlobalProfilerParent = block->ParentTimingIndex;
+    GlobalProfilerParent = block->ParentIndex;
 
-    timing_entry *parent = &GlobalProfiler.Timings[block->ParentTimingIndex];
-    timing_entry *timing = &GlobalProfiler.Timings[block->TimingIndex];
+    zone_timing *parent = &GlobalProfiler.Timings[block->ParentIndex];
+    zone_timing *timing = &GlobalProfiler.Timings[block->Index];
 
     parent->TSCElapsedChildren += elapsed;
-    timing->TSCElapsedAtRoot = block->OldTSCElapsedAtRoot + elapsed;
+    timing->TSCElapsedOriginal = block->TSCElapsedOriginal + elapsed;
     timing->TSCElapsed += elapsed;
+#if DETECT_ORPHAN_TIMINGS
+    timing->EndCount++;
+#else
     timing->HitCount++;
+#endif // DETECT_ORPHAN_TIMINGS
 
     timing->Label = block->Label;
-
-#endif
 }
 
 
-// inline
-// global_function void _PreWarmTiming(timing_block *block, U32 timingIndex, char *label)
-// {
-//     block->TimingIndex = timingIndex;
-//     block->Label = label;
-// }
+inline
+global_function void _PreWarmTiming(zone_block *block, U32 timingIndex, char *label)
+{
+    block->Index = timingIndex;
+    block->Label = label;
+}
 
 
-// inline
-// global_function void _RestartTiming(timing_block *block)
-// {
-//     block->ParentTimingIndex = GlobalTimingBlock ? GlobalTimingBlock->TimingIndex : 0;
-//     block->ParentBlock = GlobalTimingBlock;
-//     GlobalTimingBlock = block;
-// #if DETECT_ORPHAN_TIMINGS
-//     GlobalProfiler.Timings[block->TimingIndex].HitCount++;
-// #endif
-//     block->Start = ReadCPUTimer();
-// }
+inline
+global_function void _RestartTiming(zone_block *block)
+{
+    zone_timing *timing = &GlobalProfiler.Timings[block->Index];
+    block->TSCElapsedOriginal = timing->TSCElapsedOriginal;
+
+    block->ParentIndex = GlobalProfilerParent;
+    GlobalProfilerParent = block->Index;
+
+#if DETECT_ORPHAN_TIMINGS
+    GlobalProfiler.Timings[block->Index].HitCount++;
+#endif // DETECT_ORPHAN_TIMINGS
+
+    block->Start = ReadCPUTimer();
+}
 
 
 global_function void PrintTimingsProfile()
@@ -262,17 +203,16 @@ global_function void PrintTimingsProfile()
 #if DETECT_ORPHAN_TIMINGS
     Assert(GlobalProfiler.Started && "Profile has not been started");
     Assert(GlobalProfiler.Ended && "Profile has not been ended");
-#endif
+#endif // DETECT_ORPHAN_TIMINGS
 
     F64 totalTimeMs = ((F64)GlobalProfiler.TSCElapsed / (F64)GlobalProfiler.CPUFrequency) * 1000.0f;
     S64 unaccounted = GlobalProfiler.TSCElapsed;
-
 
     printf("Timings (cycles):\n");
     // Note (Aaron): Timer at index 0 represents "no timer" and should be skipped
     for (int i = 1; i < ArrayCount(GlobalProfiler.Timings); ++i)
     {
-        timing_entry *timingPtr = &GlobalProfiler.Timings[i];
+        zone_timing *timingPtr = &GlobalProfiler.Timings[i];
         if (!timingPtr->HitCount)
         {
             Assert(!timingPtr->Label && "Timing has a label; most likely RESTART_TIMING has not been called");
@@ -291,21 +231,11 @@ global_function void PrintTimingsProfile()
         F64 percent = ((F64)elapsed / (F64)GlobalProfiler.TSCElapsed) * 100.0f;
         printf("  %s[%llu]: %llu (%.2f%%)", timingPtr->Label, timingPtr->HitCount, elapsed, percent);
 
-#if TOGGLE_IMPL
-        if (timingPtr->TSCElapsedChildren)
+        if (timingPtr->TSCElapsedOriginal != elapsed)
         {
-            F64 percentWithChildren =  (F64)timingPtr->TSCElapsed / (F64)GlobalProfiler.TSCElapsed * 100.0;
+            F64 percentWithChildren = (F64)timingPtr->TSCElapsedOriginal / (F64)GlobalProfiler.TSCElapsed * 100.0;
             printf(", %.2f%% w/children", percentWithChildren);
         }
-
-#else // TOGGLE_IMPL
-
-        if (timingPtr->TSCElapsedAtRoot != elapsed)
-        {
-            F64 percentWithChildren = (F64)timingPtr->TSCElapsedAtRoot / (F64)GlobalProfiler.TSCElapsed * 100.0;
-            printf(", %.2f%% w/children", percentWithChildren);
-        }
-#endif
 
         printf("\n");
         unaccounted -= elapsed;
