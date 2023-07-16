@@ -1,6 +1,3 @@
-/* TODO (Aaron):
-*/
-
 #ifndef PLATFORM_METRICS_H
 #define PLATFORM_METRICS_H
 
@@ -12,7 +9,7 @@
 #define MAX_NAMED_TIMINGS 64
 
 // Note (Aaron): Defines number of milliseconds used to determine the CPU frequency.
-// A higher number is more accurate.
+// A higher number generates more accurate results.
 #define CPU_FREQUENCY_MS 200
 
 // Note (Aaron): Enable this to check for timings that have been started but not ended or vice versa
@@ -92,15 +89,12 @@ struct timings_profile
 // Note (Aaron): Use the following macros to start and end named timings within the same scope.
 #define START_TIMING(label)     zone_block label##Block = {0};                       \
                                 _StartTiming(&label##Block, __COUNTER__ + 1, #label);
-
 #define END_TIMING(label)       _EndTiming(&label##Block);
-
 
 // Note (Aaron): The following macros can be used to control the scope a timing is created in
 // so it can be re-used later in the same scope.
 #define PREWARM_TIMING(label)   zone_block label##Block = {0}; \
                                 _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label)
-
 #define RESTART_TIMING(label)   _RestartTiming(&label##Block);
 
 #else ////////////////////////////////////////////////////////////////////////////////////////
@@ -109,7 +103,6 @@ struct timings_profile
 
 #define START_TIMING(label)     zone_block label##Block (__COUNTER__ + 1, #label, FALSE); \
                                 _StartTiming(&label##Block, __COUNTER__ + 1, #label);
-
 #define END_TIMING(label)       _EndTiming(&label##Block);
 
 #define PREWARM_TIMING(label)   zone_block label##Block (__COUNTER__ + 1, #label, FALSE); \
@@ -337,6 +330,8 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait)
 global_function void StartNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
 global_function void EndNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
 global_function void PrintNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
+global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label) { Assert(FALSE && "Not implemented"); }
+global_function void _EndTiming(zone_block *block) { Assert(FALSE && "Not implemented"); }
 
 global_function U64 GetOSTimerFreq(void) { Assert(FALSE && "Not implemented"); }
 global_function U64 ReadOSTimer(void) { Assert(FALSE && "Not implemented"); }
