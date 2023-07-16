@@ -46,6 +46,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#include <assert.h>
 #include <stdbool.h>
 #include <windows.h>
 #include <GL/GL.h>
@@ -322,15 +323,14 @@ int CALLBACK WinMain(
 
     // allocate application memory
     application_memory memory = {};
+    memory.PermanentArenaSize = Megabytes(2);
+    memory.FrameArenaSize = Megabytes(1);
+    memory.InstructionsArenaSize = Megabytes(1);
+    memory.InstructionStringsArenaSize = Megabytes(1);
 
-    // TODO (Aaron): Figure out a better way to configure arena sizes
-    memory_index arenaSizes[] = { Megabytes(2), Megabytes(1), Megabytes(1), Megabytes(1) };
-    Assert((ArrayCount(arenaSizes) == ArrayCount(memory.Arenas))
-           && "arenaSizes count must match memory.Arenas count");
-
-    for (int i = 0; i < ArrayCount(arenaSizes); ++i)
+    for (int i = 0; i < ArrayCount(memory.ArenaSizes); ++i)
     {
-        memory.TotalSize += arenaSizes[i];
+        memory.TotalSize += memory.ArenaSizes[i];
     }
 
     memory.BackingStore = VirtualAlloc(0, memory.TotalSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
@@ -345,8 +345,8 @@ int CALLBACK WinMain(
     memory.IsInitialized = TRUE;
     for (int i = 0; i < ArrayCount(memory.Arenas); ++i)
     {
-        ArenaInitialize(&memory.Arenas[i], arenaSizes[i], arenaStartPtr);
-        arenaStartPtr += arenaSizes[i];
+        ArenaInitialize(&memory.Arenas[i], memory.ArenaSizes[i], arenaStartPtr);
+        arenaStartPtr += memory.ArenaSizes[i];
 
         if (!memory.Arenas[i].BasePtr)
         {

@@ -18,10 +18,23 @@
 //     0 - Disabled
 //     1 - Enabled
 
+
 typedef struct
 {
     void *BackingStore;
     U64 TotalSize;
+
+    union
+    {
+        memory_index ArenaSizes[4];
+        struct
+        {
+            memory_index PermanentArenaSize;
+            memory_index FrameArenaSize;
+            memory_index InstructionsArenaSize;
+            memory_index InstructionStringsArenaSize;
+        };
+    };
 
     union
     {
@@ -34,6 +47,9 @@ typedef struct
             memory_arena InstructionStringsArena;
         };
     };
+
+    static_assert(ArrayCount(Arenas) == ArrayCount(ArenaSizes),
+                  "ArenaSizes count must match memory.Arenas count");
 
     B32 IsInitialized;
 } application_memory;
