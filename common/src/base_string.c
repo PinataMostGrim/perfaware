@@ -19,7 +19,7 @@ global_function U64 GetStringLength(char *str)
 }
 
 
-global_function char *ArenaPushString(memory_arena *arena, char *str)
+global_function char *ArenaPushCString(memory_arena *arena, char *str)
 {
     U64 strLength = GetStringLength(str);
     char *result = (char *)ArenaPushSize(arena, strLength);
@@ -32,22 +32,22 @@ global_function char *ArenaPushString(memory_arena *arena, char *str)
 // +------------------------------+
 // Note (Aaron): Length based strings
 
-global_function String8 str8(U8 *str, U64 size)
+global_function Str8 String8(U8 *str, U64 size)
 {
-    String8 result = { result.Str = str, result.Length = size };
+    Str8 result = { result.Str = str, result.Length = size };
     return result;
 }
 
 
-global_function String8 str8_cstring(U8 *cstr)
+global_function Str8 Str8CString(U8 *cstr)
 {
     U64 length = GetStringLength((char *)cstr);
-    String8 result = { result.Str = cstr, result.Length = length };
+    Str8 result = { result.Str = cstr, result.Length = length };
     return result;
 }
 
 
-global_function void str8_list_push_explicit(String8List *list, String8 string, String8Node *nodeMemory)
+global_function void Str8ListPushExplicit(Str8List *list, Str8 string, Str8Node *nodeMemory)
 {
     nodeMemory->String = string;
     SLLQueuePush(list->First, list->Last, nodeMemory);
@@ -56,14 +56,14 @@ global_function void str8_list_push_explicit(String8List *list, String8 string, 
 }
 
 
-global_function void str8_list_push(memory_arena *arena, String8List *list, String8 string)
+global_function void Str8ListPush(memory_arena *arena, Str8List *list, Str8 string)
 {
-    String8Node *node = ArenaPushArray(arena, String8Node, 1);
-    str8_list_push_explicit(list, string, node);
+    Str8Node *node = ArenaPushArray(arena, Str8Node, 1);
+    Str8ListPushExplicit(list, string, node);
 }
 
 
-global_function String8 str8_pushfv(memory_arena *arena, char *fmt, va_list args)
+global_function Str8 Str8Pushfv(memory_arena *arena, char *fmt, va_list args)
 {
     // va_list is stateful under some compilers. Duplicate in case we need to try a second time.
     va_list args2;
@@ -74,12 +74,12 @@ global_function String8 str8_pushfv(memory_arena *arena, char *fmt, va_list args
     U8 *buffer = ArenaPushArray(arena, U8, bufferSize);
     U64 actualSize = vsnprintf((char *)buffer, bufferSize, fmt, args);
 
-    String8 result = {0};
+    Str8 result = {0};
     if (actualSize < bufferSize)
     {
         // if first try worked, put back what we didn't use and finish
         ArenaPopSize(arena, bufferSize - actualSize - 1);
-        result = str8(buffer, actualSize);
+        result = String8(buffer, actualSize);
     }
     else
     {
@@ -87,7 +87,7 @@ global_function String8 str8_pushfv(memory_arena *arena, char *fmt, va_list args
         ArenaPopSize(arena, bufferSize);
         U8 *fixedBuffer = ArenaPushArray(arena, U8, actualSize + 1);
         U64 finalSize = vsnprintf((char *)fixedBuffer, actualSize + 1, fmt, args2);
-        result = str8(fixedBuffer, finalSize);
+        result = String8(fixedBuffer, finalSize);
     }
 
     // end args2
@@ -97,23 +97,23 @@ global_function String8 str8_pushfv(memory_arena *arena, char *fmt, va_list args
 }
 
 
-global_function String8 str8_pushf(memory_arena *arena, char *fmt, ...)
+global_function Str8 Str8Pushf(memory_arena *arena, char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    String8 result = str8_pushfv(arena, fmt,  args);
+    Str8 result = Str8Pushfv(arena, fmt,  args);
     va_end(args);
 
     return result;
 }
 
 
-global_function void str8_list_pushf(memory_arena *arena, String8List *list, char *fmt, ...)
+global_function void Str8ListPushf(memory_arena *arena, Str8List *list, char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    String8 string = str8_pushfv(arena, fmt, args);
+    Str8 string = Str8Pushfv(arena, fmt, args);
     va_end(args);
 
-    str8_list_push(arena, list, string);
+    Str8ListPush(arena, list, string);
 }
