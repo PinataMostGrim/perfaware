@@ -6,9 +6,7 @@
 #include "sim8086.h"
 #include "sim8086_mnemonics.h"
 #include "sim8086_gui.h"
-#include "platform_metrics.h"
 
-#include "platform_metrics.c"
 #include "base_types.c"
 #include "base_memory.c"
 #include "base_string.c"
