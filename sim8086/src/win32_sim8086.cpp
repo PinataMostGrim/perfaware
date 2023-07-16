@@ -52,6 +52,8 @@
 #include <tchar.h>
 
 #include "base_inc.h"
+#define PLATFORM_METRICS_IMPLEMENTATION
+#include "platform_metrics.h"
 #include "win32_sim8086.h"
 #include "sim8086_platform.h"
 #include "sim8086.h"
