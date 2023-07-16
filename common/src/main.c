@@ -2,11 +2,12 @@
 #include <limits.h>
 
 // #include "base_inc.h"
-#include "base_types.c"
-#include "base_memory.c"
-
-#define PLATFORM_METRICS_IMPLEMENTATION
+#include "base_types.h"
 #include "platform_metrics.h"
+
+#include "base_memory.c"
+#include "platform_metrics.c"
+
 
 
 static U64 FunctionA(U64 value);

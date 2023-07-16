@@ -52,6 +52,7 @@
 #include <tchar.h>
 
 #include "base_inc.h"
+#include "platform_metrics.h"
 #include "win32_sim8086.h"
 #include "sim8086_platform.h"
 #include "sim8086.h"
@@ -61,6 +62,7 @@
 #include "base_types.c"
 #include "base_memory.c"
 #include "base_string.c"
+#include "platform_metrics.c"
 #include "sim8086.cpp"
 #include "sim8086_mnemonics.cpp"
 
