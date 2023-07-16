@@ -10,7 +10,6 @@
 #include "base_memory.h"
 #include "sim8086.h"
 #include "sim8086_mnemonics.h"
-#include "platform_metrics.h"
 
 
 // #pragma clang diagnostic ignored "-Wnull-dereference"
