@@ -14,6 +14,7 @@
 // Note (Aaron): C strings
 global_function U64 GetStringLength(char *str);
 global_function char *ArenaPushCString(memory_arena *arena, char *str);
+global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *arena);
 
 
 // +------------------------------+
@@ -64,8 +65,11 @@ global_function void Str8ListPush(memory_arena *arena, Str8List *list, Str8 stri
 // global_function Str8 Str8Join(memory_arena *arena, Str8List *list, StringJoin *optionalJoin);
 // global_function Str8List Str8Split(memory_arena *arena, Str8 string, U8 *split_characters, U32 count);
 
+global_function Str8 Str8Push(memory_arena *arena, Str8 string, B8 nullTerminate);
 global_function Str8 Str8Pushfv(memory_arena *arena, char *fmt, va_list args);
 global_function Str8 Str8Pushf(memory_arena *arena, char *fmt, ...);
 global_function void Str8ListPushf(memory_arena *arena, Str8List *list, char *fmt, ...);
+
+global_function Str8 ConcatStr8(memory_arena *arena, Str8 strA, Str8 strB, B8 nullTerminate);
 
 #endif // BASE_STRING_H

@@ -4,18 +4,19 @@
 
 #include <windows.h>
 
+#include "base_string.h"
 #include "sim8086_platform.h"
 #include "sim8086_gui.h"
 
 
 typedef struct
 {
-    char *FullExePath;
-    char *ExeFolderPath;
-    char *ExeFilename;
-    char *DLLPath;
-    char *DLLTempPath;
-    char *DLLLockPath;
+    Str8 FullExePath;
+    Str8 ExeFolderPath;
+    Str8 ExeFilename;
+    Str8 DLLPath;
+    Str8 DLLTempPath;
+    Str8 DLLLockPath;
 } win32_context;
 
 

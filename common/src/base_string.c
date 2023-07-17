@@ -1,5 +1,4 @@
 /* TODO (Aaron):
-    - Update PushString() to make use of length based strings
 */
 
 #include "base.h"
@@ -24,6 +23,20 @@ global_function char *ArenaPushCString(memory_arena *arena, char *str)
     U64 strLength = GetStringLength(str);
     char *result = (char *)ArenaPushSize(arena, strLength);
     MemoryCopy(result, str, strLength);
+
+    return result;
+}
+
+
+global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *arena)
+{
+    U64 sizeOfA = GetStringLength(stringA);
+    U64 sizeOfB = GetStringLength(stringB);
+    U64 resultSize = sizeOfA + sizeOfB;
+
+    char *result = (char *)ArenaPushSizeZero(arena, resultSize + 1);
+    MemoryCopy(result, stringA, sizeOfA);
+    MemoryCopy(result + sizeOfA, stringB, sizeOfB);
 
     return result;
 }
@@ -97,6 +110,21 @@ global_function Str8 Str8Pushfv(memory_arena *arena, char *fmt, va_list args)
 }
 
 
+global_function Str8 Str8Push(memory_arena *arena, Str8 string, B8 nullTerminate)
+{
+    U64 length = nullTerminate ? string.Length + 1 : string.Length;
+    U8 *buffer = ArenaPushArray(arena, U8, length);
+    MemoryCopy(buffer, string.Str, string.Length);
+    if (nullTerminate)
+    {
+        MemoryZero(buffer + string.Length, 1);
+    }
+
+    Str8 result = String8(buffer, string.Length);
+    return result;
+}
+
+
 global_function Str8 Str8Pushf(memory_arena *arena, char *fmt, ...)
 {
     va_list args;
@@ -116,4 +144,20 @@ global_function void Str8ListPushf(memory_arena *arena, Str8List *list, char *fm
     va_end(args);
 
     Str8ListPush(arena, list, string);
+}
+
+
+global_function Str8 ConcatStr8(memory_arena *arena, Str8 strA, Str8 strB, B8 nullTerminate)
+{
+    memory_index totalSize = strA.Length + strB.Length + (nullTerminate ? 1 : 0);
+    U8 *buffer = (U8 *)ArenaPushSize(arena, totalSize);
+    MemoryCopy(buffer, strA.Str, strA.Length);
+    MemoryCopy(buffer + strA.Length, strB.Str, strB.Length);
+    if (nullTerminate)
+    {
+        MemoryZero(buffer + strA.Length + strB.Length, 1);
+    }
+
+    Str8 result = String8(buffer, totalSize);
+    return result;
 }

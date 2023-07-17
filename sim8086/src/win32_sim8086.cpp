@@ -1,14 +1,20 @@
 /* TODO (Aaron):
     - **Convert to length based strings**
-        - I think converting to length based strings will be really important to do now
-        - It will simplify the arena push string logic a lot
-        - We can build up a string in a buffer using concatination, and then push the whole thing into an arena
+        - Update disassembly window
+        - Update registers window
+        - Update memory window
+        - Update diagnostics window
+
+    - Add an instrumentation overlay using platform metrics
+        - Will need to convert into an interactive profiler
 
     - Automatically dock windows on first load or force them to dock
 
     - Add an "Output" window
         - ExecuteInstruction() takes a memory arena for 'output'
         - Add menu item for opening / closing the window
+
+    - Update build script so that we don't need to re-build DearImGUI every time we build
 
     - Memory Window
         - Turn memory area into a table and place controls at the bottom?
@@ -75,7 +81,6 @@
 global_variable char *DLL_FILENAME = (char *)"sim8086_application.dll";
 global_variable char *DLL_TEMP_FILENAME = (char *)"sim8086_application_temp.dll";
 global_variable char *DLL_LOCK_FILENAME = (char *)"sim8086_lock.tmp";
-global_variable U32 FILE_PATH_BUFFER_SIZE = 512;
 
 global_variable ImVec4 CLEAR_COLOR = {0.45f, 0.55f, 0.60f, 1.00};
 // ///////////////////////////////////////////////////////////////
@@ -92,54 +97,65 @@ global_variable int              g_Height;
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
-global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *arena)
-{
-    U64 sizeOfA = GetStringLength(stringA);
-    U64 sizeOfB = GetStringLength(stringB);
-    U64 resultSize = sizeOfA + sizeOfB;
-
-    char *result = (char *)ArenaPushSizeZero(arena, resultSize + 1);
-    MemoryCopy(result, stringA, sizeOfA);
-    MemoryCopy(result + sizeOfA, stringB, sizeOfB);
-
-    return result;
-}
-
-
 global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena)
 {
-    // extract full path
-    context->FullExePath = (char *)ArenaPushSizeZero(arena, FILE_PATH_BUFFER_SIZE);
-    DWORD sizeOfFullPath = GetModuleFileName(0, context->FullExePath, FILE_PATH_BUFFER_SIZE);
-    Assert((sizeOfFullPath < FILE_PATH_BUFFER_SIZE) && "Allocated a buffer that was too small for the length of the file path");
+    // construct full path to exe
+    U8 *buffer;
+    DWORD bufferSize = 128;
+    DWORD sizeOfFullPath = 0;
 
-    char *lastSlashPlusOne = context->FullExePath;
-    for (char *scan = context->FullExePath; *scan; ++scan)
+    for (;;)
     {
-        if (*scan == '\\')
+        buffer = (U8 *)ArenaPushSize(arena, bufferSize);
+        sizeOfFullPath = GetModuleFileNameA(0, (char *)buffer, bufferSize);
+
+        DWORD lastError = GetLastError();
+        if (lastError == ERROR_INSUFFICIENT_BUFFER)
         {
-            lastSlashPlusOne = scan + 1;
+            ArenaPopSize(arena, bufferSize);
+            bufferSize *= 2;
+            continue;
         }
+
+        break;
     }
+
+    memory_index unused = bufferSize - sizeOfFullPath;
+    ArenaPopSize(arena, unused);
+    Str8 fullExePath = String8((U8 *)buffer, sizeOfFullPath);
+    context->FullExePath = fullExePath;
+
+    U8 *nullChar = (U8 *)ArenaPushSize(arena, 1);
+    MemoryZero(nullChar, 1);
 
     // construct exe folder path
-    U64 sizeOfFolderPath = lastSlashPlusOne - context->FullExePath;
-    context->ExeFolderPath = (char *)ArenaPushSizeZero(arena, sizeOfFolderPath + 1);     // + 1 for null termination character
-    if (sizeOfFolderPath > 0)
+    U32 lastSlash = 0;
+    U8 *scan = fullExePath.Str;
+    for (U32 i = 0; i < fullExePath.Length; ++i)
     {
-        MemoryCopy(context->ExeFolderPath, context->FullExePath, sizeOfFolderPath);
+        scan = fullExePath.Str + i;
+        if (*scan == '\\')
+        {
+            lastSlash = i;
+        }
     }
+    Str8 exeFolderPath = String8(fullExePath.Str, lastSlash + 1);
+    context->ExeFolderPath = Str8Push(arena, exeFolderPath, TRUE);
 
     // construct exe filename
-    U64 sizeOfFilename = sizeOfFullPath - sizeOfFolderPath;
+    U64 sizeOfFilename = fullExePath.Length - exeFolderPath.Length;
     Assert(sizeOfFilename > 0 && "Filename cannot be 0 characters in length");
-    context->ExeFilename = (char *)ArenaPushSizeZero(arena, sizeOfFilename + 1);         // + 1 for null termination character
-    MemoryCopy(context->ExeFilename, context->FullExePath + sizeOfFolderPath, sizeOfFilename);
+    Str8 exeFilename = String8(fullExePath.Str + exeFolderPath.Length, sizeOfFilename);
+    context->ExeFilename = Str8Push(arena, exeFilename, TRUE);
 
     // construct GUI DLL related paths
-    context->DLLPath = ConcatStrings(context->ExeFolderPath, DLL_FILENAME, arena);
-    context->DLLTempPath = ConcatStrings(context->ExeFolderPath, DLL_TEMP_FILENAME, arena);
-    context->DLLLockPath = ConcatStrings(context->ExeFolderPath, DLL_LOCK_FILENAME, arena);
+    Str8 dllFilename = String8((U8 *)DLL_FILENAME, GetStringLength(DLL_FILENAME));
+    Str8 dllTempFilename = String8((U8 *)DLL_TEMP_FILENAME, GetStringLength(DLL_TEMP_FILENAME));
+    Str8 dllLockFilename = String8((U8 *)DLL_LOCK_FILENAME, GetStringLength(DLL_LOCK_FILENAME));
+
+    context->DLLPath = ConcatStr8(arena, context->ExeFolderPath, dllFilename, TRUE);
+    context->DLLTempPath = ConcatStr8(arena, context->ExeFolderPath, dllTempFilename, TRUE);
+    context->DLLLockPath = ConcatStr8(arena, context->ExeFolderPath, dllLockFilename, TRUE);
 }
 
 
@@ -359,8 +375,11 @@ int CALLBACK WinMain(
     win32_context win32Context = {};
     Win32GetExeInfo(&win32Context, &memory.PermanentArena);
 
+
     // initial hot-load of application code
-    application_code applicationCode = Win32LoadAppCode(win32Context.DLLPath, win32Context.DLLTempPath, win32Context.DLLLockPath);
+    application_code applicationCode = Win32LoadAppCode((char *)win32Context.DLLPath.Str,
+                                                        (char *)win32Context.DLLTempPath.Str,
+                                                        (char *)win32Context.DLLLockPath.Str);
     if (!applicationCode.IsValid)
     {
         Assert(FALSE && "Unable to perform initial hot-load of GUI code");
@@ -474,13 +493,15 @@ int CALLBACK WinMain(
         ArenaClear(&memory.FrameArena);
 
         // Hot-load code if necessary
-        FILETIME dllWriteTime = Win32GetLastWriteTime(win32Context.DLLPath);
+        FILETIME dllWriteTime = Win32GetLastWriteTime((char *)win32Context.DLLPath.Str);
         if (CompareFileTime(&dllWriteTime, &applicationCode.LastWriteTime))
         {
             Win32UnloadCode(&applicationCode);
             // TODO (Aaron): Why was it 75 specifically?
             Sleep(75);
-            applicationCode = Win32LoadAppCode(win32Context.DLLPath, win32Context.DLLTempPath, win32Context.DLLLockPath);
+            applicationCode = Win32LoadAppCode((char *)win32Context.DLLPath.Str,
+                                               (char *)win32Context.DLLTempPath.Str,
+                                               (char *)win32Context.DLLLockPath.Str);
             if (applicationCode.SetImGuiContext) applicationCode.SetImGuiContext(guiContext);
         }
 
