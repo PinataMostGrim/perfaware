@@ -1,4 +1,4 @@
-#ifndef PLATFORM_METRICS_H
+#ifndef PLATFORM_METRICS_H ////////////////////////////////////////////////////
 #define PLATFORM_METRICS_H
 
 #include "base.h"
@@ -16,9 +16,10 @@
 #define DETECT_ORPHAN_TIMINGS 0
 
 
-typedef struct timings_profile timings_profile;
 typedef struct zone_timing zone_timing;
 typedef struct zone_block zone_block;
+typedef struct zone_block_autostart zone_block_autostart;
+typedef struct timings_profile timings_profile;
 
 global_function void StartTimingsProfile();
 global_function void EndTimingsProfile();
@@ -53,22 +54,26 @@ struct zone_block
     U64 TSCElapsedOriginal;
     U64 Start;
     char const *Label;
+};
+
 
 #if __cplusplus
-    B8 AutoExecute;
+struct zone_block_autostart
+{
+    zone_block Block;
 
-    zone_block(U32 index, char const *label, B8 autoExecute)
+    zone_block_autostart(U32 index, char const *label)
     {
-        AutoExecute = autoExecute;
-        if (AutoExecute) _StartTiming(this, index, label);
+        Block = {};
+        _StartTiming(&Block, index, label);
     }
 
-    ~zone_block(void)
+    ~zone_block_autostart(void)
     {
-        if (AutoExecute) _EndTiming(this);
+        _EndTiming(&Block);
     }
-#endif // __cplusplus
 };
+#endif // __cplusplus
 
 
 struct timings_profile
@@ -85,7 +90,6 @@ struct timings_profile
 };
 
 
-#ifndef __cplusplus //////////////////////////////////////////////////////////////////////////
 // Note (Aaron): Use the following macros to start and end named timings within the same scope.
 #define START_TIMING(label)     zone_block label##Block = {0};                       \
                                 _StartTiming(&label##Block, __COUNTER__ + 1, #label);
@@ -97,20 +101,15 @@ struct timings_profile
                                 _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label)
 #define RESTART_TIMING(label)   _RestartTiming(&label##Block);
 
-#else ////////////////////////////////////////////////////////////////////////////////////////
-#define FUNCTION_TIMING         zone_block __func__##Block (__COUNTER__ + 1, __func__, TRUE);
-#define ZONE_TIMING(label)      zone_block label##Block (__COUNTER__ + 1, #label, TRUE);
 
-#define START_TIMING(label)     zone_block label##Block (__COUNTER__ + 1, #label, FALSE); \
-                                _StartTiming(&label##Block, __COUNTER__ + 1, #label);
-#define END_TIMING(label)       _EndTiming(&label##Block);
+#ifdef __cplusplus
+// Note (Aaron): Use the following macros to automatically start and stop timings when entering and exiting scope.
+// They do have somewhat more of an impact on timings than the START / END timing macros above.
+#define FUNCTION_TIMING         zone_block_autostart __func__##Block (__COUNTER__ + 1, __func__);
+#define ZONE_TIMING(label)      zone_block_autostart label##Block (__COUNTER__ + 1, #label);
+#endif // __cplusplus
 
-#define PREWARM_TIMING(label)   zone_block label##Block (__COUNTER__ + 1, #label, FALSE); \
-                                _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label);
-#define RESTART_TIMING(label)   _RestartTiming(&label##Block);
-#endif // __cplusplus ////////////////////////////////////////////////////////////////////////
-
-#endif // PLATFORM_METRICS_H
+#endif // PLATFORM_METRICS_H //////////////////////////////////////////////////
 
 
 #ifdef PLATFORM_METRICS_IMPLEMENTATION
@@ -340,4 +339,4 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait) { Assert(FALSE && "N
 
 #endif // #else
 
-#endif // PLATFORM_METRICS_IMPLEMENTATION
+#endif // PLATFORM_METRICS_IMPLEMENTATION /////////////////////////////////////
