@@ -19,7 +19,8 @@
 //     1 - Enabled
 
 
-typedef struct
+typedef struct application_memory application_memory;
+struct application_memory
 {
     void *BackingStore;
     U64 TotalSize;
@@ -30,7 +31,7 @@ typedef struct
         struct
         {
             memory_index PermanentArenaSize;
-            memory_index FrameArenaSize;
+            memory_index ScratchArenaSize;
             memory_index InstructionsArenaSize;
             memory_index InstructionStringsArenaSize;
         };
@@ -42,7 +43,7 @@ typedef struct
         struct
         {
             memory_arena PermanentArena;
-            memory_arena FrameArena;
+            memory_arena ScratchArena;
             memory_arena InstructionsArena;
             memory_arena InstructionStringsArena;
         };
@@ -52,7 +53,7 @@ typedef struct
                   "ArenaSizes count must match memory.Arenas count");
 
     B32 IsInitialized;
-} application_memory;
+};
 
 
 typedef struct
@@ -72,7 +73,6 @@ typedef struct
     // Diagnostics
     bool Diagnostics_ShowWindow;
     bool Diagnostics_ExecutionStalled;
-    U64 MaxScratchMemoryUsage;
 
 } application_state;
 

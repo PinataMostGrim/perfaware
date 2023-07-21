@@ -69,8 +69,7 @@ global_function void ShowMainMenuBar(application_state *applicationState)
 }
 
 
-global_function void ShowDisassemblyWindow(application_state *applicationState, processor_8086 *processor,
-                                           memory_arena *instructionArena, memory_arena *frameArena)
+global_function void ShowDisassemblyWindow(application_state *applicationState, processor_8086 *processor, memory_arena *instructionArena)
 {
     size_t instructionCount = instructionArena->Used / sizeof(instruction);
     instruction *instructions = (instruction *)instructionArena->BasePtr;
@@ -338,12 +337,10 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
             (F64)memory->PermanentArena.Size / Kilobytes(1));
 
         _ImGuiTextLabelUsedTotalPercentage(
-            (char *)"Per-frame",
+            (char *)"Scratch",
             (char *)"KB",
-            (F64)memory->FrameArena.Used / Kilobytes(1),
-            (F64)memory->FrameArena.Size / Kilobytes(1));
-
-        ImGui::Text("Per-frame max: %.2f KB", (F64)applicationState->MaxScratchMemoryUsage / (F64)Kilobytes(1));
+            (F64)memory->ScratchArena.Used / Kilobytes(1),
+            (F64)memory->ScratchArena.Size / Kilobytes(1));
 
         _ImGuiTextLabelUsedTotalPercentage(
             (char *)"Instructions",
@@ -387,7 +384,7 @@ global_function void DrawGui(application_state *applicationState, application_me
     ShowMainMenuBar(applicationState);
 
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    ShowDisassemblyWindow(applicationState, processor, &memory->InstructionsArena, &memory->FrameArena);
+    ShowDisassemblyWindow(applicationState, processor, &memory->InstructionsArena);
     ShowRegistersWindow(applicationState, processor);
     ShowMemoryWindow(applicationState, processor);
 

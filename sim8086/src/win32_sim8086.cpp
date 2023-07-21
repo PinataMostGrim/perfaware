@@ -340,7 +340,7 @@ int CALLBACK WinMain(
     // allocate application memory
     application_memory memory = {};
     memory.PermanentArenaSize = Megabytes(2);
-    memory.FrameArenaSize = Megabytes(1);
+    memory.ScratchArenaSize = Megabytes(1);
     memory.InstructionsArenaSize = Megabytes(1);
     memory.InstructionStringsArenaSize = Megabytes(1);
 
@@ -485,12 +485,7 @@ int CALLBACK WinMain(
             break;
         }
 
-        if (memory.FrameArena.Used > applicationState.MaxScratchMemoryUsage)
-        {
-            applicationState.MaxScratchMemoryUsage = memory.FrameArena.Used;
-        }
-
-        ArenaClear(&memory.FrameArena);
+        Assert(memory.ScratchArena.BasePtr == memory.ScratchArena.PositionPtr && "Scratch arena has not been cleared");
 
         // Hot-load code if necessary
         FILETIME dllWriteTime = Win32GetLastWriteTime((char *)win32Context.DLLPath.Str);
