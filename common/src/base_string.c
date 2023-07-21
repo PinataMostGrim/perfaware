@@ -60,19 +60,29 @@ global_function Str8 Str8CString(U8 *cstr)
 }
 
 
-global_function void Str8ListPushExplicit(Str8List *list, Str8 string, Str8Node *nodeMemory)
+global_function Str8 Str8Push(memory_arena *arena, Str8 string, B8 nullTerminate)
 {
-    nodeMemory->String = string;
-    SLLQueuePush(list->First, list->Last, nodeMemory);
-    list->NodeCount += 1;
-    list->TotalSize += string.Length;
+    U64 length = nullTerminate ? string.Length + 1 : string.Length;
+    U8 *buffer = ArenaPushArray(arena, U8, length);
+    MemoryCopy(buffer, string.Str, string.Length);
+    if (nullTerminate)
+    {
+        MemoryZero(buffer + string.Length, 1);
+    }
+
+    Str8 result = String8(buffer, string.Length);
+    return result;
 }
 
 
-global_function void Str8ListPush(memory_arena *arena, Str8List *list, Str8 string)
+global_function Str8 Str8Pushf(memory_arena *arena, char *fmt, ...)
 {
-    Str8Node *node = ArenaPushArray(arena, Str8Node, 1);
-    Str8ListPushExplicit(list, string, node);
+    va_list args;
+    va_start(args, fmt);
+    Str8 result = Str8Pushfv(arena, fmt,  args);
+    va_end(args);
+
+    return result;
 }
 
 
@@ -110,29 +120,19 @@ global_function Str8 Str8Pushfv(memory_arena *arena, char *fmt, va_list args)
 }
 
 
-global_function Str8 Str8Push(memory_arena *arena, Str8 string, B8 nullTerminate)
+global_function void Str8ListPushExplicit(Str8List *list, Str8 string, Str8Node *nodeMemory)
 {
-    U64 length = nullTerminate ? string.Length + 1 : string.Length;
-    U8 *buffer = ArenaPushArray(arena, U8, length);
-    MemoryCopy(buffer, string.Str, string.Length);
-    if (nullTerminate)
-    {
-        MemoryZero(buffer + string.Length, 1);
-    }
-
-    Str8 result = String8(buffer, string.Length);
-    return result;
+    nodeMemory->String = string;
+    SLLQueuePush(list->First, list->Last, nodeMemory);
+    list->NodeCount += 1;
+    list->TotalSize += string.Length;
 }
 
 
-global_function Str8 Str8Pushf(memory_arena *arena, char *fmt, ...)
+global_function void Str8ListPush(memory_arena *arena, Str8List *list, Str8 string)
 {
-    va_list args;
-    va_start(args, fmt);
-    Str8 result = Str8Pushfv(arena, fmt,  args);
-    va_end(args);
-
-    return result;
+    Str8Node *node = ArenaPushArray(arena, Str8Node, 1);
+    Str8ListPushExplicit(list, string, node);
 }
 
 
@@ -144,6 +144,43 @@ global_function void Str8ListPushf(memory_arena *arena, Str8List *list, char *fm
     va_end(args);
 
     Str8ListPush(arena, list, string);
+}
+
+
+global_function Str8 Str8Join(memory_arena *arena, Str8List *list, StringJoin *optionalJoin)
+{
+    StringJoin join = {0};
+    if (optionalJoin != 0)
+    {
+        MemoryCopyStruct(&join, optionalJoin);
+    }
+
+    Str8 result;
+    result.Length = join.Prefix.Length
+                    + join.Suffix.Length
+                    + (list->NodeCount -  1) * join.Separator.Length
+                    + list->TotalSize;
+
+    U8 *ptr = result.Str = ArenaPushArray(arena, U8, result.Length);
+
+    MemoryCopy(ptr, join.Prefix.Str, join.Prefix.Length);
+    ptr += join.Prefix.Length;
+    for (Str8Node *node = list->First;
+         node != 0;
+         node = node->Next)
+    {
+        MemoryCopy(ptr, node->String.Str, node->String.Length);
+        ptr += node->String.Length;
+        if (node->Next != 0)
+        {
+            MemoryCopy(ptr, join.Separator.Str, join.Separator.Length);
+            ptr += join.Separator.Length;
+        }
+    }
+    MemoryCopy(ptr, join.Suffix.Str, join.Suffix.Length);
+    ptr += join.Suffix.Length;
+
+    return result;
 }
 
 

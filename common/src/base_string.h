@@ -20,11 +20,12 @@ global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *
 // +------------------------------+
 // Note (Aaron): Length based strings
 
-typedef struct
+typedef struct Str8 Str8;
+struct Str8
 {
     U8 *Str;
     U64 Length;
-} Str8;
+};
 
 
 typedef struct Str8Node Str8Node;
@@ -35,13 +36,23 @@ struct Str8Node
 };
 
 
-typedef struct
+typedef struct Str8List Str8List;
+struct Str8List
 {
     Str8Node *First;
     Str8Node *Last;
     U64 NodeCount;
     U64 TotalSize;
-} Str8List;
+};
+
+
+typedef struct StringJoin StringJoin;
+struct StringJoin
+{
+    Str8 Prefix;
+    Str8 Separator;
+    Str8 Suffix;
+};
 
 
 global_function Str8 String8(U8 *str, U64 size);
@@ -61,8 +72,8 @@ global_function Str8 Str8CString(U8 *cstr);
 
 global_function void Str8ListPushExplicit(Str8List *list, Str8 string, Str8Node *nodeMemory);
 global_function void Str8ListPush(memory_arena *arena, Str8List *list, Str8 string);
+global_function Str8 Str8Join(memory_arena *arena, Str8List *list, StringJoin *optionalJoin);
 // TODO (Aaron): Implement when I need it
-// global_function Str8 Str8Join(memory_arena *arena, Str8List *list, StringJoin *optionalJoin);
 // global_function Str8List Str8Split(memory_arena *arena, Str8 string, U8 *split_characters, U32 count);
 
 global_function Str8 Str8Push(memory_arena *arena, Str8 string, B8 nullTerminate);
