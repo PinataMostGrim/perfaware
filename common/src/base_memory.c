@@ -91,14 +91,14 @@ global_function void *ArenaPopSize(memory_arena *arena, memory_index size)
 
 global_function void ArenaClear(memory_arena *arena)
 {
-    arena->PositionPtr = arena->PositionPtr;
+    arena->PositionPtr = arena->BasePtr;
     arena->Used = 0;
 }
 
 
 global_function void ArenaClearZero(memory_arena *arena)
 {
-    arena->PositionPtr = arena->PositionPtr;
+    arena->PositionPtr = arena->BasePtr;
     arena->Used = 0;
 
     MemorySet(arena->BasePtr, 0x0, arena->Size);
