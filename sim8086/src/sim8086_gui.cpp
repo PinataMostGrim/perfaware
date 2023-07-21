@@ -220,7 +220,7 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
 global_function void ShowMemoryWindow(application_state *applicationState, processor_8086 *processor)
 {
     U8 bytesPerLine = 16;
-    U32 bytesDisplayed = Kilobytes(8);
+    U32 bytesDisplayed = Kilobytes(4);
     U32 minimumBytesDisplayed = 512;
 
     const U8 BUFFER_SIZE = 64;
