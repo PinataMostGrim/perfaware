@@ -19,6 +19,15 @@
 //     1 - Enabled
 
 
+typedef struct memory_arena_def memory_arena_def;
+struct memory_arena_def
+{
+    memory_index Size;
+    memory_arena Arena;
+    const char *Label;
+};
+
+
 typedef struct application_memory application_memory;
 struct application_memory
 {
@@ -27,30 +36,21 @@ struct application_memory
 
     union
     {
-        memory_index ArenaSizes[4];
+        memory_arena_def Defs[4] = {
+            { Megabytes(2), {0}, "Permanent"},
+            { Megabytes(1), {0}, "Scratch"},
+            { Megabytes(1), {0}, "Instructions"},
+            { Megabytes(1), {0}, "InstructionStrings"},
+        };
         struct
         {
-            memory_index PermanentArenaSize;
-            memory_index ScratchArenaSize;
-            memory_index InstructionsArenaSize;
-            memory_index InstructionStringsArenaSize;
+            memory_arena_def Permanent;
+            memory_arena_def Scratch;
+            memory_arena_def Instructions;
+            memory_arena_def InstructionStrings;
         };
     };
 
-    union
-    {
-        memory_arena Arenas[4];
-        struct
-        {
-            memory_arena PermanentArena;
-            memory_arena ScratchArena;
-            memory_arena InstructionsArena;
-            memory_arena InstructionStringsArena;
-        };
-    };
-
-    static_assert(ArrayCount(Arenas) == ArrayCount(ArenaSizes),
-                  "ArenaSizes count must match memory.Arenas count");
 
     B32 IsInitialized;
 };

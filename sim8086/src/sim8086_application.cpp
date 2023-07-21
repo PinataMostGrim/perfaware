@@ -67,15 +67,15 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
         fclose(file);
 
         // generate instructions from loaded program
-        ArenaClearZero(&memory->InstructionsArena);
-        ArenaClearZero(&memory->InstructionStringsArena);
+        ArenaClearZero(&memory->Instructions.Arena);
+        ArenaClearZero(&memory->InstructionStrings.Arena);
 
         while (processor->IP < processor->ProgramSize)
         {
             instruction nextInstruction = DecodeNextInstruction(processor);
-            instruction *nextInstructionPtr = ArenaPushStruct(&memory->InstructionsArena, instruction);
-            nextInstruction.InstructionMnemonic = GetInstructionMnemonic(&nextInstruction, &memory->InstructionStringsArena, &memory->ScratchArena);
-            nextInstruction.BitsMnemonic = GetInstructionBitsMnemonic(&nextInstruction, &memory->InstructionStringsArena);
+            instruction *nextInstructionPtr = ArenaPushStruct(&memory->Instructions.Arena, instruction);
+            nextInstruction.InstructionMnemonic = GetInstructionMnemonic(&nextInstruction, &memory->InstructionStrings.Arena, &memory->Scratch.Arena);
+            nextInstruction.BitsMnemonic = GetInstructionBitsMnemonic(&nextInstruction, &memory->InstructionStrings.Arena);
             MemoryCopy(nextInstructionPtr, &nextInstruction, sizeof(instruction));
         }
 

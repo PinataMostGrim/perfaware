@@ -330,34 +330,19 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
         ImGui::Text("Memory");
         ImGui::Separator();
 
-        _ImGuiTextLabelUsedTotalPercentage(
-            (char *)"Permanent",
-            (char *)"KB",
-            (F64)memory->PermanentArena.Used / Kilobytes(1),
-            (F64)memory->PermanentArena.Size / Kilobytes(1));
-
-        _ImGuiTextLabelUsedTotalPercentage(
-            (char *)"Scratch",
-            (char *)"KB",
-            (F64)memory->ScratchArena.Used / Kilobytes(1),
-            (F64)memory->ScratchArena.Size / Kilobytes(1));
-
-        _ImGuiTextLabelUsedTotalPercentage(
-            (char *)"Instructions",
-            (char *)"KB",
-            (F64)memory->InstructionsArena.Used / Kilobytes(1),
-            (F64)memory->InstructionsArena.Size / Kilobytes(1));
-
-        _ImGuiTextLabelUsedTotalPercentage(
-            (char *)"Instruction strings",
-            (char *)"KB",
-            (F64)memory->InstructionStringsArena.Used / Kilobytes(1),
-            (F64)memory->InstructionStringsArena.Size / Kilobytes(1));
+        for (int i = 0; i < ArrayCount(memory->Defs); ++i)
+        {
+            _ImGuiTextLabelUsedTotalPercentage(
+                (char *)memory->Defs[i].Label,
+                (char *)"KB",
+                (F64)memory->Defs[i].Arena.Used / Kilobytes(1),
+                (F64)memory->Defs[i].Arena.Size / Kilobytes(1));
+        }
 
         U64 totalUsed = 0;
-        for (int i = 0; i < ArrayCount(memory->Arenas); ++i)
+        for (int i = 0; i < ArrayCount(memory->Defs); ++i)
         {
-            totalUsed += memory->Arenas[i].Used;
+            totalUsed += memory->Defs[i].Arena.Used;
         }
 
         _ImGuiTextLabelUsedTotalPercentage(
@@ -384,7 +369,7 @@ global_function void DrawGui(application_state *applicationState, application_me
     ShowMainMenuBar(applicationState);
 
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    ShowDisassemblyWindow(applicationState, processor, &memory->InstructionsArena);
+    ShowDisassemblyWindow(applicationState, processor, &memory->Instructions.Arena);
     ShowRegistersWindow(applicationState, processor);
     ShowMemoryWindow(applicationState, processor);
 

@@ -339,14 +339,10 @@ int CALLBACK WinMain(
 
     // allocate application memory
     application_memory memory = {};
-    memory.PermanentArenaSize = Megabytes(2);
-    memory.ScratchArenaSize = Megabytes(1);
-    memory.InstructionsArenaSize = Megabytes(1);
-    memory.InstructionStringsArenaSize = Megabytes(1);
 
-    for (int i = 0; i < ArrayCount(memory.ArenaSizes); ++i)
+    for (int i = 0; i < ArrayCount(memory.Defs); ++i)
     {
-        memory.TotalSize += memory.ArenaSizes[i];
+        memory.TotalSize += memory.Defs[i].Size;
     }
 
     memory.BackingStore = VirtualAlloc(0, memory.TotalSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
@@ -359,12 +355,12 @@ int CALLBACK WinMain(
     // partition out memory arenas
     U8 *arenaStartPtr = (U8 *)memory.BackingStore;
     memory.IsInitialized = TRUE;
-    for (int i = 0; i < ArrayCount(memory.Arenas); ++i)
+    for (int i = 0; i < ArrayCount(memory.Defs); ++i)
     {
-        ArenaInitialize(&memory.Arenas[i], memory.ArenaSizes[i], arenaStartPtr);
-        arenaStartPtr += memory.ArenaSizes[i];
+        ArenaInitialize(&memory.Defs[i].Arena, memory.Defs[i].Size, arenaStartPtr);
+        arenaStartPtr += memory.Defs[i].Size;
 
-        if (!memory.Arenas[i].BasePtr)
+        if (!memory.Defs[i].Arena.BasePtr)
         {
             memory.IsInitialized = FALSE;
         }
@@ -373,7 +369,7 @@ int CALLBACK WinMain(
 
     // construct paths in prep for GUI code hot-loading
     win32_context win32Context = {};
-    Win32GetExeInfo(&win32Context, &memory.PermanentArena);
+    Win32GetExeInfo(&win32Context, &memory.Permanent.Arena);
 
 
     // initial hot-load of application code
@@ -437,7 +433,7 @@ int CALLBACK WinMain(
 
     // initialize 8086
     processor_8086 processor = {};
-    processor.Memory = (U8 *)ArenaPushSize(&memory.PermanentArena, processor.MemorySize);
+    processor.Memory = (U8 *)ArenaPushSize(&memory.Permanent.Arena, processor.MemorySize);
     if (!processor.Memory)
     {
         Assert(FALSE && "Unable to allocate main memory for 8086");
@@ -485,7 +481,7 @@ int CALLBACK WinMain(
             break;
         }
 
-        Assert(memory.ScratchArena.BasePtr == memory.ScratchArena.PositionPtr && "Scratch arena has not been cleared");
+        Assert(memory.Scratch.Arena.BasePtr == memory.Scratch.Arena.PositionPtr && "Scratch arena has not been cleared");
 
         // Hot-load code if necessary
         FILETIME dllWriteTime = Win32GetLastWriteTime((char *)win32Context.DLLPath.Str);
