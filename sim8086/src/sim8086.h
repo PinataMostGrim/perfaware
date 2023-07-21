@@ -9,6 +9,7 @@
 
 #include "base.h"
 #include "base_types.h"
+#include "base_string.h"
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
@@ -241,8 +242,8 @@ struct instruction
     U8 ClockCount = 0;
     U8 EAClockCount = 0;
 
-    char *InstructionMnemonic;
-    char *BitsMnemonic;
+    Str8 InstructionMnemonic;
+    Str8 BitsMnemonic;
 };
 
 

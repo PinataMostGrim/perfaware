@@ -97,11 +97,11 @@ global_function void ShowDisassemblyWindow(application_state *applicationState, 
         ImGui::Text("%s", buffer);
 
         ImGui::SameLine(160);
-        ImGui::Text("%s", currentInstruction.InstructionMnemonic);
+        ImGui::Text("%s", currentInstruction.InstructionMnemonic.Str);
 
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("%s", instructions[i].BitsMnemonic);
+            ImGui::SetTooltip("%s", instructions[i].BitsMnemonic.Str);
         }
 
         if (processor->IP == currentInstruction.Address)

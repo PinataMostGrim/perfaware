@@ -22,7 +22,6 @@ global_function void *MemorySet(void *destPtr, int c, size_t count)
 
 global_function void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
 {
-    // TODO (Aaron): Return instead? Or does this assert catch cases we want to know about?
     Assert(size > 0 && "Attempted to copy 0 bytes");
 
     unsigned char *source = (unsigned char *)sourcePtr;

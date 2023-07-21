@@ -163,22 +163,30 @@ global_function Str8 Str8Join(memory_arena *arena, Str8List *list, StringJoin *o
 
     U8 *ptr = result.Str = ArenaPushArray(arena, U8, result.Length);
 
-    MemoryCopy(ptr, join.Prefix.Str, join.Prefix.Length);
-    ptr += join.Prefix.Length;
+    if (join.Prefix.Length > 0)
+    {
+        MemoryCopy(ptr, join.Prefix.Str, join.Prefix.Length);
+        ptr += join.Prefix.Length;
+    }
+
     for (Str8Node *node = list->First;
          node != 0;
          node = node->Next)
     {
         MemoryCopy(ptr, node->String.Str, node->String.Length);
         ptr += node->String.Length;
-        if (node->Next != 0)
+        if (node->Next != 0 && join.Separator.Length > 0)
         {
             MemoryCopy(ptr, join.Separator.Str, join.Separator.Length);
             ptr += join.Separator.Length;
         }
     }
-    MemoryCopy(ptr, join.Suffix.Str, join.Suffix.Length);
-    ptr += join.Suffix.Length;
+
+    if (join.Suffix.Length)
+    {
+        MemoryCopy(ptr, join.Suffix.Str, join.Suffix.Length);
+        ptr += join.Suffix.Length;
+    }
 
     return result;
 }
