@@ -21,8 +21,8 @@ global_function void ShowMainMenuBar(application_state *applicationState)
     {
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Open")) {}
-            if (ImGui::MenuItem("Close")) {}
+            if (ImGui::MenuItem("Open", 0, false, false)) {}
+            if (ImGui::MenuItem("Close", 0, false, false)) {}
             ImGui::EndMenu();
         }
 
