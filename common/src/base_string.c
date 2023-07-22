@@ -103,33 +103,29 @@ global_function Str8 Str8CString(U8 *cstr)
 }
 
 
-global_function Str8 Str8Push(memory_arena *arena, Str8 string, B8 nullTerminate)
+global_function Str8 ArenaPushStr8Copy(memory_arena *arena, Str8 string, B8 nullTerminate)
 {
-    U64 length = nullTerminate ? string.Length + 1 : string.Length;
-    U8 *buffer = ArenaPushArray(arena, U8, length);
+    U8 *buffer = ArenaPushArray(arena, U8, string.Length);
     MemoryCopy(buffer, string.Str, string.Length);
-    if (nullTerminate)
-    {
-        MemoryZero(buffer + string.Length, 1);
-    }
+    if (nullTerminate) { ArenaPushSizeZero(arena, 1); }
 
     Str8 result = String8(buffer, string.Length);
     return result;
 }
 
 
-global_function Str8 Str8Pushf(memory_arena *arena, char *fmt, ...)
+global_function Str8 ArenaPushStr8f(memory_arena *arena, char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    Str8 result = Str8Pushfv(arena, fmt,  args);
+    Str8 result = ArenaPushStr8fv(arena, fmt,  args);
     va_end(args);
 
     return result;
 }
 
 
-global_function Str8 Str8Pushfv(memory_arena *arena, char *fmt, va_list args)
+global_function Str8 ArenaPushStr8fv(memory_arena *arena, char *fmt, va_list args)
 {
     // va_list is stateful under some compilers. Duplicate in case we need to try a second time.
     va_list args2;
@@ -179,11 +175,11 @@ global_function void Str8ListPush(memory_arena *arena, Str8List *list, Str8 stri
 }
 
 
-global_function void Str8ListPushf(memory_arena *arena, Str8List *list, char *fmt, ...)
+global_function void ArenaPushStr8Listf(memory_arena *arena, Str8List *list, char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    Str8 string = Str8Pushfv(arena, fmt, args);
+    Str8 string = ArenaPushStr8fv(arena, fmt, args);
     va_end(args);
 
     Str8ListPush(arena, list, string);

@@ -242,7 +242,7 @@ global_function Str8 GetInstructionMnemonic(instruction *instruction, memory_are
     U64 length = arena->PositionPtr - startPtr;
     Str8 result = String8(startPtr, length);
 
-    // Note (Aaron): Append the null-terminator character to support cases that ultimately need a CString.
+    // Note (Aaron): Append the null-terminator character
     ArenaPushSizeZero(arena, 1);
 
     return result;
@@ -262,7 +262,7 @@ global_function Str8 GetInstructionBitsMnemonic(instruction *inst, memory_arena 
         }
     }
 
-    // Note (Aaron): Append the null-terminator character to support cases that ultimately need a CString.
+    // Note (Aaron): Append the null-terminator character
     ArenaPushSizeZero(arena, 1);
 
     U64 length = arena->PositionPtr - startPtr;

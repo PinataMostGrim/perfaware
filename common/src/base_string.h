@@ -78,10 +78,10 @@ global_function Str8 Str8Join(memory_arena *arena, Str8List *list, StringJoin *o
 // TODO (Aaron): Implement when I need it
 // global_function Str8List Str8Split(memory_arena *arena, Str8 string, U8 *split_characters, U32 count);
 
-global_function Str8 Str8Push(memory_arena *arena, Str8 string, B8 nullTerminate);
-global_function Str8 Str8Pushfv(memory_arena *arena, char *fmt, va_list args);
-global_function Str8 Str8Pushf(memory_arena *arena, char *fmt, ...);
-global_function void Str8ListPushf(memory_arena *arena, Str8List *list, char *fmt, ...);
+global_function Str8 ArenaPushStr8Copy(memory_arena *arena, Str8 string, B8 nullTerminate);
+global_function Str8 ArenaPushStr8f(memory_arena *arena, char *fmt, ...);
+global_function Str8 ArenaPushStr8fv(memory_arena *arena, char *fmt, va_list args);
+global_function void ArenaPushStr8Listf(memory_arena *arena, Str8List *list, char *fmt, ...);
 
 global_function Str8 ConcatStr8(memory_arena *arena, Str8 strA, Str8 strB, B8 nullTerminate);
 

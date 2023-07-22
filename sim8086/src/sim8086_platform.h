@@ -42,7 +42,7 @@ struct application_memory
             { Megabytes(1), {0}, "Scratch"},
             { Megabytes(1), {0}, "Instructions"},
             { Megabytes(1), {0}, "InstructionStrings"},
-            { Megabytes(64), {0}, "Output"},
+            { Megabytes(1), {0}, "Output"},
         };
         struct
         {

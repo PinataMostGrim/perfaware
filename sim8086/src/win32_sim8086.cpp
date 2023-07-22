@@ -122,8 +122,8 @@ global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena
     Str8 fullExePath = String8((U8 *)buffer, sizeOfFullPath);
     context->FullExePath = fullExePath;
 
-    U8 *nullChar = (U8 *)ArenaPushSize(arena, 1);
-    MemoryZero(nullChar, 1);
+    // Note (Aaron): Append the null-terminator character
+    ArenaPushSizeZero(arena, 1);
 
     // construct exe folder path
     U32 lastSlash = 0;
@@ -137,13 +137,13 @@ global_function void Win32GetExeInfo(win32_context *context, memory_arena *arena
         }
     }
     Str8 exeFolderPath = String8(fullExePath.Str, lastSlash + 1);
-    context->ExeFolderPath = Str8Push(arena, exeFolderPath, TRUE);
+    context->ExeFolderPath = ArenaPushStr8Copy(arena, exeFolderPath, TRUE);
 
     // construct exe filename
     U64 sizeOfFilename = fullExePath.Length - exeFolderPath.Length;
     Assert(sizeOfFilename > 0 && "Filename cannot be 0 characters in length");
     Str8 exeFilename = String8(fullExePath.Str + exeFolderPath.Length, sizeOfFilename);
-    context->ExeFilename = Str8Push(arena, exeFilename, TRUE);
+    context->ExeFilename = ArenaPushStr8Copy(arena, exeFilename, TRUE);
 
     // construct GUI DLL related paths
     Str8 dllFilename = String8((U8 *)DLL_FILENAME, GetStringLength(DLL_FILENAME));

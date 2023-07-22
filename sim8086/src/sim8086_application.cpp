@@ -23,6 +23,98 @@
 global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0041_add_sub_cmp_jnz";
 
 
+// Note (Aaron): Push output string into a memory arena that behaves like a circular buffer
+global_function void PushOutputToArena(memory_arena *arena, Str8List *outputList, Str8 output)
+{
+    // //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Note (Aaron): I think this is the algorithm:
+
+    // if (first < last string) && (new string size + node) < (free size in arena)
+    //  - We are still first time through the arena and don't need to free first strings
+    //  push the new string into the arena and return
+
+    // if (size of new string + node) > (free size in arena)
+    //  - we need to reset the arena and potentially start freeing first strings
+    //  if (first > last string)
+    //    - free first strings until (first string < last string)
+    //  reset the arena
+
+    // - now we need to free up first strings until there is room between the arena pos pointer and the first string
+    // while ((space between arena->PosPtr and first str) < (new string size + node))
+    //  - free first strings
+
+    // push new string into the arena and return
+
+    // free string involves:
+    //  - subtract string size from list's total size
+    //  - decrement string node count by one
+    //  - update list so first = first->next
+    // //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    memory_index freeSizeBytes = arena->Size - arena->Used;
+    // Note (Aaron): Size of incoming string + null terminating character + the Str8Node that will get created for it
+    memory_index stringSizeBytes = output.Length + 1 + sizeof(Str8Node);
+
+    U8 *first = outputList->First ? outputList->First->String.Str : 0;
+    U8 *last = outputList->Last ? outputList->Last->String.Str : 0;
+
+    Assert(stringSizeBytes <= arena->Size && "Output arena not large enough to hold output string");
+
+    // first time through the arena, no strings need to be released
+    if (first <= last && stringSizeBytes < freeSizeBytes)
+    {
+        Str8 string = ArenaPushStr8Copy(arena, output, TRUE);
+        Str8ListPush(arena, outputList, string);
+
+        return;
+    }
+
+    // reached the end of the arena and need to reset it
+    if (stringSizeBytes > freeSizeBytes)
+    {
+        // release "first" strings until they are behind the arena write pointer
+        while (first > arena->PositionPtr)
+        {
+            outputList->TotalSize -= outputList->First->String.Length;
+            outputList->NodeCount--;
+
+            // Note (Aaron): outputList->NodeCount should never reach zero as the arena should be large enough to hold many lines of output.
+            // Likewise, we should never free so many strings that (outputList->First == outputList->Last).
+            Assert(outputList->NodeCount > 0 && "NodeCount should never reach 0");
+            Assert(outputList->First->Next && "outputList->First->Next should always have a valid target");
+            Assert(outputList->First->String.Str != outputList->Last->String.Str && "outputList->First should never equal outputList->Last");
+
+            outputList->First = outputList->First->Next;
+            first = outputList->First->String.Str;
+        }
+
+        // reset the arena
+        ArenaClear(arena);
+    }
+
+    // Release "first" strings until we have enough room to push the new string into the arena
+    freeSizeBytes = first - arena->PositionPtr;
+    while(freeSizeBytes < stringSizeBytes)
+    {
+        // free first string
+        outputList->TotalSize -= outputList->First->String.Length;
+        outputList->NodeCount--;
+
+        // Note (Aaron): outputList->NodeCount should never reach zero as the arena should be large enough to hold many lines of output.
+        // Likewise, we should never free so many strings that (outputList->First == outputList->Last).
+        Assert(outputList->NodeCount > 0 && "NodeCount should never reach 0");
+        Assert(outputList->First->Next && "outputList->First->Next should always have a valid target");
+        Assert(outputList->First->String.Str != outputList->Last->String.Str && "outputList->First should never equal outputList->Last");
+
+        outputList->First = outputList->First->Next;
+        first = outputList->First->String.Str;
+        freeSizeBytes = first - arena->PositionPtr;
+    }
+
+    Str8 string = ArenaPushStr8Copy(arena, output, TRUE);
+    Str8ListPush(arena, outputList, string);
+}
+
 
 C_LINKAGE SET_IMGUI_CONTEXT(SetImGuiContext)
 {
@@ -95,8 +187,9 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
         while(!HasProcessorFinishedExecution(processor))
         {
             instruction inst = DecodeNextInstruction(processor);
-            Str8 output = ExecuteInstruction(processor, &inst, &memory->Output.Arena);
-            Str8ListPush(&memory->Output.Arena, &applicationState->OutputList, output);
+            Str8 output = ExecuteInstruction(processor, &inst, &memory->Scratch.Arena);
+            PushOutputToArena(&memory->Output.Arena, &applicationState->OutputList, output);
+            ArenaClear(&memory->Scratch.Arena);
 
             // TODO (Aaron): How to better handle programs that do not halt?
             safetyCounter++;
@@ -121,8 +214,9 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
         if (!HasProcessorFinishedExecution(processor))
         {
             instruction inst = DecodeNextInstruction(processor);
-            Str8 output = ExecuteInstruction(processor, &inst, &memory->Output.Arena);
-            Str8ListPush(&memory->Output.Arena, &applicationState->OutputList, output);
+            Str8 output = ExecuteInstruction(processor, &inst, &memory->Scratch.Arena);
+            PushOutputToArena(&memory->Output.Arena, &applicationState->OutputList, output);
+            ArenaClear(&memory->Scratch.Arena);
         }
 
         applicationState->Diagnostics_ExecutionStalled = false;
