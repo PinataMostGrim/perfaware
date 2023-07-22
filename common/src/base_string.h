@@ -13,8 +13,10 @@
 // +------------------------------+
 // Note (Aaron): C strings
 global_function U64 GetStringLength(char *str);
-global_function char *ArenaPushCString(memory_arena *arena, char *str);
-global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *arena);
+global_function char *ArenaPushCString(memory_arena *arena, B8 nullTerminate, char *str);
+global_function char *ArenaPushCStringf(memory_arena *arena, B8 nullTerminate, char *fmt, ...);
+global_function char *ArenaPushCStringfv(memory_arena *arena, B8 nullTerminate, char *fmt, va_list args);
+global_function char *ConcatCStrings(char *stringA, char *stringB, memory_arena *arena);
 
 
 // +------------------------------+

@@ -18,17 +18,60 @@ global_function U64 GetStringLength(char *str)
 }
 
 
-global_function char *ArenaPushCString(memory_arena *arena, char *str)
+global_function char *ArenaPushCString(memory_arena *arena, B8 nullTerminate, char *str)
 {
     U64 strLength = GetStringLength(str);
     char *result = (char *)ArenaPushSize(arena, strLength);
     MemoryCopy(result, str, strLength);
 
+    if (nullTerminate)
+    {
+        ArenaPushSizeZero(arena, 1);
+    }
+
     return result;
 }
 
 
-global_function char *ConcatStrings(char *stringA, char *stringB, memory_arena *arena)
+global_function char *ArenaPushCStringf(memory_arena *arena, B8 nullTerminate, char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    char *result = ArenaPushCStringfv(arena, nullTerminate, fmt,  args);
+    va_end(args);
+
+    return result;
+}
+
+
+global_function char *ArenaPushCStringfv(memory_arena *arena, B8 nullTerminate, char *fmt, va_list args)
+{
+    va_list args2;
+    va_copy(args2, args);
+
+    U64 bufferSize = 1024;
+    U8 *buffer = ArenaPushArray(arena, U8, bufferSize);
+    U64 actualSize = vsnprintf((char *)buffer, bufferSize, fmt, args);
+
+    if (actualSize < bufferSize)
+    {
+        ArenaPopSize(arena, bufferSize - actualSize - (nullTerminate ? 1 : 0));
+    }
+    else
+    {
+        ArenaPopSize(arena, bufferSize);
+        U8 *fixedBuffer = ArenaPushArray(arena, U8, actualSize + (nullTerminate ? 1 : 0));
+        vsnprintf((char *)fixedBuffer, actualSize + 1, fmt, args2);
+    }
+
+    va_end(args2);
+
+    char *result = (char *)buffer;
+    return result;
+}
+
+
+global_function char *ConcatCStrings(char *stringA, char *stringB, memory_arena *arena)
 {
     U64 sizeOfA = GetStringLength(stringA);
     U64 sizeOfB = GetStringLength(stringB);
