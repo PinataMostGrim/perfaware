@@ -74,7 +74,7 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
         {
             instruction nextInstruction = DecodeNextInstruction(processor);
             instruction *nextInstructionPtr = ArenaPushStruct(&memory->Instructions.Arena, instruction);
-            nextInstruction.InstructionMnemonic = GetInstructionMnemonic(&nextInstruction, &memory->InstructionStrings.Arena, &memory->Scratch.Arena);
+            nextInstruction.InstructionMnemonic = GetInstructionMnemonic(&nextInstruction, &memory->InstructionStrings.Arena);
             nextInstruction.BitsMnemonic = GetInstructionBitsMnemonic(&nextInstruction, &memory->InstructionStrings.Arena);
             MemoryCopy(nextInstructionPtr, &nextInstruction, sizeof(instruction));
         }

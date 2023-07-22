@@ -124,13 +124,9 @@ global_function const char *GetRegisterFlagMnemonic(register_flags flag)
 }
 
 
-global_function Str8 GetInstructionMnemonic(instruction *instruction, memory_arena *arena, memory_arena *scratchArena)
+global_function Str8 GetInstructionMnemonic(instruction *instruction, memory_arena *arena)
 {
-    Assert(scratchArena->BasePtr == scratchArena->PositionPtr && "ScratchArena has not been cleared");
-
-    Str8List mnemonic = {0};
-    Str8ListPushf(scratchArena, &mnemonic, (char *)"%s ", GetOpMnemonic(instruction->OpType));
-
+    U8 *startPtr = (U8 *)ArenaPushCStringf(arena, FALSE, (char *)"%s ", GetOpMnemonic(instruction->OpType));
     const char *Separator = "";
 
     for (int i = 0; i < ArrayCount(instruction->Operands); ++i)
@@ -145,7 +141,7 @@ global_function Str8 GetInstructionMnemonic(instruction *instruction, memory_are
 
         if (GetStringLength((char *)Separator) > 0)
         {
-            Str8ListPushf(scratchArena, &mnemonic, (char *)"%s", Separator);
+            ArenaPushCStringf(arena, FALSE, (char *)"%s", Separator);
         }
         Separator = ", ";
 
@@ -163,11 +159,11 @@ global_function Str8 GetInstructionMnemonic(instruction *instruction, memory_are
                 {
                     if (operand.Memory.Flags & Memory_IsWide)
                     {
-                        Str8ListPushf(scratchArena, &mnemonic, (char *)"%s", (char *)"word ");
+                        ArenaPushCStringf(arena, FALSE, (char *)"%s", (char *)"word ");
                     }
                     else
                     {
-                        Str8ListPushf(scratchArena, &mnemonic, (char *)"%s", "byte ");
+                        ArenaPushCStringf(arena, FALSE, (char *)"%s", "byte ");
                     }
 
                 }
@@ -175,33 +171,33 @@ global_function Str8 GetInstructionMnemonic(instruction *instruction, memory_are
                 // print direct address
                 if (operand.Memory.Flags & Memory_HasDirectAddress)
                 {
-                    Str8ListPushf(scratchArena, &mnemonic, (char *)"[%i]", operand.Memory.DirectAddress);
+                    ArenaPushCStringf(arena, FALSE, (char *)"[%i]", operand.Memory.DirectAddress);
                     break;
                 }
 
                 // print memory with optional displacement
-                Str8ListPushf(scratchArena, &mnemonic, (char *)"[");
-                Str8ListPushf(scratchArena, &mnemonic, (char *)GetRegisterMnemonic(operand.Memory.Register));
+                ArenaPushCStringf(arena, FALSE, (char *)"[");
+                ArenaPushCStringf(arena, FALSE, (char *)GetRegisterMnemonic(operand.Memory.Register));
 
                 if (operand.Memory.Flags & Memory_HasDisplacement)
                 {
                     if (operand.Memory.Displacement >= 0)
                     {
-                        Str8ListPushf(scratchArena, &mnemonic, (char *)" + %i", operand.Memory.Displacement);
+                        ArenaPushCStringf(arena, FALSE, (char *)" + %i", operand.Memory.Displacement);
                     }
                     else
                     {
-                        Str8ListPushf(scratchArena, &mnemonic, (char *)" - %i", operand.Memory.Displacement);
+                        ArenaPushCStringf(arena, FALSE, (char *)" - %i", operand.Memory.Displacement);
                     }
                 }
 
-                Str8ListPushf(scratchArena, &mnemonic, (char *)"]");
+                ArenaPushCStringf(arena, FALSE, (char *)"]");
                 break;
             }
 
             case Operand_Register:
             {
-                Str8ListPushf(scratchArena, &mnemonic, (char *)GetRegisterMnemonic(operand.Register));
+                ArenaPushCStringf(arena, FALSE, (char *)GetRegisterMnemonic(operand.Register));
                 break;
             }
 
@@ -218,19 +214,18 @@ global_function Str8 GetInstructionMnemonic(instruction *instruction, memory_are
 
                     if (offset >= 0)
                     {
-                        Str8ListPushf(scratchArena, &mnemonic, (char *)"$+%i", offset);
+                        ArenaPushCStringf(arena, FALSE, (char *)"$+%i", offset);
                     }
                     else
                     {
-                        Str8ListPushf(scratchArena, &mnemonic, (char *)"$%i", offset);
+                        ArenaPushCStringf(arena, FALSE, (char *)"$%i", offset);
                     }
                     break;
                 }
 
                 // TODO (Aaron): Test this more
                 bool isSigned = operand.Immediate.Flags & Immediate_IsSigned;
-
-                Str8ListPushf(scratchArena, &mnemonic, (char *)"%i",
+                ArenaPushCStringf(arena, FALSE, (char *)"%i",
                              (isSigned
                                  ? (S16) operand.Immediate.Value
                                  : (U16) operand.Immediate.Value));
@@ -239,16 +234,16 @@ global_function Str8 GetInstructionMnemonic(instruction *instruction, memory_are
 
             default:
             {
-                Str8ListPushf(scratchArena, &mnemonic, (char *)"?");
+                ArenaPushCStringf(arena, FALSE, (char *)"?");
             }
         }
     }
 
-    Str8 result = Str8Join(arena, &mnemonic, 0);
+    U64 length = arena->PositionPtr - startPtr;
+    Str8 result = String8(startPtr, length);
 
     // Note (Aaron): Append the null-terminator character to support cases that ultimately need a CString.
     ArenaPushSizeZero(arena, 1);
-    ArenaClear(scratchArena);
 
     return result;
 }
@@ -256,22 +251,22 @@ global_function Str8 GetInstructionMnemonic(instruction *instruction, memory_are
 
 global_function Str8 GetInstructionBitsMnemonic(instruction *inst, memory_arena *arena)
 {
-    char *resultPtr;
-    resultPtr = (char *)arena->PositionPtr;
-
+    U8 *startPtr = arena->PositionPtr;
     for (U8 i = 0; i < inst->Bits.ByteCount; ++i)
     {
         for (U8 j = 0; j < 8; j++)
         {
             U8 mask = 128 >> j;
             U8 bit = (inst->Bits.Bytes[i] & mask) >> (7 - j);
-            ArenaPushCString(arena, bit == 1 ? (char *)"1": (char *)"0");
+            ArenaPushCString(arena, FALSE, bit == 1 ? (char *)"1": (char *)"0");
         }
     }
 
     // Note (Aaron): Append the null-terminator character to support cases that ultimately need a CString.
     ArenaPushSizeZero(arena, 1);
-    Str8 result = Str8CString((U8 *)resultPtr);
+
+    U64 length = arena->PositionPtr - startPtr;
+    Str8 result = String8(startPtr, length);
 
     return result;
 }
