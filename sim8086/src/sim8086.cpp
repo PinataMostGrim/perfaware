@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "base_memory.h"
+#include "base_string.h"
 #include "sim8086.h"
 #include "sim8086_mnemonics.h"
 
@@ -1197,39 +1198,40 @@ global_function void SetOperandValue(processor_8086 *processor, instruction_oper
 }
 
 
-global_function void PrintFlagDiffs(U8 oldFlags, U8 newFlags)
+global_function void PrintFlagDiffs(U8 oldFlags, U8 newFlags, memory_arena *outputArena)
 {
     if (oldFlags == newFlags)
     {
         return;
     }
 
-    printf(" flags:");
+    U8 *startPtr = outputArena->PositionPtr;
+    ArenaPushCStringf(outputArena, FALSE, (char *)" flags:");
 
     // Flags that are changing to 0
-    if ((oldFlags & RegisterFlag_CF) && !(newFlags & RegisterFlag_CF)) { printf("C"); }
-    if ((oldFlags & RegisterFlag_PF) && !(newFlags & RegisterFlag_PF)) { printf("P"); }
-    if ((oldFlags & RegisterFlag_AF) && !(newFlags & RegisterFlag_AF)) { printf("A"); }
-    if ((oldFlags & RegisterFlag_ZF) && !(newFlags & RegisterFlag_ZF)) { printf("Z"); }
-    if ((oldFlags & RegisterFlag_SF) && !(newFlags & RegisterFlag_SF)) { printf("S"); }
-    if ((oldFlags & RegisterFlag_OF) && !(newFlags & RegisterFlag_OF)) { printf("O"); }
+    if ((oldFlags & RegisterFlag_CF) && !(newFlags & RegisterFlag_CF)) { ArenaPushCStringf(outputArena, FALSE, (char *)"C"); }
+    if ((oldFlags & RegisterFlag_PF) && !(newFlags & RegisterFlag_PF)) { ArenaPushCStringf(outputArena, FALSE, (char *)"P"); }
+    if ((oldFlags & RegisterFlag_AF) && !(newFlags & RegisterFlag_AF)) { ArenaPushCStringf(outputArena, FALSE, (char *)"A"); }
+    if ((oldFlags & RegisterFlag_ZF) && !(newFlags & RegisterFlag_ZF)) { ArenaPushCStringf(outputArena, FALSE, (char *)"Z"); }
+    if ((oldFlags & RegisterFlag_SF) && !(newFlags & RegisterFlag_SF)) { ArenaPushCStringf(outputArena, FALSE, (char *)"S"); }
+    if ((oldFlags & RegisterFlag_OF) && !(newFlags & RegisterFlag_OF)) { ArenaPushCStringf(outputArena, FALSE, (char *)"O"); }
 
-    printf("->");
+    ArenaPushCStringf(outputArena, FALSE, (char *)"->");
 
     // Flags that are changing to 1
-    if (!(oldFlags & RegisterFlag_CF) && (newFlags & RegisterFlag_CF)) { printf("C"); }
-    if (!(oldFlags & RegisterFlag_PF) && (newFlags & RegisterFlag_PF)) { printf("P"); }
-    if (!(oldFlags & RegisterFlag_AF) && (newFlags & RegisterFlag_AF)) { printf("A"); }
-    if (!(oldFlags & RegisterFlag_ZF) && (newFlags & RegisterFlag_ZF)) { printf("Z"); }
-    if (!(oldFlags & RegisterFlag_SF) && (newFlags & RegisterFlag_SF)) { printf("S"); }
-    if (!(oldFlags & RegisterFlag_OF) && (newFlags & RegisterFlag_OF)) { printf("O"); }
+    if (!(oldFlags & RegisterFlag_CF) && (newFlags & RegisterFlag_CF)) { ArenaPushCStringf(outputArena, FALSE, (char *)"C"); }
+    if (!(oldFlags & RegisterFlag_PF) && (newFlags & RegisterFlag_PF)) { ArenaPushCStringf(outputArena, FALSE, (char *)"P"); }
+    if (!(oldFlags & RegisterFlag_AF) && (newFlags & RegisterFlag_AF)) { ArenaPushCStringf(outputArena, FALSE, (char *)"A"); }
+    if (!(oldFlags & RegisterFlag_ZF) && (newFlags & RegisterFlag_ZF)) { ArenaPushCStringf(outputArena, FALSE, (char *)"Z"); }
+    if (!(oldFlags & RegisterFlag_SF) && (newFlags & RegisterFlag_SF)) { ArenaPushCStringf(outputArena, FALSE, (char *)"S"); }
+    if (!(oldFlags & RegisterFlag_OF) && (newFlags & RegisterFlag_OF)) { ArenaPushCStringf(outputArena, FALSE, (char *)"O"); }
 }
 
 
-// TODO (Aaron): Use a memory arena to hold output
-global_function void ExecuteInstruction(processor_8086 *processor, instruction *instruction)
+global_function Str8 ExecuteInstruction(processor_8086 *processor, instruction *instruction, memory_arena *outputArena)
 {
     U8 oldFlags = processor->Flags;
+    U8 *outputStartPtr = outputArena->PositionPtr;
 
     // TODO (Aaron): A lot of redundant code here
     //  - Re-write switch statement with if-statements?
@@ -1249,10 +1251,11 @@ global_function void ExecuteInstruction(processor_8086 *processor, instruction *
 
             if (operand0.Type == Operand_Register && oldValue != sourceValue)
             {
-                printf(" %s:0x%x->0x%x",
-                       GetRegisterMnemonic(operand0.Register),
-                       oldValue,
-                       sourceValue);
+                ArenaPushCStringf(outputArena, FALSE,
+                                  (char *)" %s:0x%x->0x%x",
+                                  GetRegisterMnemonic(operand0.Register),
+                                  oldValue,
+                                  sourceValue);
             }
 
             break;
@@ -1278,10 +1281,11 @@ global_function void ExecuteInstruction(processor_8086 *processor, instruction *
 
                 if (oldValue != finalValue)
                 {
-                    printf(" %s:0x%x->0x%x",
-                           GetRegisterMnemonic(operand0.Register),
-                           value0,
-                           finalValue);
+                    ArenaPushCStringf(outputArena, FALSE,
+                                      (char *)" %s:0x%x->0x%x",
+                                      GetRegisterMnemonic(operand0.Register),
+                                      value0,
+                                      finalValue);
                 }
             }
 
@@ -1308,10 +1312,11 @@ global_function void ExecuteInstruction(processor_8086 *processor, instruction *
 
                 if (oldValue != finalValue)
                 {
-                    printf(" %s:0x%x->0x%x",
-                           GetRegisterMnemonic(operand0.Register),
-                           value0,
-                           finalValue);
+                    ArenaPushCStringf(outputArena, FALSE,
+                                      (char *)" %s:0x%x->0x%x",
+                                      GetRegisterMnemonic(operand0.Register),
+                                      value0,
+                                      finalValue);
                 }
             }
 
@@ -1374,12 +1379,20 @@ global_function void ExecuteInstruction(processor_8086 *processor, instruction *
 
         default:
         {
-            printf("unsupported instruction");
+            ArenaPushCStringf(outputArena, FALSE, (char *)"unsupported instruction");
         }
     }
 
-    printf(" ip:0x%x->0x%x", processor->PrevIP, processor->IP);
-    PrintFlagDiffs(oldFlags, processor->Flags);
+    ArenaPushCStringf(outputArena, FALSE, (char *)" ip:0x%x->0x%x", processor->PrevIP, processor->IP);
+    PrintFlagDiffs(oldFlags, processor->Flags, outputArena);
+
+    // Note (Aaron): Append the null-terminator character
+    ArenaPushSizeZero(outputArena, 1);
+
+    U64 outputLength = outputArena->PositionPtr - outputStartPtr;
+    Str8 result = String8(outputStartPtr, outputLength);
+
+    return result;
 }
 
 

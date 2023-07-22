@@ -95,7 +95,8 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
         while(!HasProcessorFinishedExecution(processor))
         {
             instruction inst = DecodeNextInstruction(processor);
-            ExecuteInstruction(processor, &inst);
+            Str8 output = ExecuteInstruction(processor, &inst, &memory->Output.Arena);
+            Str8ListPush(&memory->Output.Arena, &applicationState->OutputList, output);
 
             // TODO (Aaron): How to better handle programs that do not halt?
             safetyCounter++;
@@ -111,6 +112,8 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
         // reset program
         ResetProcessorExecution(processor);
         applicationState->Diagnostics_ExecutionStalled = false;
+        applicationState->OutputList = {0};
+        ArenaClearZero(&memory->Output.Arena);
     }
     else if (ImGui::IsKeyPressed(ImGuiKey_F10))
     {
@@ -118,7 +121,8 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
         if (!HasProcessorFinishedExecution(processor))
         {
             instruction inst = DecodeNextInstruction(processor);
-            ExecuteInstruction(processor, &inst);
+            Str8 output = ExecuteInstruction(processor, &inst, &memory->Output.Arena);
+            Str8ListPush(&memory->Output.Arena, &applicationState->OutputList, output);
         }
 
         applicationState->Diagnostics_ExecutionStalled = false;

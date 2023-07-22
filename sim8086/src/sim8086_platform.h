@@ -7,6 +7,7 @@
 #include "base.h"
 #include "base_types.h"
 #include "base_memory.h"
+#include "base_string.h"
 #include "sim8086.h"
 
 
@@ -36,11 +37,12 @@ struct application_memory
 
     union
     {
-        memory_arena_def Defs[4] = {
+        memory_arena_def Defs[5] = {
             { Megabytes(2), {0}, "Permanent"},
             { Megabytes(1), {0}, "Scratch"},
             { Megabytes(1), {0}, "Instructions"},
             { Megabytes(1), {0}, "InstructionStrings"},
+            { Megabytes(64), {0}, "Output"},
         };
         struct
         {
@@ -48,6 +50,7 @@ struct application_memory
             memory_arena_def Scratch;
             memory_arena_def Instructions;
             memory_arena_def InstructionStrings;
+            memory_arena_def Output;
         };
     };
 
@@ -63,6 +66,7 @@ typedef struct
     B32 LoadFailure;
     U32 LoadedProgramInstructionCount;
     U32 LoadedProgramCycleCount;
+    Str8List OutputList;
 
     // GUI
     ImGuiIO *IO;

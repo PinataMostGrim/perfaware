@@ -1,20 +1,19 @@
 /* TODO (Aaron):
-    - **Convert to length based strings**
-        - Update disassembly window
-        - Update registers window
-        - Update memory window
-        - Update diagnostics window
-
-    - Add an instrumentation overlay using platform metrics
-        - Will need to convert into an interactive profiler
+    - Output window
+        - Add circular buffer behavior to the output window
+        - Add menu item for opening / closing the output window
 
     - Automatically dock windows on first load or force them to dock
 
-    - Add an "Output" window
-        - ExecuteInstruction() takes a memory arena for 'output'
-        - Add menu item for opening / closing the window
+    - Look into a way to automatically scroll to the bottom of a window when new input appears
 
     - Update build script so that we don't need to re-build DearImGUI every time we build
+
+    - Troubleshoot issue where stopping, restarting and stepping forward causes a crash
+        - Appears when constantly cycling between holding F10 and hitting F8 to reset
+
+    - Add an instrumentation overlay using platform metrics
+        - Will need to convert into an interactive profiler
 
     - Memory Window
         - Turn memory area into a table and place controls at the bottom?

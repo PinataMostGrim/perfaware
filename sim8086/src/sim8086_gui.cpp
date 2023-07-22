@@ -288,6 +288,28 @@ global_function void ShowMemoryWindow(application_state *applicationState, proce
 }
 
 
+global_function void ShowOutputWindow(Str8List *outputList)
+{
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
+    ImGui::Begin("Output", NULL, windowFlags);
+
+    if (outputList->TotalSize == 0)
+    {
+        ImGui::End();
+        return;
+    }
+
+    Str8Node *node = outputList->First;
+    while(node)
+    {
+        ImGui::Text("%s", node->String.Str);
+        node = node->Next;
+    }
+
+    ImGui::End();
+}
+
+
 inline
 global_function void _ImGuiTextLabelUsedTotalPercentage(char *label, char *units, F64 used, F64 total)
 {
@@ -369,10 +391,11 @@ global_function void DrawGui(application_state *applicationState, application_me
     ShowMainMenuBar(applicationState);
 
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+
     ShowDisassemblyWindow(applicationState, processor, &memory->Instructions.Arena);
     ShowRegistersWindow(applicationState, processor);
     ShowMemoryWindow(applicationState, processor);
-
+    ShowOutputWindow(&applicationState->OutputList);
     ShowDiagnosticsWindow(applicationState, memory, processor);
 
     // ImGui::ShowDemoWindow();
