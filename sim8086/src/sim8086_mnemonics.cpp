@@ -260,6 +260,8 @@ global_function Str8 GetInstructionBitsMnemonic(instruction *inst, memory_arena 
             U8 bit = (inst->Bits.Bytes[i] & mask) >> (7 - j);
             ArenaPushCString(arena, FALSE, bit == 1 ? (char *)"1": (char *)"0");
         }
+
+        ArenaPushCString(arena, FALSE, (char *)" ");
     }
 
     // Note (Aaron): Append the null-terminator character

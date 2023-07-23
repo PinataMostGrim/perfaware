@@ -1,8 +1,6 @@
 /* TODO (Aaron):
     - Research & implement automatically scrolling to the bottom of a window when new input appears (if window is already scrolled to bottom)
 
-    - Add spaces every 8 bits in disassembly mouse-over
-
     - Automatically dock windows on first load or force them to dock
 
     - Update build script so that we don't need to re-build DearImGUI every time we build
