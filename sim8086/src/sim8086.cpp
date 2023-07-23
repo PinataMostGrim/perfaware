@@ -1019,7 +1019,8 @@ global_function void SetRegisterValue(processor_8086 *processor, register_id tar
 
 global_function U8 GetRegisterFlag(processor_8086 *processor, register_flags flag)
 {
-    return (processor->Flags & flag);
+    U8 result = (processor->Flags & flag) ? 1 : 0;
+    return result;
 }
 
 
