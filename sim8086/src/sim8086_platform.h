@@ -73,6 +73,8 @@ typedef struct
     ImVec4 ClearColor;
     U32 Disassembly_SelectedLine;
     U32 Memory_StartAddress;
+    F32 OutputWindowLastScrollY;
+    F32 OutputWindowLastMaxScrollY;
 
     // Diagnostics
     bool Diagnostics_ShowWindow;

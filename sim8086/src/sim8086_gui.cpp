@@ -288,8 +288,12 @@ global_function void ShowMemoryWindow(application_state *applicationState, proce
 }
 
 
-global_function void ShowOutputWindow(Str8List *outputList)
+global_function void ShowOutputWindow(application_state *state)
 {
+    Str8List *outputList = &state->OutputList;
+    F32 lastScrollY = state->OutputWindowLastScrollY;
+    F32 lastMaxScrollY = state->OutputWindowLastMaxScrollY;
+
     ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
     ImGui::Begin("Output", NULL, windowFlags);
 
@@ -305,6 +309,18 @@ global_function void ShowOutputWindow(Str8List *outputList)
         ImGui::Text("%s", node->String.Str);
         node = node->Next;
     }
+
+    F32 scrollY = ImGui::GetScrollY();
+    F32 maxScrollY = ImGui::GetScrollMaxY();
+
+    if ((int)lastScrollY == (int)lastMaxScrollY
+        && (int)maxScrollY != (int)lastMaxScrollY)
+    {
+        ImGui::SetScrollY(maxScrollY);
+    }
+
+    state->OutputWindowLastScrollY = scrollY;
+    state->OutputWindowLastMaxScrollY = maxScrollY;
 
     ImGui::End();
 }
@@ -395,7 +411,7 @@ global_function void DrawGui(application_state *applicationState, application_me
     ShowDisassemblyWindow(applicationState, processor, &memory->Instructions.Arena);
     ShowRegistersWindow(applicationState, processor);
     ShowMemoryWindow(applicationState, processor);
-    ShowOutputWindow(&applicationState->OutputList);
+    ShowOutputWindow(applicationState);
     ShowDiagnosticsWindow(applicationState, memory, processor);
 
     // ImGui::ShowDemoWindow();

@@ -1,6 +1,4 @@
 /* TODO (Aaron):
-    - Research & implement automatically scrolling to the bottom of a window when new input appears (if window is already scrolled to bottom)
-
     - Automatically dock windows on first load or force them to dock
 
     - Update build script so that we don't need to re-build DearImGUI every time we build
