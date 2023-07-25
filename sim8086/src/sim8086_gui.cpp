@@ -8,8 +8,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "base.h"
-#include "memory_arena.h"
+#include "base_types.h"
 #include "sim8086_platform.h"
 #include "sim8086_gui.h"
 #include "sim8086.h"
@@ -22,8 +21,8 @@ global_function void ShowMainMenuBar(application_state *applicationState)
     {
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Open")) {}
-            if (ImGui::MenuItem("Close")) {}
+            if (ImGui::MenuItem("Open", 0, false, false)) {}
+            if (ImGui::MenuItem("Close", 0, false, false)) {}
             ImGui::EndMenu();
         }
 
@@ -70,8 +69,7 @@ global_function void ShowMainMenuBar(application_state *applicationState)
 }
 
 
-global_function void ShowDisassemblyWindow(application_state *applicationState, processor_8086 *processor,
-                                           memory_arena *instructionArena, memory_arena *frameArena)
+global_function void ShowDisassemblyWindow(application_state *applicationState, processor_8086 *processor, memory_arena *instructionArena)
 {
     size_t instructionCount = instructionArena->Used / sizeof(instruction);
     instruction *instructions = (instruction *)instructionArena->BasePtr;
@@ -99,11 +97,11 @@ global_function void ShowDisassemblyWindow(application_state *applicationState, 
         ImGui::Text("%s", buffer);
 
         ImGui::SameLine(160);
-        ImGui::Text("%s", currentInstruction.InstructionMnemonic);
+        ImGui::Text("%s", currentInstruction.InstructionMnemonic.Str);
 
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("%s", instructions[i].BitsMnemonic);
+            ImGui::SetTooltip("%s", instructions[i].BitsMnemonic.Str);
         }
 
         if (processor->IP == currentInstruction.Address)
@@ -222,7 +220,7 @@ global_function void ShowRegistersWindow(application_state *applicationState, pr
 global_function void ShowMemoryWindow(application_state *applicationState, processor_8086 *processor)
 {
     U8 bytesPerLine = 16;
-    U32 bytesDisplayed = Kilobytes(8);
+    U32 bytesDisplayed = Kilobytes(4);
     U32 minimumBytesDisplayed = 512;
 
     const U8 BUFFER_SIZE = 64;
@@ -290,6 +288,44 @@ global_function void ShowMemoryWindow(application_state *applicationState, proce
 }
 
 
+global_function void ShowOutputWindow(application_state *state)
+{
+    Str8List *outputList = &state->OutputList;
+    F32 lastScrollY = state->OutputWindowLastScrollY;
+    F32 lastMaxScrollY = state->OutputWindowLastMaxScrollY;
+
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
+    ImGui::Begin("Output", NULL, windowFlags);
+
+    if (outputList->TotalSize == 0)
+    {
+        ImGui::End();
+        return;
+    }
+
+    Str8Node *node = outputList->First;
+    while(node)
+    {
+        ImGui::Text("%s", node->String.Str);
+        node = node->Next;
+    }
+
+    F32 scrollY = ImGui::GetScrollY();
+    F32 maxScrollY = ImGui::GetScrollMaxY();
+
+    if ((int)lastScrollY == (int)lastMaxScrollY
+        && (int)maxScrollY != (int)lastMaxScrollY)
+    {
+        ImGui::SetScrollY(maxScrollY);
+    }
+
+    state->OutputWindowLastScrollY = scrollY;
+    state->OutputWindowLastMaxScrollY = maxScrollY;
+
+    ImGui::End();
+}
+
+
 inline
 global_function void _ImGuiTextLabelUsedTotalPercentage(char *label, char *units, F64 used, F64 total)
 {
@@ -320,6 +356,7 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
         ImGui::Text("");
 
         ImGui::Text("Instructions executed: %u", processor->InstructionCount);
+        ImGui::Text("Estimated cycles: %u", processor->TotalClockCount);
 
         if(applicationState->Diagnostics_ExecutionStalled)
         {
@@ -332,36 +369,19 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
         ImGui::Text("Memory");
         ImGui::Separator();
 
-        _ImGuiTextLabelUsedTotalPercentage(
-            (char *)"Permanent",
-            (char *)"KB",
-            (F64)memory->PermanentArena.Used / Kilobytes(1),
-            (F64)memory->PermanentArena.Size / Kilobytes(1));
-
-        _ImGuiTextLabelUsedTotalPercentage(
-            (char *)"Per-frame",
-            (char *)"KB",
-            (F64)memory->FrameArena.Used / Kilobytes(1),
-            (F64)memory->FrameArena.Size / Kilobytes(1));
-
-        ImGui::Text("Per-frame max: %.2f KB", (F64)applicationState->MaxScratchMemoryUsage / (F64)Kilobytes(1));
-
-        _ImGuiTextLabelUsedTotalPercentage(
-            (char *)"Instructions",
-            (char *)"KB",
-            (F64)memory->InstructionsArena.Used / Kilobytes(1),
-            (F64)memory->InstructionsArena.Size / Kilobytes(1));
-
-        _ImGuiTextLabelUsedTotalPercentage(
-            (char *)"Instruction strings",
-            (char *)"KB",
-            (F64)memory->InstructionStringsArena.Used / Kilobytes(1),
-            (F64)memory->InstructionStringsArena.Size / Kilobytes(1));
+        for (int i = 0; i < ArrayCount(memory->Defs); ++i)
+        {
+            _ImGuiTextLabelUsedTotalPercentage(
+                (char *)memory->Defs[i].Label,
+                (char *)"KB",
+                (F64)memory->Defs[i].Arena.Used / Kilobytes(1),
+                (F64)memory->Defs[i].Arena.Size / Kilobytes(1));
+        }
 
         U64 totalUsed = 0;
-        for (int i = 0; i < ArrayCount(memory->Arenas); ++i)
+        for (int i = 0; i < ArrayCount(memory->Defs); ++i)
         {
-            totalUsed += memory->Arenas[i].Used;
+            totalUsed += memory->Defs[i].Arena.Used;
         }
 
         _ImGuiTextLabelUsedTotalPercentage(
@@ -388,10 +408,11 @@ global_function void DrawGui(application_state *applicationState, application_me
     ShowMainMenuBar(applicationState);
 
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    ShowDisassemblyWindow(applicationState, processor, &memory->InstructionsArena, &memory->FrameArena);
+
+    ShowDisassemblyWindow(applicationState, processor, &memory->Instructions.Arena);
     ShowRegistersWindow(applicationState, processor);
     ShowMemoryWindow(applicationState, processor);
-
+    ShowOutputWindow(applicationState);
     ShowDiagnosticsWindow(applicationState, memory, processor);
 
     // ImGui::ShowDemoWindow();

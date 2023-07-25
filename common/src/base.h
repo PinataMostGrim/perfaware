@@ -1,9 +1,15 @@
+/* Note (Aaron):
+Based heavily on Allen Webster's base layer.
+    source: https://www.youtube.com/watch?v=8fJ4vWrkS4o&list=PLT6InxK-XQvNKTyLXk6H6KKy12UYS_KDL
+
+Base layer conforms to the following principles:
+- No OS dependencies
+- No external dependencies
+- Minimal testing
+*/
+
 #ifndef BASE_H
 #define BASE_H
-
-// Note (Aaron):
-// Based heavily on Allen Webster's base layer.
-//  source: https://www.youtube.com/watch?v=8fJ4vWrkS4o&list=PLT6InxK-XQvNKTyLXk6H6KKy12UYS_KDL&index=1
 
 // +------------------------------+
 // Note (Aaron): Helper Macros
@@ -43,191 +49,30 @@
 #define Min(x, y) ((x) < (y)) ? (x) : (y)
 #define Clamp(a, x, b) (((x) < (a)) ? (a) : ((b) < (x)) ? (b) : (x))
 
-// +------------------------------+
-// Note (Aaron): Typedefs
+#define Stringify_(S) #S
+#define Stringify(S) Stringify_(S)
+#define Glue_(A, B) A##B
+#define Glue(A, B) Glue_(A, B)
 
-#include <stdint.h>
-typedef uint8_t  U8;
-typedef uint16_t U16;
-typedef uint32_t U32;
-typedef uint64_t U64;
+// Note (Aaron): These may not be compatible with all compilers, but implementation can be switched based on context
+#define IntFromPtr(p) (unsigned long long)((char *)p - (char *)0)
+#define PtrFromInt(n) (void *)((char *)0 + (n))
 
-typedef int8_t  S8;
-typedef int16_t S16;
-typedef int32_t S32;
-typedef int64_t S64;
-
-typedef S8  B8;
-typedef S16 B16;
-typedef S32 B32;
-typedef S64 B64;
-
-typedef float  F32;
-typedef double F64;
+// Note (Aaron): Can't read or write from a member using this macro, but can abstractly represent the member.
+#define Member(T, m) (((T*)0)->m)
+#define OffsetOfMember(T, m) IntFromPtr(&Member(T,m))
 
 
 // +------------------------------+
-// Note (Aaron): Compound Types
+// Note (Aaron): Linked list macros
 
-typedef struct
-{
-    union
-    {
-        struct
-        {
-            F32 x;
-            F32 y;
-        };
-        F32 v[2];
-    };
-} V2F32;
+// TODO (Aaron): Test these
+#define SLLQueuePush_N(f,l,n,next)  ((f)==0?\
+                                        (f)=(l)=(n):\
+                                        ((l)->next=(n),(l)=(n)),\
+                                        (n)->next=0)
 
-typedef struct
-{
-    union
-    {
-        struct
-        {
-            F32 x;
-            F32 y;
-            F32 z;
-        };
-        F32 v[3];
-    };
-} V3F32;
-
-typedef struct
-{
-    union
-    {
-        struct
-        {
-            F32 x;
-            F32 y;
-            F32 z;
-            F32 w;
-        };
-        F32 v[4];
-    };
-} V4F32;
-
-typedef struct
-{
-    union
-    {
-        struct
-        {
-            F64 x;
-            F64 y;
-        };
-        F64 v[2];
-    };
-}  V2F64;
-
-typedef struct
-{
-    union
-    {
-        struct
-        {
-            F64 x;
-            F64 y;
-            F64 z;
-        };
-        F64 v[3];
-    };
-} V3F64;
-
-typedef struct
-{
-    union
-    {
-        struct
-        {
-            F64 x;
-            F64 y;
-            F64 z;
-            F64 w;
-        };
-        F64 v[4];
-    };
-}  V4F64;
-
-
-// +------------------------------+
-// Note (Aaron): Compound Type Functions
-
-global_function V2F32 v2f32(F32 x, F32 y)
-{
-    V2F32 r = { r.x = x, r.y = y };
-    return r;
-}
-
-global_function V2F64 v2f64(F64 x, F64 y)
-{
-    V2F64 r = { r.x = x, r.y = y };
-    return r;
-}
-
-global_function V3F32 v3f32(F32 x, F32 y, F32 z)
-{
-    V3F32 r = { r.x = x, r.y = y, r.z = z };
-    return r;
-}
-
-global_function V3F64 v3f64(F64 x, F64 y, F64 z)
-{
-    V3F64 r = { r.x = x, r.y = y, r.z = z };
-    return r;
-}
-
-global_function V4F32 v4f32(F32 x, F32 y, F32 z, F32 w)
-{
-    V4F32 r = { r.x = x, r.y = y, r.z = z, r.w = w };
-    return r;
-}
-
-global_function V4F64 v4f64(F64 x, F64 y, F64 z, F64 w)
-{
-    V4F64 r = { r.x = x, r.y = y, r.z = z, r.w = w };
-    return r;
-}
-
-
-// +------------------------------+
-// Note (Aaron): Helper Functions
-
-global_function void *MemorySet(uint8_t *destPtr, int c, size_t count)
-{
-    Assert(count > 0 && "Attempted to set 0 bytes");
-
-    unsigned char *dest = (unsigned char *)destPtr;
-    while(count--) *dest++ = (unsigned char)c;
-
-    return destPtr;
-}
-
-
-global_function void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
-{
-    // TODO (Aaron): Return instead? Or does this assert catch cases we want to know about?
-    Assert(size > 0 && "Attempted to copy 0 bytes");
-
-    unsigned char *source = (unsigned char *)sourcePtr;
-    unsigned char *dest = (unsigned char *)destPtr;
-    while(size--) *dest++ = *source++;
-
-    return destPtr;
-}
-
-
-global_function U64 GetStringLength(char *str)
-{
-    U64 count = 0;
-    while(*str++) count++;
-
-    return count;
-}
+#define SLLQueuePush(f, l, n) SLLQueuePush_N(f, l, n, Next)
 
 
 // +------------------------------+

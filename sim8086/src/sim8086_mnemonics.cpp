@@ -1,6 +1,7 @@
 #include <stdio.h>
 
-#include "memory_arena.h"
+#include "base_memory.h"
+#include "base_string.h"
 #include "sim8086.h"
 
 
@@ -123,14 +124,9 @@ global_function const char *GetRegisterFlagMnemonic(register_flags flag)
 }
 
 
-global_function char *GetInstructionMnemonic(instruction *instruction, memory_arena *arena)
+global_function Str8 GetInstructionMnemonic(instruction *instruction, memory_arena *arena)
 {
-    // TODO (Aaron): Is there a way to statically determine what the maximum could be?
-    char buffer[128] = "";
-
-    sprintf(buffer, "%s ", GetOpMnemonic(instruction->OpType));
-    char *resultPtr = ArenaPushString(arena, buffer);
-
+    U8 *startPtr = (U8 *)ArenaPushCStringf(arena, FALSE, (char *)"%s ", GetOpMnemonic(instruction->OpType));
     const char *Separator = "";
 
     for (int i = 0; i < ArrayCount(instruction->Operands); ++i)
@@ -145,7 +141,7 @@ global_function char *GetInstructionMnemonic(instruction *instruction, memory_ar
 
         if (GetStringLength((char *)Separator) > 0)
         {
-            ArenaPushString(arena, (char *)Separator);
+            ArenaPushCStringf(arena, FALSE, (char *)"%s", Separator);
         }
         Separator = ", ";
 
@@ -155,6 +151,7 @@ global_function char *GetInstructionMnemonic(instruction *instruction, memory_ar
             {
                 break;
             }
+
             case Operand_Memory:
             {
                 // prepend width hint if necessary
@@ -162,11 +159,11 @@ global_function char *GetInstructionMnemonic(instruction *instruction, memory_ar
                 {
                     if (operand.Memory.Flags & Memory_IsWide)
                     {
-                        ArenaPushString(arena, (char *)"word ");
+                        ArenaPushCStringf(arena, FALSE, (char *)"%s", (char *)"word ");
                     }
                     else
                     {
-                        ArenaPushString(arena, (char *)"byte ");
+                        ArenaPushCStringf(arena, FALSE, (char *)"%s", "byte ");
                     }
 
                 }
@@ -174,37 +171,36 @@ global_function char *GetInstructionMnemonic(instruction *instruction, memory_ar
                 // print direct address
                 if (operand.Memory.Flags & Memory_HasDirectAddress)
                 {
-                    sprintf(buffer, "[%i]", operand.Memory.DirectAddress);
-                    ArenaPushString(arena, buffer);
+                    ArenaPushCStringf(arena, FALSE, (char *)"[%i]", operand.Memory.DirectAddress);
                     break;
                 }
 
                 // print memory with optional displacement
-                ArenaPushString(arena, (char *)"[");
-                ArenaPushString(arena, (char *)GetRegisterMnemonic(operand.Memory.Register));
+                ArenaPushCStringf(arena, FALSE, (char *)"[");
+                ArenaPushCStringf(arena, FALSE, (char *)GetRegisterMnemonic(operand.Memory.Register));
 
                 if (operand.Memory.Flags & Memory_HasDisplacement)
                 {
                     if (operand.Memory.Displacement >= 0)
                     {
-                        sprintf(buffer, " + %i", operand.Memory.Displacement);
-                        ArenaPushString(arena, buffer);
+                        ArenaPushCStringf(arena, FALSE, (char *)" + %i", operand.Memory.Displacement);
                     }
                     else
                     {
-                        sprintf(buffer, " - %i", operand.Memory.Displacement * -1);
-                        ArenaPushString(arena, buffer);
+                        ArenaPushCStringf(arena, FALSE, (char *)" - %i", operand.Memory.Displacement);
                     }
                 }
 
-                ArenaPushString(arena, (char *)"]");
+                ArenaPushCStringf(arena, FALSE, (char *)"]");
                 break;
             }
+
             case Operand_Register:
             {
-                ArenaPushString(arena, (char *)GetRegisterMnemonic(operand.Register));
+                ArenaPushCStringf(arena, FALSE, (char *)GetRegisterMnemonic(operand.Register));
                 break;
             }
+
             case Operand_Immediate:
             {
                 if (operand.Immediate.Flags & Immediate_IsJump)
@@ -218,57 +214,61 @@ global_function char *GetInstructionMnemonic(instruction *instruction, memory_ar
 
                     if (offset >= 0)
                     {
-                        sprintf(buffer, "$+%i", offset);
+                        ArenaPushCStringf(arena, FALSE, (char *)"$+%i", offset);
                     }
                     else
                     {
-                        sprintf(buffer, "$%i", offset);
+                        ArenaPushCStringf(arena, FALSE, (char *)"$%i", offset);
                     }
-                    ArenaPushString(arena, buffer);
                     break;
                 }
 
                 // TODO (Aaron): Test this more
                 bool isSigned = operand.Immediate.Flags & Immediate_IsSigned;
-
-                sprintf(buffer, "%i",
-                        (isSigned
-                         ? (S16) operand.Immediate.Value
-                         : (U16) operand.Immediate.Value));
-
-                ArenaPushString(arena, buffer);
+                ArenaPushCStringf(arena, FALSE, (char *)"%i",
+                             (isSigned
+                                 ? (S16) operand.Immediate.Value
+                                 : (U16) operand.Immediate.Value));
                 break;
             }
 
             default:
             {
-                ArenaPushString(arena, (char *)"?");
+                ArenaPushCStringf(arena, FALSE, (char *)"?");
             }
         }
     }
 
+    U64 length = arena->PositionPtr - startPtr;
+    Str8 result = String8(startPtr, length);
+
     // Note (Aaron): Append the null-terminator character
     ArenaPushSizeZero(arena, 1);
 
-    return resultPtr;
+    return result;
 }
 
 
-global_function char *GetInstructionBitsMnemonic(instruction *inst, memory_arena *arena)
+global_function Str8 GetInstructionBitsMnemonic(instruction *inst, memory_arena *arena)
 {
-    char *result;
-    result = (char *)arena->PositionPtr;
-
+    U8 *startPtr = arena->PositionPtr;
     for (U8 i = 0; i < inst->Bits.ByteCount; ++i)
     {
         for (U8 j = 0; j < 8; j++)
         {
             U8 mask = 128 >> j;
             U8 bit = (inst->Bits.Bytes[i] & mask) >> (7 - j);
-            ArenaPushString(arena, bit == 1 ? (char *)"1": (char *)"0");
+            ArenaPushCString(arena, FALSE, bit == 1 ? (char *)"1": (char *)"0");
         }
+
+        ArenaPushCString(arena, FALSE, (char *)" ");
     }
 
+    // Note (Aaron): Append the null-terminator character
     ArenaPushSizeZero(arena, 1);
+
+    U64 length = arena->PositionPtr - startPtr;
+    Str8 result = String8(startPtr, length);
+
     return result;
 }

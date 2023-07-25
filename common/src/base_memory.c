@@ -3,11 +3,33 @@
         - What behaviour would we expect?
         - Return a null pointer?
         - Casey mentioned that he always returns a stub that can be used but is zeroed out every frame
-    - Update PushString() to make use of length based strings once I implement them.
 */
 
 #include "base.h"
-#include "memory_arena.h"
+#include "base_memory.h"
+
+
+global_function void *MemorySet(void *destPtr, int c, size_t count)
+{
+    Assert(count > 0 && "Attempted to set 0 bytes");
+
+    unsigned char *dest = (unsigned char *)destPtr;
+    while(count--) *dest++ = (unsigned char)c;
+
+    return destPtr;
+}
+
+
+global_function void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size)
+{
+    Assert(size > 0 && "Attempted to copy 0 bytes");
+
+    unsigned char *source = (unsigned char *)sourcePtr;
+    unsigned char *dest = (unsigned char *)destPtr;
+    while(size--) *dest++ = *source++;
+
+    return destPtr;
+}
 
 
 global_function void ArenaInitialize(memory_arena *arena, memory_index size, U8 *basePtr)
@@ -54,16 +76,6 @@ global_function void *ArenaPushData(memory_arena *arena, memory_index size, U8 *
 }
 
 
-global_function char *ArenaPushString(memory_arena *arena, char *str)
-{
-    U64 strLength = GetStringLength(str);
-    char *result = (char *)ArenaPushSize(arena, strLength);
-    MemoryCopy(result, str, strLength);
-
-    return result;
-}
-
-
 global_function void *ArenaPopSize(memory_arena *arena, memory_index size)
 {
     Assert(arena->Used >= size && "Attempted to free more space than has been filled");
@@ -78,14 +90,14 @@ global_function void *ArenaPopSize(memory_arena *arena, memory_index size)
 
 global_function void ArenaClear(memory_arena *arena)
 {
-    arena->PositionPtr = arena->PositionPtr;
+    arena->PositionPtr = arena->BasePtr;
     arena->Used = 0;
 }
 
 
 global_function void ArenaClearZero(memory_arena *arena)
 {
-    arena->PositionPtr = arena->PositionPtr;
+    arena->PositionPtr = arena->BasePtr;
     arena->Used = 0;
 
     MemorySet(arena->BasePtr, 0x0, arena->Size);

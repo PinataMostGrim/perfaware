@@ -6,9 +6,9 @@
 #ifndef HAVERSINE_LEXER_H
 #define HAVERSINE_LEXER_H
 
-#include "base.h"
-
 #include <stdio.h>
+
+#include "base_types.h"
 
 
 #define MAX_TOKEN_LENGTH 32

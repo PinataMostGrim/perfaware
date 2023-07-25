@@ -1,73 +1,115 @@
-/* TODO (Aaron):
-*/
-
-#ifndef PLATFORM_METRICS_H
+#ifndef PLATFORM_METRICS_H ////////////////////////////////////////////////////
 #define PLATFORM_METRICS_H
 
 #include "base.h"
+#include "base_types.h"
 
 
 // Note (Aaron): Increase this count as needed
 #define MAX_NAMED_TIMINGS 64
 
 // Note (Aaron): Defines number of milliseconds used to determine the CPU frequency.
-// A higher number is more accurate.
+// A higher number generates more accurate results.
 #define CPU_FREQUENCY_MS 200
 
-
-typedef struct
-{
-    U64 Start;
-    U64 End;
-    S64 Duration;
-} general_timing;
+// Note (Aaron): Enable this to check for timings that have been started but not ended or vice versa
+#define DETECT_ORPHAN_TIMINGS 0
 
 
-typedef struct
-{
-    char *Name;
-    U64 Start;
-    U64 End;
-    S64 Duration;
-} named_timing;
+typedef struct zone_timing zone_timing;
+typedef struct zone_block zone_block;
+typedef struct zone_block_autostart zone_block_autostart;
+typedef struct timings_profile timings_profile;
 
-
-typedef struct
-{
-    U64 Start;
-    U64 End;
-    U64 Duration;
-    named_timing Timings[MAX_NAMED_TIMINGS];
-    B32 Started;
-    B32 Ended;
-    U64 CPUFrequency;
-} timings_profile;
-
-
-global_function void InitializeGeneralTiming(general_timing *timing);
-global_function void StartCPUTiming(general_timing *timing);
-global_function void EndCPUTimingAndIncrementDuration(general_timing *timing);
-
-global_function void InitializeNamedTiming(named_timing *timing, char *name);
-global_function void StartNamedTimingsProfile();
-global_function void EndNamedTimingsProfile();
-global_function void PrintNamedTimingsProfile();
-
-// Note (Aaron): Use the following macros to start and end named timings within the same scope.
-#define START_NAMED_TIMING(name) named_timing *name##TimingPtr = &Profile.Timings[__COUNTER__]; name##TimingPtr->Name = #name; name##TimingPtr->Start = ReadCPUTimer();
-#define END_NAMED_TIMING(name); name##TimingPtr->End = ReadCPUTimer(); name##TimingPtr->Duration += (name##TimingPtr->End - name##TimingPtr->Start);
-
-// Note (Aaron): The following macros can be used to control the scope a named timing is created in
-// and to re-use the same timing later in the same scope.
-#define PREWARM_NAMED_TIMING(name) named_timing *name##TimingPtr = &Profile.Timings[__COUNTER__]; name##TimingPtr->Name = #name;
-#define RESTART_NAMED_TIMING(name) name##TimingPtr->Start = ReadCPUTimer();
+global_function void StartTimingsProfile();
+global_function void EndTimingsProfile();
+global_function void PrintTimingsProfile();
+global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label);
+global_function void _EndTiming(zone_block *block);
 
 global_function U64 GetOSTimerFrequency();
 global_function U64 ReadOSTimer();
 global_function U64 ReadCPUTimer();
 global_function U64 GetCPUFrequency(U64 millisecondsToWait);
 
-#endif // PLATFORM_METRICS_H
+
+struct zone_timing
+{
+    U64 TSCElapsed;
+    U64 TSCElapsedChildren;
+    U64 TSCElapsedOriginal;
+    U64 HitCount;
+    char const *Label;
+
+#if DETECT_ORPHAN_TIMINGS
+    U64 EndCount;
+#endif // DETECT_ORPHAN_TIMINGS
+};
+
+
+struct zone_block
+{
+    U32 ParentIndex;
+    U32 Index;
+    U64 TSCElapsedOriginal;
+    U64 Start;
+    char const *Label;
+};
+
+
+#if __cplusplus
+struct zone_block_autostart
+{
+    zone_block Block;
+
+    zone_block_autostart(U32 index, char const *label)
+    {
+        Block = {};
+        _StartTiming(&Block, index, label);
+    }
+
+    ~zone_block_autostart(void)
+    {
+        _EndTiming(&Block);
+    }
+};
+#endif // __cplusplus
+
+
+struct timings_profile
+{
+    U64 Start;
+    U64 TSCElapsed;
+    U64 CPUFrequency;
+    zone_timing Timings[MAX_NAMED_TIMINGS];
+
+#if DETECT_ORPHAN_TIMINGS
+    B8 Started;
+    B8 Ended;
+#endif // DETECT_ORPHAN_TIMINGS
+};
+
+
+// Note (Aaron): Use the following macros to start and end named timings within the same scope.
+#define START_TIMING(label)     zone_block label##Block = {0};                       \
+                                _StartTiming(&label##Block, __COUNTER__ + 1, #label);
+#define END_TIMING(label)       _EndTiming(&label##Block);
+
+// Note (Aaron): The following macros can be used to control the scope a timing is created in
+// so it can be re-used later in the same scope.
+#define PREWARM_TIMING(label)   zone_block label##Block = {0}; \
+                                _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label)
+#define RESTART_TIMING(label)   _RestartTiming(&label##Block);
+
+
+#ifdef __cplusplus
+// Note (Aaron): Use the following macros to automatically start and stop timings when entering and exiting scope.
+// They do have somewhat more of an impact on timings than the START / END timing macros above.
+#define FUNCTION_TIMING         zone_block_autostart __func__##Block (__COUNTER__ + 1, __func__);
+#define ZONE_TIMING(label)      zone_block_autostart label##Block (__COUNTER__ + 1, #label);
+#endif // __cplusplus
+
+#endif // PLATFORM_METRICS_H //////////////////////////////////////////////////
 
 
 #ifdef PLATFORM_METRICS_IMPLEMENTATION
@@ -79,97 +121,156 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait);
 #include <stdio.h>
 
 #include "base.h"
+#include "base_memory.h"
 
 
-global_variable timings_profile Profile;
+global_variable timings_profile GlobalProfiler;
+global_variable U32 GlobalProfilerParent = 0;
 
 
-global_function void InitializeGeneralTiming(general_timing *timing)
+global_function void StartTimingsProfile()
 {
-    timing->Start = 0;
-    timing->End = 0;
-    timing->Duration = 0;
+    MemoryZeroArray(GlobalProfiler.Timings);
+
+    GlobalProfiler.TSCElapsed = 0;
+    GlobalProfiler.CPUFrequency = GetCPUFrequency(CPU_FREQUENCY_MS);
+
+#if DETECT_ORPHAN_TIMINGS
+    GlobalProfiler.Started = TRUE;
+    GlobalProfiler.Ended = FALSE;
+#endif // DETECT_ORPHAN_TIMINGS
+
+    GlobalProfiler.Start = ReadCPUTimer();
+}
+
+
+global_function void EndTimingsProfile()
+{
+    GlobalProfiler.TSCElapsed = ReadCPUTimer() - GlobalProfiler.Start;
+
+#if DETECT_ORPHAN_TIMINGS
+    Assert(GlobalProfiler.Started && "Profile has not been started");
+    GlobalProfiler.Ended = TRUE;
+#endif // DETECT_ORPHAN_TIMINGS
 }
 
 
 inline
-global_function void StartCPUTiming(general_timing *timing)
+global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label)
 {
-    timing->Start = ReadCPUTimer();
+    zone_timing *timing = &GlobalProfiler.Timings[timingIndex];
+    block->TSCElapsedOriginal = timing->TSCElapsedOriginal;
+
+    block->ParentIndex = GlobalProfilerParent;
+    block->Index = timingIndex;
+    block->Label = label;
+
+    GlobalProfilerParent = timingIndex;
+
+#if DETECT_ORPHAN_TIMINGS
+    GlobalProfiler.Timings[block->Index].HitCount++;
+#endif // DETECT_ORPHAN_TIMINGS
+
+    block->Start = ReadCPUTimer();
 }
 
 
 inline
-global_function void EndCPUTimingAndIncrementDuration(general_timing *timing)
+global_function void _EndTiming(zone_block *block)
 {
-    timing->End = ReadCPUTimer();
-    U64 duration = timing->End - timing->Start;
-    timing->Duration += duration;
+    U64 elapsed = ReadCPUTimer() - block->Start;
+    GlobalProfilerParent = block->ParentIndex;
+
+    zone_timing *parent = &GlobalProfiler.Timings[block->ParentIndex];
+    zone_timing *timing = &GlobalProfiler.Timings[block->Index];
+
+    parent->TSCElapsedChildren += elapsed;
+    timing->TSCElapsedOriginal = block->TSCElapsedOriginal + elapsed;
+    timing->TSCElapsed += elapsed;
+#if DETECT_ORPHAN_TIMINGS
+    timing->EndCount++;
+#else
+    timing->HitCount++;
+#endif // DETECT_ORPHAN_TIMINGS
+
+    timing->Label = block->Label;
 }
 
 
-global_function void InitializeNamedTiming(named_timing *timing, char *name)
+inline
+global_function void _PreWarmTiming(zone_block *block, U32 timingIndex, char const *label)
 {
-    timing->Name = name;
-    timing->Start = 0;
-    timing->End = 0;
-    timing->Duration = 0;
+    block->Index = timingIndex;
+    block->Label = label;
 }
 
 
-global_function void StartNamedTimingsProfile()
+inline
+global_function void _RestartTiming(zone_block *block)
 {
-    for (int i = 0; i < ArrayCount(Profile.Timings); ++i)
-    {
-        InitializeNamedTiming(&Profile.Timings[i], (char *)"");
-    }
+    zone_timing *timing = &GlobalProfiler.Timings[block->Index];
+    block->TSCElapsedOriginal = timing->TSCElapsedOriginal;
 
-    Profile.End = 0;
-    Profile.Duration = 0;
-    Profile.Started = TRUE;
-    Profile.Ended = FALSE;
+    block->ParentIndex = GlobalProfilerParent;
+    GlobalProfilerParent = block->Index;
 
-    Profile.CPUFrequency = GetCPUFrequency(CPU_FREQUENCY_MS);
-    Profile.Start = ReadCPUTimer();
+#if DETECT_ORPHAN_TIMINGS
+    GlobalProfiler.Timings[block->Index].HitCount++;
+#endif // DETECT_ORPHAN_TIMINGS
+
+    block->Start = ReadCPUTimer();
 }
 
 
-global_function void EndNamedTimingsProfile()
+global_function void PrintTimingsProfile()
 {
-    Profile.End = ReadCPUTimer();
-    Profile.Duration = Profile.End - Profile.Start;
-    Profile.Ended = TRUE;
-}
+#if DETECT_ORPHAN_TIMINGS
+    Assert(GlobalProfiler.Started && "Profile has not been started");
+    Assert(GlobalProfiler.Ended && "Profile has not been ended");
+#endif // DETECT_ORPHAN_TIMINGS
 
-
-global_function void PrintNamedTimingsProfile()
-{
-    Assert(Profile.Ended && "Profile has not been ended");
-
-    F64 totalTimeMs = ((F64)Profile.Duration / (F64)Profile.CPUFrequency) * 1000.0f;
-    S64 unaccounted = Profile.Duration;
+    F64 totalTimeMs = ((F64)GlobalProfiler.TSCElapsed / (F64)GlobalProfiler.CPUFrequency) * 1000.0f;
+    S64 unaccounted = GlobalProfiler.TSCElapsed;
 
     printf("Timings (cycles):\n");
-    for (int i = 0; i < ArrayCount(Profile.Timings); ++i)
+    // Note (Aaron): Timer at index 0 represents "no timer" and should be skipped
+    for (int i = 1; i < ArrayCount(GlobalProfiler.Timings); ++i)
     {
-        named_timing *timingPtr = &Profile.Timings[i];
-        if (timingPtr->Start == 0 && timingPtr->End == 0)
+        zone_timing *timingPtr = &GlobalProfiler.Timings[i];
+        if (!timingPtr->HitCount)
         {
-            break;
+            Assert(!timingPtr->Label && "Timing has a label; most likely RESTART_TIMING has not been called");
+            continue;
         }
 
-        Assert((timingPtr->Start != 0 && timingPtr->End != 0)
-               && "Timing started but not finished or finished without starting");
+        Assert(timingPtr->Label && "Timing missing label; most likely END_TIMING has not been called");
 
-        printf("  %s: %llu (%.2f%s)\n", timingPtr->Name,  timingPtr->Duration, ((F64)timingPtr->Duration / (F64)Profile.Duration) * 100.0f, "%");
-        unaccounted -= timingPtr->Duration;
+
+#if DETECT_ORPHAN_TIMINGS
+        Assert((timingPtr->HitCount == timingPtr->EndCount)
+               && "Timing started but not finished or finished without starting");
+#endif // DETECT_ORPHAN_TIMINGS
+
+        U64 elapsed = timingPtr->TSCElapsed - timingPtr->TSCElapsedChildren;
+        F64 percent = ((F64)elapsed / (F64)GlobalProfiler.TSCElapsed) * 100.0f;
+        printf("  %s[%llu]: %llu (%.2f%%)", timingPtr->Label, timingPtr->HitCount, elapsed, percent);
+
+        if (timingPtr->TSCElapsedOriginal != elapsed)
+        {
+            F64 percentWithChildren = (F64)timingPtr->TSCElapsedOriginal / (F64)GlobalProfiler.TSCElapsed * 100.0;
+            printf(", %.2f%% w/children", percentWithChildren);
+        }
+
+        printf("\n");
+        unaccounted -= elapsed;
     }
 
     Assert(unaccounted > 0 && "Unaccounted cycles can't be less than zero!");
 
-    printf("  Unaccounted: %llu (%.2f%s)\n\n", unaccounted, ((F64)unaccounted / (F64)Profile.Duration) * 100.0f, "%");
-    printf("Total cycles: %.4llu\n", Profile.Duration);
-    printf("Total time:   %.4fms (CPU freq %llu)\n", totalTimeMs, Profile.CPUFrequency);
+    F64 percent = ((F64)unaccounted / (F64)GlobalProfiler.TSCElapsed) * 100.0f;
+    printf("  Unaccounted: %llu (%.2f%s)\n\n", unaccounted, percent, "%");
+    printf("Total cycles: %.4llu\n", GlobalProfiler.TSCElapsed);
+    printf("Total time:   %.4fms (CPU freq %llu)\n", totalTimeMs, GlobalProfiler.CPUFrequency);
 }
 
 
@@ -223,16 +324,13 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait)
     return cpuFrequency;
 }
 
-#else // #if _WIN32
+#else // _WIN32
 
-global_function void InitializeGeneralTiming(general_timing *timing) { Assert(FALSE && "Not implemented"); }
-global_function void StartCPUTiming(general_timing *timing) { Assert(FALSE && "Not implemented"); }
-global_function void EndCPUTimingAndIncrementDuration(general_timing *timing) { Assert(FALSE && "Not implemented"); }
-
-global_function void InitializeNamedTiming(named_timing *timing, char *name) { Assert(FALSE && "Not implemented"); }
 global_function void StartNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
 global_function void EndNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
 global_function void PrintNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
+global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label) { Assert(FALSE && "Not implemented"); }
+global_function void _EndTiming(zone_block *block) { Assert(FALSE && "Not implemented"); }
 
 global_function U64 GetOSTimerFreq(void) { Assert(FALSE && "Not implemented"); }
 global_function U64 ReadOSTimer(void) { Assert(FALSE && "Not implemented"); }
@@ -241,4 +339,4 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait) { Assert(FALSE && "N
 
 #endif // #else
 
-#endif // PLATFORM_METRICS_IMPLEMENTATION
+#endif // PLATFORM_METRICS_IMPLEMENTATION /////////////////////////////////////

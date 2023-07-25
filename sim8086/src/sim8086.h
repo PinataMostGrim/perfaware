@@ -8,6 +8,8 @@
 #include <assert.h>
 
 #include "base.h"
+#include "base_types.h"
+#include "base_string.h"
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
@@ -240,8 +242,8 @@ struct instruction
     U8 ClockCount = 0;
     U8 EAClockCount = 0;
 
-    char *InstructionMnemonic;
-    char *BitsMnemonic;
+    Str8 InstructionMnemonic;
+    Str8 BitsMnemonic;
 };
 
 
@@ -250,7 +252,7 @@ global_function void ReadInstructionStream(processor_8086 *processor, instructio
 global_function void ParseRmBits(processor_8086 *processor, instruction *instruction, instruction_operand *operand);
 global_function U8 CalculateEffectiveAddressClocks(instruction_operand *operand);
 global_function instruction DecodeNextInstruction(processor_8086 *processor);
-global_function void ExecuteInstruction(processor_8086 *processor, instruction *instruction);
+global_function Str8 ExecuteInstruction(processor_8086 *processor, instruction *instruction, memory_arena *outputArena);
 
 global_function U16 GetMemory(processor_8086 *processor, U32 effectiveAddress, B32 wide);
 global_function U16 GetRegisterValue(processor_8086 *processor, register_id targetRegister);
