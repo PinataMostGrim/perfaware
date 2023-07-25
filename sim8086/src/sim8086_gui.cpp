@@ -356,6 +356,7 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
         ImGui::Text("");
 
         ImGui::Text("Instructions executed: %u", processor->InstructionCount);
+        ImGui::Text("Estimated cycles: %u", processor->TotalClockCount);
 
         if(applicationState->Diagnostics_ExecutionStalled)
         {
