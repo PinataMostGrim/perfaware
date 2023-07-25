@@ -955,8 +955,6 @@ global_function instruction DecodeNextInstruction(processor_8086 *processor)
         instruction.Operands[1] = unknown;
     }
 
-    processor->TotalClockCount += (instruction.ClockCount + instruction.EAClockCount);
-
     return instruction;
 }
 
@@ -1392,6 +1390,8 @@ global_function Str8 ExecuteInstruction(processor_8086 *processor, instruction *
 
     U64 outputLength = outputArena->PositionPtr - outputStartPtr;
     Str8 result = String8(outputStartPtr, outputLength);
+
+    processor->TotalClockCount += (instruction->ClockCount + instruction->EAClockCount);
 
     return result;
 }
