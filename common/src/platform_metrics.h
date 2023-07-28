@@ -16,23 +16,13 @@
 #define DETECT_ORPHAN_TIMINGS 0
 
 
-typedef struct zone_timing zone_timing;
-typedef struct zone_block zone_block;
-typedef struct zone_block_autostart zone_block_autostart;
-typedef struct timings_profile timings_profile;
-
-global_function void StartTimingsProfile();
-global_function void EndTimingsProfile();
-global_function void PrintTimingsProfile();
-global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label);
-global_function void _EndTiming(zone_block *block);
-
 global_function U64 GetOSTimerFrequency();
 global_function U64 ReadOSTimer();
 global_function U64 ReadCPUTimer();
 global_function U64 GetCPUFrequency(U64 millisecondsToWait);
 
 
+typedef struct zone_timing zone_timing;
 struct zone_timing
 {
     U64 TSCElapsed;
@@ -47,6 +37,7 @@ struct zone_timing
 };
 
 
+typedef struct zone_block zone_block;
 struct zone_block
 {
     U32 ParentIndex;
@@ -57,25 +48,7 @@ struct zone_block
 };
 
 
-#if __cplusplus
-struct zone_block_autostart
-{
-    zone_block Block;
-
-    zone_block_autostart(U32 index, char const *label)
-    {
-        Block = {};
-        _StartTiming(&Block, index, label);
-    }
-
-    ~zone_block_autostart(void)
-    {
-        _EndTiming(&Block);
-    }
-};
-#endif // __cplusplus
-
-
+typedef struct timings_profile timings_profile;
 struct timings_profile
 {
     U64 Start;
@@ -103,6 +76,26 @@ struct timings_profile
 
 
 #ifdef __cplusplus
+global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label);
+global_function void _EndTiming(zone_block *block);
+
+typedef struct zone_block_autostart zone_block_autostart;
+struct zone_block_autostart
+{
+    zone_block Block;
+
+    zone_block_autostart(U32 index, char const *label)
+    {
+        Block = {};
+        _StartTiming(&Block, index, label);
+    }
+
+    ~zone_block_autostart(void)
+    {
+        _EndTiming(&Block);
+    }
+};
+
 // Note (Aaron): Use the following macros to automatically start and stop timings when entering and exiting scope.
 // They do have somewhat more of an impact on timings than the START / END timing macros above.
 #define FUNCTION_TIMING         zone_block_autostart __func__##Block (__COUNTER__ + 1, __func__);
