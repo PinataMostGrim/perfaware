@@ -1,3 +1,9 @@
+/* Note (Aaron):
+    - Add '#define PLATFORM_METRICS_IMPLEMENTATION' before the inclusion of this file in one C or C++ file to create the implementation
+    - Add '#define PROFILER 1' before inclusion of this file to enable the taking of timings
+    - Complile under C++ to enable automatic scope and function timings via the FUNCTION_TIMING and ZONE_TIMING(label) macros
+*/
+
 #ifndef PLATFORM_METRICS_H ////////////////////////////////////////////////////
 #define PLATFORM_METRICS_H
 
@@ -5,20 +11,18 @@
 #include "base_types.h"
 
 
-// Note (Aaron): Add '#define PROFILER 1' before inclusion of this file to enable the taking of zone timings
-#ifndef PROFILER
-#define PROFILER 0
-#endif
-
 // Note (Aaron): Increase this count as needed
 #define MAX_NAMED_TIMINGS 64
 
-// Note (Aaron): Defines number of milliseconds used to determine the CPU frequency.
-// A higher number generates more accurate results.
+// Note (Aaron): Defines number of milliseconds used to determine the CPU frequency. A higher number generates more accurate results.
 #define CPU_FREQUENCY_MS 200
 
-// Note (Aaron): Enable this to check for timings that have been started but not ended or vice versa
+// Note (Aaron): Enable this to check for timings that have been started but not ended or vice versa. More necessary when using manual start and stop macros.
 #define DETECT_ORPHAN_TIMINGS 0
+
+#ifndef PROFILER
+#define PROFILER 0
+#endif
 
 
 global_function void StartTimingsProfile();
