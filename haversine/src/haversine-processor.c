@@ -167,17 +167,6 @@ global_function void PrintHaversineDistance(V2F64 point0, V2F64 point1, F64 dist
 }
 
 
-inline void PrintTiming(char *timingName, U64 timing, U64 totalTime, U8 tabCount)
-{
-    printf("  %s:", timingName);
-    for (int i = 0; i < tabCount; ++i)
-    {
-        printf("\t");
-    }
-    printf("%llu (%.2f%s)\n", timing, ((F64)timing / (F64)totalTime) * 100.0f, "%");
-}
-
-
 int main()
 {
     StartTimingsProfile();
