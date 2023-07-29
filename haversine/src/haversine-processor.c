@@ -464,4 +464,4 @@ int main()
     return 0;
 }
 
-static_assert(__COUNTER__ <= ArrayCount(GlobalProfiler.Timings) , "__COUNTER__ exceeds the number of timings available");
+ProfilerEndOfCompilationUnit

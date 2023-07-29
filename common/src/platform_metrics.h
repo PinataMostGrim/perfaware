@@ -47,6 +47,9 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait);
                                 _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label)
 #define RESTART_TIMING(label)   _RestartTiming(&label##Block);
 
+// Note (Aaron): Place at the end of the profiler's compilation unit to assert there is enough room in the GlobalProfiler.Timings array
+#define ProfilerEndOfCompilationUnit static_assert(__COUNTER__ <= ArrayCount(GlobalProfiler.Timings) , "__COUNTER__ exceeds the number of timings available");
+
 
 #ifdef __cplusplus
 // Note (Aaron): Use the following macros to automatically start and stop timings when entering and exiting scope.
