@@ -31,12 +31,13 @@ typedef enum
 } token_type;
 
 
-typedef struct
+typedef struct haversine_token haversine_token;
+struct haversine_token
 {
     token_type Type;
     char String[MAX_TOKEN_LENGTH];
     U32 Length;
-} haversine_token;
+};
 
 
 global_function const char *GetTokenMenemonic(token_type tokenType);

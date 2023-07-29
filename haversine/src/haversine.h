@@ -13,11 +13,12 @@
 #define ANSWER_FILENAME "haversine-answer.f64"
 
 
-typedef struct
+typedef struct answers_file_header answers_file_header;
+struct answers_file_header
 {
     unsigned int Seed;
     F64 ExpectedSum;
-}answers_file_header;
+};
 
 
 global_function F64 Square(F64 A);

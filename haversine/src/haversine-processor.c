@@ -25,14 +25,16 @@
 #define EPSILON_FLOAT 0.001
 
 
-typedef struct
+typedef struct token_stack token_stack;
+struct token_stack
 {
     memory_arena *Arena;
     S64 TokenCount;
-} token_stack;
+};
 
 
-typedef struct
+typedef struct processor_stats processor_stats;
+struct processor_stats
 {
     S64 TokenCount;
     S64 MaxTokenLength;
@@ -40,10 +42,11 @@ typedef struct
     U64 CalculationErrors;
     F64 ExpectedSum;
     F64 CalcualtedSum;
-} processor_stats;
+};
 
 
-typedef struct
+typedef struct pairs_context pairs_context;
+struct pairs_context
 {
     haversine_token *PairsToken;
 
@@ -58,32 +61,7 @@ typedef struct
     haversine_token *X1Token;
     haversine_token *Y1Token;
 
-} pairs_context;
-
-
-global_function void InitializeProcessorStats(processor_stats *stats)
-{
-    stats->TokenCount = 0;
-    stats->MaxTokenLength = 0;
-    stats->PairsProcessed = 0;
-    stats->CalculationErrors = 0;
-    stats->ExpectedSum = 0;
-    stats->CalcualtedSum = 0;
-}
-
-
-global_function void InitializePairsContext(pairs_context *context)
-{
-    context->PairsToken = 0;
-    context->ArrayStartToken = 0;
-    context->ArrayEndToken = 0;
-    context->ScopeEnterToken = 0;
-    context->ScopeExitToken = 0;
-    context->X0Token = 0;
-    context->Y0Token = 0;
-    context->X1Token = 0;
-    context->Y1Token = 0;
-}
+};
 
 
 global_function void InitializeTokenStack(token_stack *stack, memory_arena *arena)
@@ -200,13 +178,14 @@ int main()
     fread(&answerHeader, sizeof(answers_file_header), 1, answerFile);
 
     // allocate memory arena for token stack
-    memory_arena tokenArena;
     U8 *memoryPtr = calloc(1, Megabytes(1));
     if (!memoryPtr)
     {
         printf("[ERROR] Unable to allocate memory for token stack");
         exit(1);
     }
+
+    memory_arena tokenArena;
     ArenaInitialize(&tokenArena, Megabytes(1), memoryPtr);
 
 #if HAVERSINE_SLOW
@@ -217,12 +196,9 @@ int main()
     token_stack tokenStack;
     InitializeTokenStack(&tokenStack, &tokenArena);
 
-    processor_stats stats;
-    InitializeProcessorStats(&stats);
+    pairs_context context = {0};
+    processor_stats stats = {0};
     stats.ExpectedSum = answerHeader.ExpectedSum;
-
-    pairs_context context;
-    InitializePairsContext(&context);
 
     END_TIMING(Startup);
     PREWARM_TIMING(MiscOperations);
