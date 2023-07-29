@@ -5,6 +5,11 @@
 #include "base_types.h"
 
 
+// Note (Aaron): Add '#define PROFILER 1' before inclusion of this file to enable the taking of zone timings
+#ifndef PROFILER
+#define PROFILER 0
+#endif
+
 // Note (Aaron): Increase this count as needed
 #define MAX_NAMED_TIMINGS 64
 
@@ -16,10 +21,49 @@
 #define DETECT_ORPHAN_TIMINGS 0
 
 
+global_function void StartTimingsProfile();
+global_function void EndTimingsProfile();
+global_function void PrintProfileTimings();
+
 global_function U64 GetOSTimerFrequency();
 global_function U64 ReadOSTimer();
 global_function U64 ReadCPUTimer();
 global_function U64 GetCPUFrequency(U64 millisecondsToWait);
+
+
+#if PROFILER ////////////////////////////////////////////////////////
+// Note (Aaron): Use the following macros to start and end named timings within the same scope.
+#define START_TIMING(label)     zone_block label##Block = {0};                       \
+                                _StartTiming(&label##Block, __COUNTER__ + 1, #label);
+#define END_TIMING(label)       _EndTiming(&label##Block);
+
+// Note (Aaron): The following macros can be used to control the scope a timing is created in
+// so it can be re-used later in the same scope.
+#define PREWARM_TIMING(label)   zone_block label##Block = {0}; \
+                                _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label)
+#define RESTART_TIMING(label)   _RestartTiming(&label##Block);
+
+
+#ifdef __cplusplus
+// Note (Aaron): Use the following macros to automatically start and stop timings when entering and exiting scope.
+// They do have somewhat more of an impact on timings than the START / END timing macros above.
+#define FUNCTION_TIMING         zone_block_autostart __func__##Block (__COUNTER__ + 1, __func__);
+#define ZONE_TIMING(label)      zone_block_autostart label##Block (__COUNTER__ + 1, #label);
+#endif // __cplusplus
+
+#else // PROFILER
+
+// Note (Aaron): Macro stubs for disabled timings
+#define START_TIMING(label)
+#define END_TIMING(label)
+#define PREWARM_TIMING(label)
+#define RESTART_TIMING(label)
+
+#ifdef __cplusplus
+#define FUNCTION_TIMING
+#define ZONE_TIMING(label)
+#endif // __cplusplus
+#endif // PROFILER //////////////////////////////////////////////////
 
 
 typedef struct zone_timing zone_timing;
@@ -63,18 +107,6 @@ struct timings_profile
 };
 
 
-// Note (Aaron): Use the following macros to start and end named timings within the same scope.
-#define START_TIMING(label)     zone_block label##Block = {0};                       \
-                                _StartTiming(&label##Block, __COUNTER__ + 1, #label);
-#define END_TIMING(label)       _EndTiming(&label##Block);
-
-// Note (Aaron): The following macros can be used to control the scope a timing is created in
-// so it can be re-used later in the same scope.
-#define PREWARM_TIMING(label)   zone_block label##Block = {0}; \
-                                _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label)
-#define RESTART_TIMING(label)   _RestartTiming(&label##Block);
-
-
 #ifdef __cplusplus
 global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label);
 global_function void _EndTiming(zone_block *block);
@@ -95,17 +127,12 @@ struct zone_block_autostart
         _EndTiming(&Block);
     }
 };
-
-// Note (Aaron): Use the following macros to automatically start and stop timings when entering and exiting scope.
-// They do have somewhat more of an impact on timings than the START / END timing macros above.
-#define FUNCTION_TIMING         zone_block_autostart __func__##Block (__COUNTER__ + 1, __func__);
-#define ZONE_TIMING(label)      zone_block_autostart label##Block (__COUNTER__ + 1, #label);
 #endif // __cplusplus
 
 #endif // PLATFORM_METRICS_H //////////////////////////////////////////////////
 
 
-#ifdef PLATFORM_METRICS_IMPLEMENTATION
+#ifdef PLATFORM_METRICS_IMPLEMENTATION ////////////////////////////////////////
 
 #if _WIN32
 
@@ -113,7 +140,6 @@ struct zone_block_autostart
 #include <windows.h>
 #include <stdio.h>
 
-#include "base.h"
 #include "base_memory.h"
 
 
@@ -148,6 +174,63 @@ global_function void EndTimingsProfile()
 }
 
 
+global_function void PrintProfileTimings()
+{
+    F64 totalTimeMs = ((F64)GlobalProfiler.TSCElapsed / (F64)GlobalProfiler.CPUFrequency) * 1000.0f;
+
+#if PROFILER ////////////////////////////////////////////////////////
+#if DETECT_ORPHAN_TIMINGS
+    Assert(GlobalProfiler.Started && "Profile has not been started");
+    Assert(GlobalProfiler.Ended && "Profile has not been ended");
+#endif // DETECT_ORPHAN_TIMINGS
+
+    S64 unaccounted = GlobalProfiler.TSCElapsed;
+
+    printf("Timings (cycles):\n");
+    // Note (Aaron): Timer at index 0 represents "no timer" and should be skipped
+    for (int i = 1; i < ArrayCount(GlobalProfiler.Timings); ++i)
+    {
+        zone_timing *timingPtr = &GlobalProfiler.Timings[i];
+        if (!timingPtr->HitCount)
+        {
+            Assert(!timingPtr->Label && "Timing has a label; most likely RESTART_TIMING has not been called");
+            continue;
+        }
+
+        Assert(timingPtr->Label && "Timing missing label; most likely END_TIMING has not been called");
+
+
+#if DETECT_ORPHAN_TIMINGS
+        Assert((timingPtr->HitCount == timingPtr->EndCount)
+               && "Timing started but not finished or finished without starting");
+#endif // DETECT_ORPHAN_TIMINGS
+
+        U64 elapsed = timingPtr->TSCElapsed - timingPtr->TSCElapsedChildren;
+        F64 percent = ((F64)elapsed / (F64)GlobalProfiler.TSCElapsed) * 100.0f;
+        printf("  %s[%llu]: %llu (%.2f%%)", timingPtr->Label, timingPtr->HitCount, elapsed, percent);
+
+        if (timingPtr->TSCElapsedOriginal != elapsed)
+        {
+            F64 percentWithChildren = (F64)timingPtr->TSCElapsedOriginal / (F64)GlobalProfiler.TSCElapsed * 100.0;
+            printf(", %.2f%% w/children", percentWithChildren);
+        }
+
+        printf("\n");
+        unaccounted -= elapsed;
+    }
+
+    Assert(unaccounted > 0 && "Unaccounted cycles can't be less than zero!");
+
+    F64 percent = ((F64)unaccounted / (F64)GlobalProfiler.TSCElapsed) * 100.0f;
+    printf("  Unaccounted: %llu (%.2f%s)\n\n", unaccounted, percent, "%");
+#endif // PROFILER //////////////////////////////////////////////////
+
+    printf("Total cycles: %.4llu\n", GlobalProfiler.TSCElapsed);
+    printf("Total time:   %.4fms (CPU freq %llu)\n", totalTimeMs, GlobalProfiler.CPUFrequency);
+}
+
+
+#if PROFILER //////////////////////////////////////////////////////////////////
 inline
 global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label)
 {
@@ -213,58 +296,7 @@ global_function void _RestartTiming(zone_block *block)
 
     block->Start = ReadCPUTimer();
 }
-
-
-global_function void PrintTimingsProfile()
-{
-#if DETECT_ORPHAN_TIMINGS
-    Assert(GlobalProfiler.Started && "Profile has not been started");
-    Assert(GlobalProfiler.Ended && "Profile has not been ended");
-#endif // DETECT_ORPHAN_TIMINGS
-
-    F64 totalTimeMs = ((F64)GlobalProfiler.TSCElapsed / (F64)GlobalProfiler.CPUFrequency) * 1000.0f;
-    S64 unaccounted = GlobalProfiler.TSCElapsed;
-
-    printf("Timings (cycles):\n");
-    // Note (Aaron): Timer at index 0 represents "no timer" and should be skipped
-    for (int i = 1; i < ArrayCount(GlobalProfiler.Timings); ++i)
-    {
-        zone_timing *timingPtr = &GlobalProfiler.Timings[i];
-        if (!timingPtr->HitCount)
-        {
-            Assert(!timingPtr->Label && "Timing has a label; most likely RESTART_TIMING has not been called");
-            continue;
-        }
-
-        Assert(timingPtr->Label && "Timing missing label; most likely END_TIMING has not been called");
-
-
-#if DETECT_ORPHAN_TIMINGS
-        Assert((timingPtr->HitCount == timingPtr->EndCount)
-               && "Timing started but not finished or finished without starting");
-#endif // DETECT_ORPHAN_TIMINGS
-
-        U64 elapsed = timingPtr->TSCElapsed - timingPtr->TSCElapsedChildren;
-        F64 percent = ((F64)elapsed / (F64)GlobalProfiler.TSCElapsed) * 100.0f;
-        printf("  %s[%llu]: %llu (%.2f%%)", timingPtr->Label, timingPtr->HitCount, elapsed, percent);
-
-        if (timingPtr->TSCElapsedOriginal != elapsed)
-        {
-            F64 percentWithChildren = (F64)timingPtr->TSCElapsedOriginal / (F64)GlobalProfiler.TSCElapsed * 100.0;
-            printf(", %.2f%% w/children", percentWithChildren);
-        }
-
-        printf("\n");
-        unaccounted -= elapsed;
-    }
-
-    Assert(unaccounted > 0 && "Unaccounted cycles can't be less than zero!");
-
-    F64 percent = ((F64)unaccounted / (F64)GlobalProfiler.TSCElapsed) * 100.0f;
-    printf("  Unaccounted: %llu (%.2f%s)\n\n", unaccounted, percent, "%");
-    printf("Total cycles: %.4llu\n", GlobalProfiler.TSCElapsed);
-    printf("Total time:   %.4fms (CPU freq %llu)\n", totalTimeMs, GlobalProfiler.CPUFrequency);
-}
+#endif // PROFILER ////////////////////////////////////////////////////////////
 
 
 global_function U64 GetOSTimerFrequency()
@@ -321,9 +353,10 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait)
 
 global_function void StartTimingsProfile() { Assert(FALSE && "Not implemented"); }
 global_function void EndTimingsProfile() { Assert(FALSE && "Not implemented"); }
-global_function void PrintTimingsProfile() { Assert(FALSE && "Not implemented"); }
 global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label) { Assert(FALSE && "Not implemented"); }
 global_function void _EndTiming(zone_block *block) { Assert(FALSE && "Not implemented"); }
+
+global_function void PrintProfileTimings() { Assert(FALSE && "Not implemented"); }
 
 global_function U64 GetOSTimerFreq(void) { Assert(FALSE && "Not implemented"); }
 global_function U64 ReadOSTimer(void) { Assert(FALSE && "Not implemented"); }
