@@ -151,14 +151,12 @@ global_function void StartTimingsProfile()
 {
     MemoryZeroArray(GlobalProfiler.Timings);
 
-    GlobalProfiler.TSCElapsed = 0;
-    GlobalProfiler.CPUFrequency = GetCPUFrequency(CPU_FREQUENCY_MS);
-
 #if DETECT_ORPHAN_TIMINGS
     GlobalProfiler.Started = TRUE;
     GlobalProfiler.Ended = FALSE;
 #endif // DETECT_ORPHAN_TIMINGS
 
+    GlobalProfiler.TSCElapsed = 0;
     GlobalProfiler.Start = ReadCPUTimer();
 }
 
@@ -166,6 +164,7 @@ global_function void StartTimingsProfile()
 global_function void EndTimingsProfile()
 {
     GlobalProfiler.TSCElapsed = ReadCPUTimer() - GlobalProfiler.Start;
+    GlobalProfiler.CPUFrequency = GetCPUFrequency(CPU_FREQUENCY_MS);
 
 #if DETECT_ORPHAN_TIMINGS
     Assert(GlobalProfiler.Started && "Profile has not been started");
