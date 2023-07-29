@@ -319,9 +319,9 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait)
 
 #else // _WIN32
 
-global_function void StartNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
-global_function void EndNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
-global_function void PrintNamedTimingsProfile() { Assert(FALSE && "Not implemented"); }
+global_function void StartTimingsProfile() { Assert(FALSE && "Not implemented"); }
+global_function void EndTimingsProfile() { Assert(FALSE && "Not implemented"); }
+global_function void PrintTimingsProfile() { Assert(FALSE && "Not implemented"); }
 global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label) { Assert(FALSE && "Not implemented"); }
 global_function void _EndTiming(zone_block *block) { Assert(FALSE && "Not implemented"); }
 
@@ -330,6 +330,6 @@ global_function U64 ReadOSTimer(void) { Assert(FALSE && "Not implemented"); }
 global_function U64 ReadCPUTimer() { Assert(FALSE && "Not implemented"); }
 global_function U64 GetCPUFrequency(U64 millisecondsToWait) { Assert(FALSE && "Not implemented"); }
 
-#endif // #else
+#endif // _WIN32
 
 #endif // PLATFORM_METRICS_IMPLEMENTATION /////////////////////////////////////
