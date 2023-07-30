@@ -1,13 +1,21 @@
 /* TODO (Aaron):
     - Automatically dock windows on first load or force them to dock
+        - [link](https://github.com/ocornut/imgui/issues/2554)
+        - [link](https://github.com/ocornut/imgui/issues/2573)
+        - [link](https://github.com/ocornut/imgui/issues/4033)
+        - [link](https://github.com/ocornut/imgui/issues/6263)
 
     - Update build script so that we don't need to re-build DearImGUI every time we build
 
     - Troubleshoot issue where stopping, restarting and stepping forward causes a crash
         - Appears when constantly cycling between holding F10 and hitting F8 to reset
+        - Appears to be an issue with using F5 + shift as the reset hotkey?
 
     - Add an instrumentation overlay using platform metrics
         - Will need to convert into an interactive profiler
+
+    - Diagnostic window
+        - Display current estimated cycle count
 
     - Memory Window
         - Turn memory area into a table and place controls at the bottom?
@@ -17,6 +25,12 @@
 
     - Disassembly window
         - Highlight final instruction even if we've exited the program
+        - Collapse instructions & instruction strings arena into one
+            - This will involve setting up a linked list for instructions
+            - Can put the 8086's program in here as well
+            - "Program" arena?
+        - Keep the current instruction in view
+            - If we dip too far to the bottom, center on the instruction
 
     - Output window
         - Add menu item for opening / closing the output window

@@ -1,4 +1,5 @@
 /*TODO (Aaron):
+    - Look into culling the scroll view under the memory window to see if we can reduce work?
 */
 
 #include "imgui.h"
@@ -107,6 +108,8 @@ global_function void ShowDisassemblyWindow(application_state *applicationState, 
         if (processor->IP == currentInstruction.Address)
         {
             ImGui::PopStyleColor(1);
+            // TODO (Aaron): Figure out why this isn't focusing the item
+            // ImGui::SetItemDefaultFocus();
         }
     }
 

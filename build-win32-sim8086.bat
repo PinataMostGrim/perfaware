@@ -41,6 +41,9 @@ IF NOT %ERRORLEVEL% == 0 (
 )
 
 :: Compile and link
+
+:: TODO: Only compile IMGUI files if the objects don't already exist
+
 del *.pdb > NUL 2> NUL
 echo WAITING FOR PDB > %GUI_LOCK_FILE%
 :: Compile application layer

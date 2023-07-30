@@ -1,4 +1,14 @@
 /*  TODO (Aaron):
+    - Reduce the number of timings created so the profiler doesn't skew the runtime too much
+        - Original:
+            - Total time with profiler disabled: ~7200ms
+            - Total time with profiler enabled: ~8400ms
+        - Read file contents at once:
+            - Total time with profiler disabled: ~4100ms
+            - Total time with profiler enabled: ~5600ms
+
+    - Lex / Parse JSON all at once
+        - Add timing for lexing / parsing
 */
 
 #pragma warning(disable:4996)
