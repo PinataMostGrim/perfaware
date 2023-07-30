@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 #include "base_types.h"
-
+#include "base_memory.h"
 
 #define MAX_TOKEN_LENGTH 32
 
@@ -41,9 +41,9 @@ struct haversine_token
 
 
 global_function const char *GetTokenMenemonic(token_type tokenType);
-global_function int EatNextCharacter(FILE *file);
-global_function int PeekNextCharacter(FILE *file);
+global_function int EatNextCharacter(memory_arena *arena);
+global_function int PeekNextCharacter(memory_arena *arena);
 global_function B8 IsFloatingPointChar(char character);
-global_function haversine_token GetNextToken(FILE *file);
+global_function haversine_token GetNextToken(memory_arena *arena);
 
 #endif // HAVERSINE_LEXER_H

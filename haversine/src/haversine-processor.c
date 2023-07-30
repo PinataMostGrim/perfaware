@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #define PROFILER 1
 #define PLATFORM_METRICS_IMPLEMENTATION
@@ -64,10 +65,57 @@ struct pairs_context
 };
 
 
-global_function void InitializeTokenStack(token_stack *stack, memory_arena *arena)
+global_function memory_arena ReadFileContents(char *filename)
 {
-    stack->Arena = arena;
-    stack->TokenCount = 0;
+    memory_arena result = {0};
+    FILE *file = fopen(filename, "rb");
+
+    if(!file)
+    {
+        fprintf(stderr, "[ERROR] Unable to open file \"%s\"\n", filename);
+        Assert(FALSE);
+
+        return result;
+    }
+
+#if _WIN32
+    struct __stat64 stat;
+    _stat64(filename, &stat);
+#else
+    struct stat stat;
+    stat(filename, &stat);
+#endif
+
+    memory_index fileSize = stat.st_size;
+    U8 *basePtr = (U8 *)malloc(fileSize);
+
+    if (!basePtr)
+    {
+        printf("[ERROR] Unable to allocate memory for \"%s\"\n", filename);
+        free(basePtr);
+        fclose(file);
+        Assert(FALSE);
+
+        return result;
+    }
+
+    if(fread(basePtr, fileSize, 1, file) != 1)
+    {
+        fprintf(stderr, "[ERROR] Unable to read file \"%s\"\n", filename);
+        free(basePtr);
+        fclose(file);
+        Assert(FALSE);
+
+        return result;
+    }
+
+    fclose(file);
+
+    ArenaInitialize(&result, fileSize, basePtr);
+    result.Used = fileSize;
+    // Note (Aaron): We keep the arena's position pointer at the base pointer so we can use it as a read head for parsing the data.
+
+    return result;
 }
 
 
@@ -150,32 +198,33 @@ int main()
     StartTimingsProfile();
     START_TIMING(Startup);
 
-    // open data file
+    // read data file
+    START_TIMING(ReadJSONFile)
     char *dataFilename = DATA_FILENAME;
-    FILE *dataFile;
-    dataFile = fopen(dataFilename, "r");
-
     printf("[INFO] Processing file '%s'\n", dataFilename);
-
-    if (!dataFile)
+    memory_arena jsonContents = ReadFileContents(dataFilename);
+    if (!jsonContents.BasePtr)
     {
         perror("[ERROR] ");
         return 1;
     }
+    END_TIMING(ReadJSONFile)
 
-    // open answer file
+    // read answer file
+    START_TIMING(ReadAnswerFile)
     char *answerFilename = ANSWER_FILENAME;
-    FILE *answerFile;
-    answerFile = fopen(answerFilename, "rb");
-
-    if (!answerFile)
+    printf("[INFO] Processing file '%s'\n", answerFilename);
+    memory_arena answerContents = ReadFileContents(answerFilename);
+    if (!answerContents.BasePtr)
     {
         perror("[ERROR] ");
         return 1;
     }
+    END_TIMING(ReadAnswerFile)
 
     answers_file_header answerHeader = { .Seed = 0, .ExpectedSum = 0 };
-    fread(&answerHeader, sizeof(answers_file_header), 1, answerFile);
+    MemoryCopy(&answerHeader, answerContents.PositionPtr, sizeof(answers_file_header));
+    answerContents.PositionPtr += sizeof(answers_file_header);
 
     // allocate memory arena for token stack
     U8 *memoryPtr = calloc(1, Megabytes(1));
@@ -188,33 +237,27 @@ int main()
     memory_arena tokenArena;
     ArenaInitialize(&tokenArena, Megabytes(1), memoryPtr);
 
-#if HAVERSINE_SLOW
-    // Note (Aaron): Fill memory with 1s for debug purposes
-    MemorySet(memoryPtr, 0xff, Megabytes(1));
-#endif
-
-    token_stack tokenStack;
-    InitializeTokenStack(&tokenStack, &tokenArena);
+    token_stack tokenStack = {0};
+    tokenStack.Arena = &tokenArena;
 
     pairs_context context = {0};
     processor_stats stats = {0};
     stats.ExpectedSum = answerHeader.ExpectedSum;
 
     END_TIMING(Startup);
-    PREWARM_TIMING(MiscOperations);
 
     for (;;)
     {
         START_TIMING(JSONLexing);
-        haversine_token nextToken = GetNextToken(dataFile);
+        haversine_token nextToken = GetNextToken(&jsonContents);
         END_TIMING(JSONLexing);
 
-        RESTART_TIMING(MiscOperations);
+        START_TIMING(UpdateTokenStats);
         stats.TokenCount++;
         stats.MaxTokenLength = nextToken.Length > stats.MaxTokenLength
             ? nextToken.Length
             : stats.MaxTokenLength;
-        END_TIMING(MiscOperations);
+        END_TIMING(UpdateTokenStats);
 
 #if 0
         printf("[INFO] %lli: ", stats.TokenCount);
@@ -372,7 +415,8 @@ int main()
 
                 START_TIMING(Validation);
                 F64 answerDistance;
-                fread(&answerDistance, sizeof(F64), 1, answerFile);
+                MemoryCopy(&answerDistance, answerContents.PositionPtr, sizeof(F64));
+                answerContents.PositionPtr += sizeof(F64);
 
                 F64 difference = answerDistance - distance;
                 difference = difference >= 0 ? difference : difference * -1;
@@ -397,31 +441,10 @@ int main()
         }
     }
 
-    RESTART_TIMING(MiscOperations);
-    if (ferror(dataFile))
-    {
-        fclose(dataFile);
-        perror("[ERROR] ");
-        Assert(FALSE);
-
-        return 1;
-    }
-    fclose(dataFile);
-
-    if (ferror(answerFile))
-    {
-        fclose(answerFile);
-        perror("[ERROR] ");
-        Assert(FALSE);
-
-        exit(1);
-    }
-    fclose(answerFile);
 
     printf("\n");
     PrintStats(&stats);
     printf("\n");
-    END_TIMING(MiscOperations);
 
     EndTimingsProfile();
     PrintProfileTimings();

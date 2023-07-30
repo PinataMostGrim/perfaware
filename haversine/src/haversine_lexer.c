@@ -38,15 +38,15 @@ global_function const char *GetTokenMenemonic(token_type tokenType)
 }
 
 
-global_function int _NextCharacter(FILE *file, B8 peek)
+global_function int _NextCharacter(memory_arena *arena, B8 peek)
 {
     for (;;)
     {
-        int nextChar = fgetc(file);
-        if (feof(file))
+        if (arena->PositionPtr >= arena->BasePtr + arena->Used)
         {
             return 0;
         }
+        int nextChar = *arena->PositionPtr++;
 
         // skip white space characters
         if (nextChar == '\t'
@@ -59,7 +59,7 @@ global_function int _NextCharacter(FILE *file, B8 peek)
 
         if (peek)
         {
-            ungetc(nextChar, file);
+            arena->PositionPtr--;
         }
 
         return nextChar;
@@ -68,16 +68,16 @@ global_function int _NextCharacter(FILE *file, B8 peek)
 
 
 // Eat characters from a file stream until we get a non-whitespace character or reach EOF
-global_function int EatNextCharacter(FILE *file)
+global_function int EatNextCharacter(memory_arena *arena)
 {
-    return _NextCharacter(file, FALSE);
+    return _NextCharacter(arena, FALSE);
 }
 
 
 // Peek at the next character in a file stream (white-space characters excluded)
-global_function int PeekNextCharacter(FILE *file)
+global_function int PeekNextCharacter(memory_arena *arena)
 {
-    return _NextCharacter(file, TRUE);
+    return _NextCharacter(arena, TRUE);
 }
 
 // Returns whether or not the character belong to the set of characters used by floating point values
@@ -88,7 +88,7 @@ global_function B8 IsFloatingPointChar(char character)
 
 
 // Extracts next JSON token from file stream
-global_function haversine_token GetNextToken(FILE *file)
+global_function haversine_token GetNextToken(memory_arena *arena)
 {
     haversine_token token;
     token.Type = Token_invalid;
@@ -97,7 +97,7 @@ global_function haversine_token GetNextToken(FILE *file)
 
     for (int i = 0; i < MAX_TOKEN_LENGTH; ++i)
     {
-        char nextChar = (char)PeekNextCharacter(file);
+        char nextChar = (char)PeekNextCharacter(arena);
         token.String[i] = nextChar;
         token.Length++;
 
@@ -110,7 +110,7 @@ global_function haversine_token GetNextToken(FILE *file)
 
         if (token.Type == Token_invalid)
         {
-            EatNextCharacter(file);
+            EatNextCharacter(arena);
 
             if (nextChar == '{')
             {
@@ -163,7 +163,7 @@ global_function haversine_token GetNextToken(FILE *file)
 
         if (token.Type == Token_identifier)
         {
-            EatNextCharacter(file);
+            EatNextCharacter(arena);
 
             // Note (Aaron): If we were going to do a more serious job, we'd check for escape characters here
             if (nextChar != '"')
@@ -178,7 +178,7 @@ global_function haversine_token GetNextToken(FILE *file)
         {
             if (IsFloatingPointChar(nextChar))
             {
-                EatNextCharacter(file);
+                EatNextCharacter(arena);
                 continue;
             }
 
