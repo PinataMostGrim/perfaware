@@ -18,6 +18,28 @@ global_function U64 GetStringLength(char *str)
 }
 
 
+global_function char CharToUpper(char c)
+{
+    if (c >= 'a' && c <= 'z')
+    {
+        return c - 32;
+    }
+
+    return c;
+}
+
+
+global_function char CharToLower(char c)
+{
+    if (c >= 'A' && c <= 'Z')
+    {
+        return c + 32;
+    }
+
+    return c;
+}
+
+
 global_function char *ArenaPushCString(memory_arena *arena, B8 nullTerminate, char *str)
 {
     U64 strLength = GetStringLength(str);
@@ -228,6 +250,34 @@ global_function Str8 Str8Join(memory_arena *arena, Str8List *list, StringJoin *o
     }
 
     return result;
+}
+
+global_function B8 CompareStr8(Str8 a, Str8 b, B8 caseInsensitive)
+{
+    if (a.Length != b.Length)
+    {
+        return FALSE;
+    }
+
+    U64 size = Min(a.Length, b.Length);
+    for (U64 i = 0; i < size; ++i)
+    {
+        U8 achar = a.Str[i];
+        U8 bchar = b.Str[i];
+
+        if (caseInsensitive)
+        {
+            achar = CharToLower(achar);
+            bchar = CharToLower(bchar);
+        }
+
+        if (achar != bchar)
+        {
+            return FALSE;
+        }
+    }
+
+    return TRUE;
 }
 
 

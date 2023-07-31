@@ -13,6 +13,9 @@
 // +------------------------------+
 // Note (Aaron): C strings
 global_function U64 GetStringLength(char *str);
+global_function char CharToUpper(char c);
+global_function char CharToLower(char c);
+
 global_function char *ArenaPushCString(memory_arena *arena, B8 nullTerminate, char *str);
 global_function char *ArenaPushCStringf(memory_arena *arena, B8 nullTerminate, char *fmt, ...);
 global_function char *ArenaPushCStringfv(memory_arena *arena, B8 nullTerminate, char *fmt, va_list args);
@@ -83,6 +86,7 @@ global_function Str8 ArenaPushStr8f(memory_arena *arena, char *fmt, ...);
 global_function Str8 ArenaPushStr8fv(memory_arena *arena, char *fmt, va_list args);
 global_function void ArenaPushStr8Listf(memory_arena *arena, Str8List *list, char *fmt, ...);
 
+global_function B8 CompareStr8(Str8 a, Str8 b, B8 caseInsensitive);
 global_function Str8 ConcatStr8(memory_arena *arena, Str8 strA, Str8 strB, B8 nullTerminate);
 
 #endif // BASE_STRING_H
