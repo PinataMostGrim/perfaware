@@ -50,7 +50,7 @@ global_function int _NextCharacter(memory_arena *arena, B8 peek)
         int nextChar = *arena->PositionPtr++;
 
         // skip white space characters
-        if (IsWhitespaceChar(nextChar))
+        if (IsWhitespaceChar((char)nextChar))
         {
             continue;
         }

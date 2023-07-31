@@ -29,6 +29,7 @@
 #include "haversine_lexer.h"
 #include "base_types.c"
 #include "base_memory.c"
+#include "base_string.c"
 #include "haversine.c"
 #include "haversine_lexer.c"
 
