@@ -18,6 +18,17 @@ global_function U64 GetStringLength(char *str)
 }
 
 
+global_function B8 IsWhitespaceChar(char c)
+{
+    B8 result = (c == '\t'
+                || c == '\n'
+                || c == '\r'
+                || c == ' ');
+
+    return result;
+}
+
+
 global_function char CharToUpper(char c)
 {
     if (c >= 'a' && c <= 'z')

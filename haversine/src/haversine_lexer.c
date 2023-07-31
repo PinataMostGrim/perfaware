@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include "base.h"
+#include "base_string.h"
 #include "base_memory.h"
 #include "haversine_lexer.h"
 
@@ -49,10 +50,7 @@ global_function int _NextCharacter(memory_arena *arena, B8 peek)
         int nextChar = *arena->PositionPtr++;
 
         // skip white space characters
-        if (nextChar == '\t'
-            || nextChar == '\n'
-            || nextChar == '\r'
-            || nextChar == ' ')
+        if (IsWhitespaceChar(nextChar))
         {
             continue;
         }

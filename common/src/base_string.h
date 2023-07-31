@@ -13,6 +13,7 @@
 // +------------------------------+
 // Note (Aaron): C strings
 global_function U64 GetStringLength(char *str);
+global_function B8 IsWhitespaceChar(char c);
 global_function char CharToUpper(char c);
 global_function char CharToLower(char c);
 
