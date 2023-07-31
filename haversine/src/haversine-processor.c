@@ -29,7 +29,6 @@
 #include "haversine_lexer.h"
 #include "base_types.c"
 #include "base_memory.c"
-#include "base_string.c"
 #include "haversine.c"
 #include "haversine_lexer.c"
 
@@ -48,8 +47,8 @@ struct token_stack
 typedef struct processor_stats processor_stats;
 struct processor_stats
 {
-    U64 TokenCount;
-    U64 MaxTokenLength;
+    S64 TokenCount;
+    S64 MaxTokenLength;
     S64 PairsProcessed;
     U64 CalculationErrors;
     F64 ExpectedSum;
@@ -162,17 +161,15 @@ global_function haversine_token PopToken(token_stack *tokenStack)
 
 global_function V2F64 GetVectorFromCoordinateTokens(haversine_token xValue, haversine_token yValue)
 {
-    char buffer[MAX_TOKEN_LENGTH] = {0};
     V2F64 result = { .x = 0, .y = 0};
 
-    MemoryCopy(buffer, xValue.String.Str, xValue.String.Length);
-    char *xEndPtr = buffer + xValue.String.Length;
-    result.x = strtod(buffer, &xEndPtr);
+    char *xStartPtr = xValue.String;
+    char *xEndPtr = xStartPtr + strlen(xValue.String);
+    result.x = strtod(xValue.String, &xEndPtr);
 
-    MemoryCopy(buffer, yValue.String.Str, yValue.String.Length);
-    MemoryZero(buffer + yValue.String.Length + 1, 1);
-    char *yEndPtr = buffer + yValue.String.Length;
-    result.y = strtod(buffer, &yEndPtr);
+    char *yStartPtr = yValue.String;
+    char *yEndPtr = yStartPtr + strlen(yValue.String);
+    result.y = strtod(yValue.String, &yEndPtr);
 
     // TODO (Aaron): Error handling?
 
@@ -194,12 +191,9 @@ global_function void PrintStats(processor_stats *stats)
 
 global_function void PrintToken(haversine_token *token)
 {
-    char *buffer[MAX_TOKEN_LENGTH] = {0};
-    MemoryCopy(buffer, token->String.Str, token->String.Length);
-
     printf("%s:\t\t%s\n",
            GetTokenMenemonic(token->Type),
-           (char *)buffer);
+           token->String);
 }
 
 
@@ -242,18 +236,6 @@ int main()
     MemoryCopy(&answerHeader, answerContents.PositionPtr, sizeof(answers_file_header));
     answerContents.PositionPtr += sizeof(answers_file_header);
 
-    // allocate memory for the token bucket
-    // TODO (Aaron): Ideally would use a growable arena for this. This current heuristic doesn't work.
-    // memory_index tokenBucketSize = jsonContents.Size * 2;
-    // U8 *tokenBucketPtr = (U8 *)malloc(tokenBucketSize);
-    // if (!tokenBucketPtr)
-    // {
-    //     printf("[ERROR] Unable to allocate memory for token bucket");
-    //     exit(1);
-    // }
-    // memory_arena tokenBucket;
-    // ArenaInitialize(&tokenBucket, tokenBucketSize, tokenBucketPtr);
-
     // allocate memory arena for token stack
     U8 *memoryPtr = calloc(1, Megabytes(1));
     if (!memoryPtr)
@@ -264,6 +246,7 @@ int main()
 
     memory_arena tokenArena;
     ArenaInitialize(&tokenArena, Megabytes(1), memoryPtr);
+
     token_stack tokenStack = {0};
     tokenStack.Arena = &tokenArena;
 
@@ -277,28 +260,12 @@ int main()
     {
         START_TIMING(JSONLexing);
         haversine_token nextToken = GetNextToken(&jsonContents);
-
-        // TODO (Aaron): Can't push tokens into their own bucket as the size of the struct is just too large and there's no good heuristic I can' think of that maps from the raw JSON to number of tokens
-        //  - Str8 still takes up 72bytes of space, largely because of the Length member
-        //  - This means our "intermediate" representation is quite large compared to the input
-        //  - And we use more cycles copying CStrings into buffers so they can have a null terminator
-        //  - Hmmm...
-        //  - Without growable arenas, I don't think there's a way to know how large our token bucket needs to be
-        //  - And there's no real benefit to parsing the JSON in a separate pass from the lexing
-        //  - Some options:
-        //      - Stick with arenas and implement growable arenas (don't want to do this yet)
-        //      - Stick with arenas and use VirtAlloc (and whatever the linux equivalent is) and allocate a massive ammount of memory so we can just use all the memory (not opposed to this, really. It'll just page memory in and out)
-        //      - Leave things the way they are with CStrings and do the lexing and parsing all in one step
-        //      - Re-do the JSON parsing so we end up with an intermediate representation so we can crank through the haversine pairs separately
-
-        // ArenaPushData(&tokenBucket, sizeof(haversine_token), (U8 *)&nextToken);
-
         END_TIMING(JSONLexing);
 
         START_TIMING(UpdateTokenStats);
         stats.TokenCount++;
-        stats.MaxTokenLength = nextToken.String.Length > stats.MaxTokenLength
-            ? nextToken.String.Length
+        stats.MaxTokenLength = nextToken.Length > stats.MaxTokenLength
+            ? nextToken.Length
             : stats.MaxTokenLength;
         END_TIMING(UpdateTokenStats);
 
@@ -332,7 +299,7 @@ int main()
 
         if (!context.PairsToken
             && nextToken.Type == Token_identifier
-            && CompareStr8(nextToken.String, Str8CString((U8 *)"\"pairs\""), TRUE))
+            && strcmp(nextToken.String, "\"pairs\"") == 0)
         {
             context.PairsToken = tokenPtr;
         }
@@ -368,7 +335,7 @@ int main()
 
             // load up token pointers in the context until we fill all required tokens
             if (tokenPtr->Type == Token_identifier
-                && CompareStr8(tokenPtr->String, Str8CString((U8 *)"\"x0\""), TRUE))
+                && strcmp(tokenPtr->String, "\"x0\"") == 0)
             {
                 if (context.X0Token)
                 {
@@ -381,7 +348,7 @@ int main()
             }
 
             if (tokenPtr->Type == Token_identifier
-                && CompareStr8(tokenPtr->String, Str8CString((U8 *)"\"y0\""), TRUE))
+                && strcmp(tokenPtr->String, "\"y0\"") == 0)
             {
                 if (context.Y0Token)
                 {
@@ -394,7 +361,7 @@ int main()
             }
 
             if (tokenPtr->Type == Token_identifier
-                && CompareStr8(tokenPtr->String, Str8CString((U8 *)"\"x1\""), TRUE))
+                && strcmp(tokenPtr->String, "\"x1\"") == 0)
             {
                 if (context.X1Token)
                 {
@@ -407,7 +374,7 @@ int main()
             }
 
             if (tokenPtr->Type == Token_identifier
-                && CompareStr8(tokenPtr->String, Str8CString((U8 *)"\"y1\""), TRUE))
+                && strcmp(tokenPtr->String, "\"y1\"") == 0)
             {
                 if (context.Y1Token)
                 {

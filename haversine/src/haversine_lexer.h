@@ -10,7 +10,6 @@
 
 #include "base_types.h"
 #include "base_memory.h"
-#include "base_string.h"
 
 #define MAX_TOKEN_LENGTH 32
 
@@ -36,7 +35,8 @@ typedef struct haversine_token haversine_token;
 struct haversine_token
 {
     token_type Type;
-    Str8 String;
+    char String[MAX_TOKEN_LENGTH];
+    U32 Length;
 };
 
 

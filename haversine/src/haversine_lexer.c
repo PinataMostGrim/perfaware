@@ -88,23 +88,21 @@ global_function B8 IsFloatingPointChar(char character)
 // Extracts next JSON token from file stream
 global_function haversine_token GetNextToken(memory_arena *arena)
 {
-    while(IsWhitespaceChar(PeekNextCharacter(arena)))
-    {
-        EatNextCharacter(arena);
-    }
-
     haversine_token token;
     token.Type = Token_invalid;
-    token.String = String8(arena->PositionPtr, 0);
+    MemorySet(token.String, 0, sizeof(token.String));
+    token.Length = 0;
 
     for (int i = 0; i < MAX_TOKEN_LENGTH; ++i)
     {
         char nextChar = (char)PeekNextCharacter(arena);
-        token.String.Length++;
+        token.String[i] = nextChar;
+        token.Length++;
 
         if (nextChar == 0)
         {
             token.Type = Token_EOF;
+            MemorySet(token.String, 0, sizeof(token.String));
             return token;
         }
 
@@ -182,8 +180,8 @@ global_function haversine_token GetNextToken(memory_arena *arena)
                 continue;
             }
 
-            token.String.Length--;
-
+            token.String[i] = 0;
+            token.Length--;
             return token;
         }
 
