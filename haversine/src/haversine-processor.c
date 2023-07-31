@@ -48,9 +48,10 @@ struct token_stack
 typedef struct processor_stats processor_stats;
 struct processor_stats
 {
-    S64 TokenCount;
-    S64 MaxTokenLength;
-    S64 PairsProcessed;
+    U64 TokenCount;
+    U64 MaxTokenLength;
+    U64 PairsParsed;
+    U64 PairsProcessed;
     U64 CalculationErrors;
     F64 ExpectedSum;
     F64 CalcualtedSum;
@@ -72,7 +73,6 @@ struct pairs_context
     haversine_token *Y0Token;
     haversine_token *X1Token;
     haversine_token *Y1Token;
-
 };
 
 
@@ -207,7 +207,7 @@ global_function void PrintHaversineDistance(V2F64 point0, V2F64 point1, F64 dist
 int main()
 {
     StartTimingsProfile();
-    START_TIMING(Startup);
+    START_TIMING(Startup); ////////////////////////////////////////////////////
 
     // read data file
     START_TIMING(ReadJSONFile)
@@ -233,56 +233,68 @@ int main()
     }
     END_TIMING(ReadAnswerFile)
 
+    // read answers file header
     answers_file_header answerHeader = { .Seed = 0, .ExpectedSum = 0 };
     MemoryCopy(&answerHeader, answerContents.PositionPtr, sizeof(answers_file_header));
     answerContents.PositionPtr += sizeof(answers_file_header);
 
+    START_TIMING(MemoryAllocation) //////////////////////////////////
     // allocate memory arena for token stack
-    U8 *memoryPtr = calloc(1, Megabytes(1));
-    if (!memoryPtr)
+    U8 *tokenStackPtr = calloc(1, Megabytes(1));
+    if (!tokenStackPtr)
     {
         printf("[ERROR] Unable to allocate memory for token stack");
         exit(1);
     }
 
     memory_arena tokenArena;
-    ArenaInitialize(&tokenArena, Megabytes(1), memoryPtr);
-
+    ArenaInitialize(&tokenArena, Megabytes(1), tokenStackPtr);
     token_stack tokenStack = {0};
     tokenStack.Arena = &tokenArena;
+
+    // allocate memory for pairs values
+    U32 minimumJSONPairSize = 6*4;      // 5 alpha chars + 1 numeric char (e.g. "x0":1)
+    U64 maxPairCount = jsonContents.Size / minimumJSONPairSize;
+    memory_index pairsArenaSize = maxPairCount * sizeof(haversine_pair);
+
+    U8 *pairsPtr = malloc(pairsArenaSize);
+    if (!pairsPtr)
+    {
+        printf("[ERROR] Unable to allocate memory for haversine pairs values");
+        exit(1);
+    }
+
+    memory_arena pairsArena;
+    ArenaInitialize(&pairsArena, pairsArenaSize, pairsPtr);
+    END_TIMING(MemoryAllocation) ////////////////////////////////////
 
     pairs_context context = {0};
     processor_stats stats = {0};
     stats.ExpectedSum = answerHeader.ExpectedSum;
 
-    END_TIMING(Startup);
+    END_TIMING(Startup); //////////////////////////////////////////////////////
 
+    START_TIMING(JSONParsing)
     for (;;)
     {
-        START_TIMING(JSONLexing);
         haversine_token nextToken = GetNextToken(&jsonContents);
-        END_TIMING(JSONLexing);
 
-        START_TIMING(UpdateTokenStats);
         stats.TokenCount++;
         stats.MaxTokenLength = nextToken.Length > stats.MaxTokenLength
             ? nextToken.Length
             : stats.MaxTokenLength;
-        END_TIMING(UpdateTokenStats);
 
 #if 0
         printf("[INFO] %lli: ", stats.TokenCount);
         PrintToken(&nextToken);
 #endif
 
-        START_TIMING(JSONParsing);
         if (nextToken.Type == Token_EOF)
         {
 #if 0
             printf("\n");
             printf("[INFO] EOF reached\n");
 #endif
-            END_TIMING(JSONParsing);
             break;
         }
 
@@ -292,7 +304,6 @@ int main()
             || nextToken.Type == Token_scope_open
             || nextToken.Type == Token_scope_close)
         {
-            END_TIMING(JSONParsing);
             continue;
         }
 
@@ -312,13 +323,11 @@ int main()
             if (!context.ArrayStartToken && nextToken.Type == Token_array_start)
             {
                 context.ArrayStartToken = tokenPtr;
-                END_TIMING(JSONParsing);
                 continue;
             }
 
             if (!context.ArrayStartToken)
             {
-                END_TIMING(JSONParsing);
                 continue;
             }
 
@@ -330,7 +339,6 @@ int main()
 
                 context.ArrayStartToken = 0;
                 context.PairsToken = 0;
-                END_TIMING(JSONParsing);
                 continue;
             }
 
@@ -344,7 +352,6 @@ int main()
                     exit(1);
                 }
                 context.X0Token = tokenPtr;
-                END_TIMING(JSONParsing);
                 continue;
             }
 
@@ -357,7 +364,6 @@ int main()
                     exit(1);
                 }
                 context.Y0Token = tokenPtr;
-                END_TIMING(JSONParsing);
                 continue;
             }
 
@@ -370,7 +376,6 @@ int main()
                     exit(1);
                 }
                 context.X1Token = tokenPtr;
-                END_TIMING(JSONParsing);
                 continue;
             }
 
@@ -383,16 +388,12 @@ int main()
                     exit(1);
                 }
                 context.Y1Token = tokenPtr;
-                END_TIMING(JSONParsing);
                 continue;
             }
-
-            END_TIMING(JSONParsing);
 
             // process a Haversine point pair once we have parsed its values
             if (context.X0Token && context.Y0Token && context.X1Token && context.Y1Token)
             {
-                START_TIMING(StackOperations);
                 haversine_token y1Value = PopToken(&tokenStack);
                 PopToken(&tokenStack);
                 haversine_token x1Value = PopToken(&tokenStack);
@@ -412,45 +413,43 @@ int main()
                 context.X1Token = 0;
                 context.Y1Token = 0;
 
-                V2F64 point0 = GetVectorFromCoordinateTokens(x0Value, y0Value);
-                V2F64 point1 = GetVectorFromCoordinateTokens(x1Value, y1Value);
-                END_TIMING(StackOperations);
+                haversine_pair *pair = ArenaPushStruct(&pairsArena, haversine_pair);
+                pair->point0 = GetVectorFromCoordinateTokens(x0Value, y0Value);
+                pair->point1 = GetVectorFromCoordinateTokens(x1Value, y1Value);
 
-                START_TIMING(HaversineDistance);
-                F64 distance = ReferenceHaversine(point0.x, point0.y, point1.x, point1.y, EARTH_RADIUS);
-                END_TIMING(HaversineDistance);
-
-#if 0
-                PrintHaversineDistance(point0, point1, distance);
-#endif
-
-                START_TIMING(Validation);
-                F64 answerDistance;
-                MemoryCopy(&answerDistance, answerContents.PositionPtr, sizeof(F64));
-                answerContents.PositionPtr += sizeof(F64);
-
-                F64 difference = answerDistance - distance;
-                difference = difference >= 0 ? difference : difference * -1;
-                if (difference > EPSILON_FLOAT)
-                {
-                    stats.CalculationErrors++;
-                    printf("[WARN] Calculated distance diverges from answer value significantly (calculated: %f vs. answer: %f)\n", distance, answerDistance);
-                }
-                END_TIMING(Validation);
-
-                START_TIMING(SumCalculation);
-                stats.CalcualtedSum = ((stats.CalcualtedSum * (F64)stats.PairsProcessed) + distance) / (F64)(stats.PairsProcessed + 1);
-                stats.PairsProcessed++;
-                END_TIMING(SumCalculation);
-
+                stats.PairsParsed++;
                 continue;
             }
         }
-        else
+    }
+    END_TIMING(JSONParsing)
+
+    START_TIMING(HaversineDistance);
+    haversine_pair *pairs = (haversine_pair *)pairsArena.BasePtr;
+    F64 *answerPtr = (F64 *)answerContents.PositionPtr;
+    for (int i = 0; i < stats.PairsParsed; ++i)
+    {
+        haversine_pair pair = pairs[i];
+
+        F64 distance = ReferenceHaversine(pair.point0.x, pair.point0.y, pair.point1.x, pair.point1.y, EARTH_RADIUS);
+
+#if 0
+        PrintHaversineDistance(point0, point1, distance);
+#endif
+
+        stats.CalcualtedSum = ((stats.CalcualtedSum * (F64)stats.PairsProcessed) + distance) / (F64)(stats.PairsProcessed + 1);
+        stats.PairsProcessed++;
+
+        F64 answerDistance = answerPtr[i];
+        F64 difference = answerDistance - distance;
+        difference = difference >= 0 ? difference : difference * -1;
+        if (difference > EPSILON_FLOAT)
         {
-            END_TIMING(JSONParsing);
+            stats.CalculationErrors++;
+            printf("[WARN] Calculated distance diverges from answer value significantly (calculated: %f vs. answer: %f)\n", distance, answerDistance);
         }
     }
+    END_TIMING(HaversineDistance);
 
 
     printf("\n");
