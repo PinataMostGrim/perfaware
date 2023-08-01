@@ -65,6 +65,7 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait);
 #define END_TIMING(label)
 #define PREWARM_TIMING(label)
 #define RESTART_TIMING(label)
+#define ProfilerEndOfCompilationUnit
 
 #ifdef __cplusplus
 #define FUNCTION_TIMING

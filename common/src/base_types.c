@@ -1,6 +1,31 @@
 #include "base.h"
 #include "base_types.h"
 
+
+// +------------------------------+
+// Note (Aaron): Floats
+
+global_function F32 AbsF32(F32 f)
+{
+    union { U32 u; F32 f; }
+    x;
+    x.f = f;
+    x.u &= ~Sign32;
+
+    return x.f;
+}
+
+global_function F64 AbsF64(F64 f)
+{
+    union { U64 u; F64 f; }
+    x;
+    x.f = f;
+    x.u &= ~Sign64;
+
+    return x.f;
+}
+
+
 // +------------------------------+
 // Note (Aaron): Compound Types
 

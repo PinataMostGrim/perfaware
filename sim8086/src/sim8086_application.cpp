@@ -200,6 +200,8 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
             }
         }
     }
+    // TODO (Aaron): Change this to shift + F5?
+    // else if(ImGui::IsKeyPressed(ImGuiKey_F5) && ImGui::IsKeyDown(ImGuiKey_ModShift))
     else if(ImGui::IsKeyPressed(ImGuiKey_F8))
     {
         // reset program

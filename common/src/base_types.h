@@ -31,6 +31,16 @@ typedef double F64;
 
 
 // +------------------------------+
+// Note (Aaron): Floats
+
+global_variable U32 Sign32 = 0x80000000;
+global_variable U64 Sign64 = 0x8000000000000000;
+
+global_function F32 AbsF32(F32 f);
+global_function F64 AbsF64(F64 f);
+
+
+// +------------------------------+
 // Note (Aaron): Compound Types
 
 typedef struct
@@ -118,6 +128,8 @@ typedef struct
 }  V4F64;
 
 
+// TODO (Aaron): I don't like the naming convention of these methods, but I can't think of a better way right now
+// Maybe constructors have a trailing '_' character?
 global_function V2F32 v2f32(F32 x, F32 y);
 global_function V2F64 v2f64(F64 x, F64 y);
 global_function V3F32 v3f32(F32 x, F32 y, F32 z);
