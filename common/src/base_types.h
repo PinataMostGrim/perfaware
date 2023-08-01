@@ -31,6 +31,16 @@ typedef double F64;
 
 
 // +------------------------------+
+// Note (Aaron): Floats
+
+global_variable U32 Sign32 = 0x80000000;
+global_variable U64 Sign64 = 0x8000000000000000;
+
+global_function F32 AbsF32(F32 f);
+global_function F64 AbsF64(F64 f);
+
+
+// +------------------------------+
 // Note (Aaron): Compound Types
 
 typedef struct
