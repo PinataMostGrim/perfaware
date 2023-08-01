@@ -56,6 +56,7 @@ struct processor_stats
     U64 PairsProcessed;
     F64 CalculatedSum;
     U64 CalculationErrors;
+    F64 SumDivergence;
 };
 
 
@@ -188,6 +189,7 @@ global_function void PrintStats(processor_stats *stats)
     printf("\n");
     printf("[INFO] Expected sum:        %.16f\n", stats->ExpectedSum);
     printf("[INFO] Calculated sum:      %.16f\n", stats->CalculatedSum);
+    printf("[INFO] Sum divergence:      %.16f\n", stats->SumDivergence);
 
     if (stats->PairsProcessed != stats->ExpectedPairCount)
     {
@@ -458,8 +460,9 @@ int main()
             printf("[WARN] Calculated distance diverges from answer value significantly (calculated: %f vs. answer: %f)\n", distance, answerDistance);
         }
     }
-    END_TIMING(HaversineDistance);
 
+    stats.SumDivergence = AbsF64(stats.CalculatedSum - stats.ExpectedSum);
+    END_TIMING(HaversineDistance);
 
     printf("\n");
     PrintStats(&stats);
