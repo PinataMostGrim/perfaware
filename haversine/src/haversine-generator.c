@@ -130,7 +130,7 @@ int main(int argc, char const *argv[])
 
     // write placeholder header to answers file
     // (we won't know the expected sum until generation has finished)
-    answers_file_header answersHeader = { .Seed = 0, .ExpectedSum = 0 };
+    answers_file_header answersHeader = {0};
     fwrite(&answersHeader, sizeof(answers_file_header), 1, answerFile);
 
     printf("[INFO] Generating Haversine distance coordinate pairs...\n");
@@ -209,6 +209,7 @@ int main(int argc, char const *argv[])
 
     // set correct values in answer file header
     answersHeader.Seed = seed;
+    answersHeader.PairCount = (U64)pairCount;
     answersHeader.ExpectedSum = expectedSum;
     fseek(answerFile, 0, SEEK_SET);
     fwrite(&answersHeader, sizeof(answersHeader), 1, answerFile);

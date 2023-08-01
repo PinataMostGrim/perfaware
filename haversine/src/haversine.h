@@ -17,6 +17,7 @@ typedef struct answers_file_header answers_file_header;
 struct answers_file_header
 {
     unsigned int Seed;
+    U64 PairCount;
     F64 ExpectedSum;
 };
 

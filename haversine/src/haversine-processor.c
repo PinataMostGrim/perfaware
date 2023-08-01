@@ -50,11 +50,12 @@ struct processor_stats
 {
     U64 TokenCount;
     U64 MaxTokenLength;
+    U64 ExpectedPairCount;
+    F64 ExpectedSum;
     U64 PairsParsed;
     U64 PairsProcessed;
+    F64 CalculatedSum;
     U64 CalculationErrors;
-    F64 ExpectedSum;
-    F64 CalcualtedSum;
 };
 
 
@@ -186,7 +187,14 @@ global_function void PrintStats(processor_stats *stats)
     printf("[INFO] Calculation errors:  %lli\n", stats->CalculationErrors);
     printf("\n");
     printf("[INFO] Expected sum:        %.16f\n", stats->ExpectedSum);
-    printf("[INFO] Calculated sum:      %.16f\n", stats->CalcualtedSum);
+    printf("[INFO] Calculated sum:      %.16f\n", stats->CalculatedSum);
+
+    if (stats->PairsProcessed != stats->ExpectedPairCount)
+    {
+        printf("[ERROR] Parsed pair count (%llu) does not match value in answers file (%llu)\n",
+               stats->PairsProcessed,
+               stats->ExpectedPairCount);
+    }
 }
 
 
@@ -234,7 +242,7 @@ int main()
     END_TIMING(ReadAnswerFile)
 
     // read answers file header
-    answers_file_header answerHeader = { .Seed = 0, .ExpectedSum = 0 };
+    answers_file_header answerHeader = {0};
     MemoryCopy(&answerHeader, answerContents.PositionPtr, sizeof(answers_file_header));
     answerContents.PositionPtr += sizeof(answers_file_header);
 
@@ -271,6 +279,7 @@ int main()
     pairs_context context = {0};
     processor_stats stats = {0};
     stats.ExpectedSum = answerHeader.ExpectedSum;
+    stats.ExpectedPairCount = answerHeader.PairCount;
 
     END_TIMING(Startup); //////////////////////////////////////////////////////
 
@@ -437,7 +446,7 @@ int main()
         PrintHaversineDistance(point0, point1, distance);
 #endif
 
-        stats.CalcualtedSum = ((stats.CalcualtedSum * (F64)stats.PairsProcessed) + distance) / (F64)(stats.PairsProcessed + 1);
+        stats.CalculatedSum = ((stats.CalculatedSum * (F64)stats.PairsProcessed) + distance) / (F64)(stats.PairsProcessed + 1);
         stats.PairsProcessed++;
 
         F64 answerDistance = answerPtr[i];
