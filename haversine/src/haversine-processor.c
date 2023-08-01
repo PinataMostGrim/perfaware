@@ -36,6 +36,9 @@
 
 #define EPSILON_FLOAT 0.001
 
+// Note (Aaron): Validate each distance calculation using values from the answers file
+#define VALIDATE_ALL_PAIRS 0
+
 
 typedef struct token_stack token_stack;
 struct token_stack
@@ -185,7 +188,9 @@ global_function void PrintStats(processor_stats *stats)
     printf("[INFO] Tokens processed:    %lli\n", stats->TokenCount);
     printf("[INFO] Max token length:    %lli\n", stats->MaxTokenLength);
     printf("[INFO] Pairs processed:     %lli\n", stats->PairsProcessed);
+#if VALIDATE_ALL_PAIRS
     printf("[INFO] Calculation errors:  %lli\n", stats->CalculationErrors);
+#endif
     printf("\n");
     printf("[INFO] Expected sum:        %.16f\n", stats->ExpectedSum);
     printf("[INFO] Calculated sum:      %.16f\n", stats->CalculatedSum);
@@ -437,7 +442,11 @@ int main()
 
     START_TIMING(HaversineDistance);
     haversine_pair *pairs = (haversine_pair *)pairsArena.BasePtr;
+
+#if VALIDATE_ALL_PAIRS
     F64 *answerPtr = (F64 *)answerContents.PositionPtr;
+#endif
+
     for (int i = 0; i < stats.PairsParsed; ++i)
     {
         haversine_pair pair = pairs[i];
@@ -451,14 +460,20 @@ int main()
         stats.CalculatedSum = ((stats.CalculatedSum * (F64)stats.PairsProcessed) + distance) / (F64)(stats.PairsProcessed + 1);
         stats.PairsProcessed++;
 
+#if VALIDATE_ALL_PAIRS
         F64 answerDistance = answerPtr[i];
-        F64 difference = answerDistance - distance;
+
+        Assert(((answerPtr + i) < (F64 *)(answerContents.BasePtr + answerContents.Used))
+               && "Less pairs in the answers file than being parsed from the JSON");
+
+        F64 difference = AbsF64(answerDistance - distance);
         difference = difference >= 0 ? difference : difference * -1;
         if (difference > EPSILON_FLOAT)
         {
             stats.CalculationErrors++;
             printf("[WARN] Calculated distance diverges from answer value significantly (calculated: %f vs. answer: %f)\n", distance, answerDistance);
         }
+#endif
     }
 
     stats.SumDivergence = AbsF64(stats.CalculatedSum - stats.ExpectedSum);
