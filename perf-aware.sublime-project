@@ -48,12 +48,6 @@
                 "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
                 "shell_cmd": "build-win32-sim8086.bat",
             },
-            "linux":
-            {
-                // file_regex for clang
-                "file_regex": "^(..[^:\\n]*):([0-9]+):?([0-9]+)?:? (.*)$",
-                "shell_cmd": "./build-win32-sim8086.sh"
-            },
             "working_dir": "${project_path}",
             "env":
             {
