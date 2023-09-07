@@ -1,17 +1,19 @@
 # Build script for cli_sim8086.
 # IMPORTANT: Run from project's root folder.
 
-# Note: Configure these variables
-SOURCES="../src/cli_sim8086.cpp"
-INCLUDES="-I ../../common/src"
+# Note: Save the script's folder in order to construct full paths for each source.
+# Clang seems to only output full paths on errors if this is done.
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+
+# Note: Configure these variables
 BUILD_FOLDER="sim8086/build"
+SRC_FOLDER="sim8086/src"
 OUT_EXE="sim8086"
 
-# Note: This line is no longer necessary but I'm leaving it here for reference
-# on how to do this.
-# Save the script's folder
-# SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+INCLUDES="-I $SCRIPT_DIR/common/src"
+SOURCES="$SCRIPT_DIR/$SRC_FOLDER/cli_sim8086.cpp"
+
 
 # Sets DEBUG environment variable to 0 if
 # it isn't already defined
@@ -31,10 +33,10 @@ else
 fi
 
 # Create build folder if it doesn't exist
-mkdir -p "$BUILD_FOLDER"
+mkdir -p "$SCRIPT_DIR/$BUILD_FOLDER"
 
 # Change to the build folder (and redirect stdout to /dev/null and the redirect stderr to stdout)
-pushd $BUILD_FOLDER > /dev/null 2>&1
+pushd $SCRIPT_DIR/$BUILD_FOLDER > /dev/null 2>&1
 
 # Compile sim8086
 clang $COMPILER_FLAGS $INCLUDES $SOURCES -o $OUT_EXE
