@@ -379,7 +379,7 @@ int main(int argc, char const *argv[])
     printf("\n");
 
     EndTimingsProfile();
-    PrintTimingsProfile();
+    PrintProfileTimings();
 
     return 0;
 }
