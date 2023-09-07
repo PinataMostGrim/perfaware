@@ -1,33 +1,41 @@
-# Build script for sim8086.
+# Build script for cli_sim8086.
+# IMPORTANT: Run from project's root folder.
 
+# Note: Configure these variables
+SOURCES="../src/cli_sim8086.cpp"
+INCLUDES="-I ../../common/src"
+
+BUILD_FOLDER="sim8086/build"
+OUT_EXE="sim8086"
+
+# Note: This line is no longer necessary but I'm leaving it here for reference
+# on how to do this.
 # Save the script's folder
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+# SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-# Set the DEBUG environment variable to 0 if
+# Sets DEBUG environment variable to 0 if
 # it isn't already defined
 if [ -z $DEBUG ]
 then
     DEBUG=0
 fi
 
+# Set DEBUG environment variable to 1 for debug builds
 if [ $DEBUG = "1" ]
 then
     # Making debug build
-    CompilerFlags="-g -DSIM8086_SLOW=1 -Wno-null-dereference"
+    COMPILER_FLAGS="-g -DSIM8086_SLOW=1 -Wno-null-dereference"
 else
     # Making release build
-    CompilerFlags="-DSIM8086_SLOW=0"
+    COMPILER_FLAGS="-DSIM8086_SLOW=0"
 fi
 
-BUILD_FOLDER="sim8086/build"
-SRC_FOLDER="sim8086/src"
-
 # Create build folder if it doesn't exist
-mkdir -p "$SCRIPT_DIR/$BUILD_FOLDER"
+mkdir -p "$BUILD_FOLDER"
 
 # Change to the build folder (and redirect stdout to /dev/null and the redirect stderr to stdout)
 pushd $BUILD_FOLDER > /dev/null 2>&1
 
 # Compile sim8086
-clang $CompilerFlags "$SCRIPT_DIR/$SRC_FOLDER/sim8086.cpp" -o "sim8086"
+clang $COMPILER_FLAGS $INCLUDES $SOURCES -o $OUT_EXE
 popd > /dev/null 2>&1
