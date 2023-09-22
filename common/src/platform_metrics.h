@@ -53,7 +53,7 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait);
 
 #ifdef __cplusplus
 // Note (Aaron): Use the following macros to automatically start and stop timings when entering and exiting scope.
-// They do have somewhat more of an impact on timings than the START / END timing macros above.
+// They do have more of an impact on timings than the START / END timing macros above.
 #define FUNCTION_TIMING         zone_block_autostart __func__##Block (__COUNTER__ + 1, __func__);
 #define ZONE_TIMING(label)      zone_block_autostart label##Block (__COUNTER__ + 1, #label);
 #endif // __cplusplus
@@ -142,11 +142,8 @@ struct zone_block_autostart
 
 #ifdef PLATFORM_METRICS_IMPLEMENTATION ////////////////////////////////////////
 
-#if _WIN32
-
-#include <intrin.h>
-#include <windows.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #include "base_memory.h"
 
@@ -206,7 +203,6 @@ global_function void PrintProfileTimings()
 
         Assert(timingPtr->Label && "Timing missing label; most likely END_TIMING has not been called");
 
-
 #if DETECT_ORPHAN_TIMINGS
         Assert((timingPtr->HitCount == timingPtr->EndCount)
                && "Timing started but not finished or finished without starting");
@@ -214,7 +210,7 @@ global_function void PrintProfileTimings()
 
         U64 elapsed = timingPtr->TSCElapsed - timingPtr->TSCElapsedChildren;
         F64 percent = ((F64)elapsed / (F64)GlobalProfiler.TSCElapsed) * 100.0f;
-        printf("  %s[%llu]: %llu (%.2f%%)", timingPtr->Label, timingPtr->HitCount, elapsed, percent);
+        printf("  %s[%" PRId64"]: %" PRId64" (%.2f%%)", timingPtr->Label, timingPtr->HitCount, elapsed, percent);
 
         if (timingPtr->TSCElapsedOriginal != elapsed)
         {
@@ -229,11 +225,11 @@ global_function void PrintProfileTimings()
     Assert(unaccounted > 0 && "Unaccounted cycles can't be less than zero!");
 
     F64 percent = ((F64)unaccounted / (F64)GlobalProfiler.TSCElapsed) * 100.0f;
-    printf("  Unaccounted: %llu (%.2f%s)\n\n", unaccounted, percent, "%");
+    printf("  Unaccounted: %" PRId64" (%.2f%s)\n\n", unaccounted, percent, "%");
 #endif // PROFILER //////////////////////////////////////////////////
 
-    printf("Total cycles: %.4llu\n", GlobalProfiler.TSCElapsed);
-    printf("Total time:   %.4fms (CPU freq %llu)\n", totalTimeMs, GlobalProfiler.CPUFrequency);
+    printf("Total cycles: %.4" PRId64"\n", GlobalProfiler.TSCElapsed);
+    printf("Total time:   %.4fms (CPU freq %" PRId64")\n", totalTimeMs, GlobalProfiler.CPUFrequency);
 }
 
 
@@ -303,29 +299,14 @@ global_function void _RestartTiming(zone_block *block)
 
     block->Start = ReadCPUTimer();
 }
+#else // PROFILER ////////////////////////////////////////////////////////////
+
+global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label) {}
+global_function void _EndTiming(zone_block *block) {}
+global_function void _PreWarmTiming(zone_block *block, U32 timingIndex, char const *label) {}
+global_function void _RestartTiming(zone_block *block) {}
+
 #endif // PROFILER ////////////////////////////////////////////////////////////
-
-
-global_function U64 GetOSTimerFrequency()
-{
-    LARGE_INTEGER frequency;
-    QueryPerformanceFrequency(&frequency);
-    return frequency.QuadPart;
-}
-
-
-global_function U64 ReadOSTimer()
-{
-    LARGE_INTEGER value;
-    QueryPerformanceCounter(&value);
-    return value.QuadPart;
-}
-
-
-global_function U64 ReadCPUTimer()
-{
-    return __rdtsc();
-}
 
 
 global_function U64 GetCPUFrequency(U64 millisecondsToWait)
@@ -356,19 +337,59 @@ global_function U64 GetCPUFrequency(U64 millisecondsToWait)
     return cpuFrequency;
 }
 
+
+#if _WIN32
+
+#include <intrin.h>
+#include <windows.h>
+
+global_function U64 ReadCPUTimer()
+{
+    return __rdtsc();
+}
+
+
+global_function U64 GetOSTimerFrequency()
+{
+    LARGE_INTEGER frequency;
+    QueryPerformanceFrequency(&frequency);
+    return frequency.QuadPart;
+}
+
+
+global_function U64 ReadOSTimer()
+{
+    LARGE_INTEGER value;
+    QueryPerformanceCounter(&value);
+    return value.QuadPart;
+}
+
 #else // _WIN32
 
-global_function void StartTimingsProfile() { Assert(FALSE && "Not implemented"); }
-global_function void EndTimingsProfile() { Assert(FALSE && "Not implemented"); }
-global_function void _StartTiming(zone_block *block, U32 timingIndex, char const *label) { Assert(FALSE && "Not implemented"); }
-global_function void _EndTiming(zone_block *block) { Assert(FALSE && "Not implemented"); }
+#include <x86intrin.h>
+#include <sys/time.h>
 
-global_function void PrintProfileTimings() { Assert(FALSE && "Not implemented"); }
 
-global_function U64 GetOSTimerFreq(void) { Assert(FALSE && "Not implemented"); }
-global_function U64 ReadOSTimer(void) { Assert(FALSE && "Not implemented"); }
-global_function U64 ReadCPUTimer() { Assert(FALSE && "Not implemented"); }
-global_function U64 GetCPUFrequency(U64 millisecondsToWait) { Assert(FALSE && "Not implemented"); }
+global_function U64 ReadCPUTimer()
+{
+    return __rdtsc();
+}
+
+
+static U64 GetOSTimerFrequency()
+{
+    return 1000000;
+}
+
+
+static U64 ReadOSTimer()
+{
+    struct timeval value;
+    gettimeofday(&value, 0);
+
+    U64 result = GetOSTimerFrequency()*(U64)value.tv_sec + (U64)value.tv_usec;
+    return result;
+}
 
 #endif // _WIN32
 
