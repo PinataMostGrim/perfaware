@@ -17,10 +17,10 @@
 // Note (Aaron): Enable this to check for timings that have been started but not ended or vice versa. More necessary when using manual start and stop macros.
 #define DETECT_ORPHAN_TIMINGS 0
 
-
 #ifndef PROFILER
 #define PROFILER 0
 #endif
+
 
 #include <stdint.h>
 typedef uint32_t pm__u32;
@@ -191,62 +191,8 @@ static void EndTimingsProfile()
 }
 
 
-static void PrintProfileTimings()
-{
-    pm__f64 totalTimeMs = ((pm__f64)GlobalProfiler.TSCElapsed / (pm__f64)GlobalProfiler.CPUFrequency) * 1000.0f;
-
-#if PROFILER ////////////////////////////////////////////////////////
-#if DETECT_ORPHAN_TIMINGS
-    PM__Assert(GlobalProfiler.Started && "Profile has not been started");
-    PM__Assert(GlobalProfiler.Ended && "Profile has not been ended");
-#endif // DETECT_ORPHAN_TIMINGS
-
-    pm__s64 unaccounted = GlobalProfiler.TSCElapsed;
-
-    printf("Timings (cycles):\n");
-    // Note (Aaron): Timer at index 0 represents "no timer" and should be skipped
-    for (int i = 1; i < PM__ArrayCount(GlobalProfiler.Timings); ++i)
-    {
-        zone_timing *timingPtr = &GlobalProfiler.Timings[i];
-        if (!timingPtr->HitCount)
-        {
-            PM__Assert(!timingPtr->Label && "Timing has a label; most likely RESTART_TIMING has not been called");
-            continue;
-        }
-
-        PM__Assert(timingPtr->Label && "Timing missing label; most likely END_TIMING has not been called");
-
-#if DETECT_ORPHAN_TIMINGS
-        PM__Assert((timingPtr->HitCount == timingPtr->EndCount)
-               && "Timing started but not finished or finished without starting");
-#endif // DETECT_ORPHAN_TIMINGS
-
-        pm__u64 elapsed = timingPtr->TSCElapsed - timingPtr->TSCElapsedChildren;
-        pm__f64 percent = ((pm__f64)elapsed / (pm__f64)GlobalProfiler.TSCElapsed) * 100.0f;
-        printf("  %s[%" PRId64"]: %" PRId64" (%.2f%%)", timingPtr->Label, timingPtr->HitCount, elapsed, percent);
-
-        if (timingPtr->TSCElapsedOriginal != elapsed)
-        {
-            pm__f64 percentWithChildren = (pm__f64)timingPtr->TSCElapsedOriginal / (pm__f64)GlobalProfiler.TSCElapsed * 100.0;
-            printf(", %.2f%% w/children", percentWithChildren);
-        }
-
-        printf("\n");
-        unaccounted -= elapsed;
-    }
-
-    PM__Assert(unaccounted > 0 && "Unaccounted cycles can't be less than zero!");
-
-    pm__f64 percent = ((pm__f64)unaccounted / (pm__f64)GlobalProfiler.TSCElapsed) * 100.0f;
-    printf("  Unaccounted: %" PRId64" (%.2f%s)\n\n", unaccounted, percent, "%");
-#endif // PROFILER //////////////////////////////////////////////////
-
-    printf("Total cycles: %.4" PRId64"\n", GlobalProfiler.TSCElapsed);
-    printf("Total time:   %.4fms (CPU freq %" PRId64")\n", totalTimeMs, GlobalProfiler.CPUFrequency);
-}
-
-
 #if PROFILER //////////////////////////////////////////////////////////////////
+
 inline
 static void _StartTiming(zone_block *block, pm__u32 timingIndex, char const *label)
 {
@@ -312,12 +258,75 @@ static void _RestartTiming(zone_block *block)
 
     block->Start = ReadCPUTimer();
 }
+
+
+static void PrintProfileTimings()
+{
+    pm__f64 totalTimeMs = ((pm__f64)GlobalProfiler.TSCElapsed / (pm__f64)GlobalProfiler.CPUFrequency) * 1000.0f;
+
+#if DETECT_ORPHAN_TIMINGS
+    PM__Assert(GlobalProfiler.Started && "Profile has not been started");
+    PM__Assert(GlobalProfiler.Ended && "Profile has not been ended");
+#endif // DETECT_ORPHAN_TIMINGS
+
+    pm__s64 unaccounted = GlobalProfiler.TSCElapsed;
+
+    printf("Timings (cycles):\n");
+    // Note (Aaron): Timer at index 0 represents "no timer" and should be skipped
+    for (int i = 1; i < PM__ArrayCount(GlobalProfiler.Timings); ++i)
+    {
+        zone_timing *timingPtr = &GlobalProfiler.Timings[i];
+        if (!timingPtr->HitCount)
+        {
+            PM__Assert(!timingPtr->Label && "Timing has a label; most likely RESTART_TIMING has not been called");
+            continue;
+        }
+
+        PM__Assert(timingPtr->Label && "Timing missing label; most likely END_TIMING has not been called");
+
+#if DETECT_ORPHAN_TIMINGS
+        PM__Assert((timingPtr->HitCount == timingPtr->EndCount)
+               && "Timing started but not finished or finished without starting");
+#endif // DETECT_ORPHAN_TIMINGS
+
+        pm__u64 elapsed = timingPtr->TSCElapsed - timingPtr->TSCElapsedChildren;
+        pm__f64 percent = ((pm__f64)elapsed / (pm__f64)GlobalProfiler.TSCElapsed) * 100.0f;
+        printf("  %s[%" PRId64"]: %" PRId64" (%.2f%%)", timingPtr->Label, timingPtr->HitCount, elapsed, percent);
+
+        if (timingPtr->TSCElapsedOriginal != elapsed)
+        {
+            pm__f64 percentWithChildren = (pm__f64)timingPtr->TSCElapsedOriginal / (pm__f64)GlobalProfiler.TSCElapsed * 100.0;
+            printf(", %.2f%% w/children", percentWithChildren);
+        }
+
+        printf("\n");
+        unaccounted -= elapsed;
+    }
+
+    PM__Assert(unaccounted > 0 && "Unaccounted cycles can't be less than zero!");
+
+    pm__f64 percent = ((pm__f64)unaccounted / (pm__f64)GlobalProfiler.TSCElapsed) * 100.0f;
+    printf("  Unaccounted: %" PRId64" (%.2f%s)\n\n", unaccounted, percent, "%");
+
+    printf("Total cycles: %.4" PRId64"\n", GlobalProfiler.TSCElapsed);
+    printf("Total time:   %.4fms (CPU freq %" PRId64")\n", totalTimeMs, GlobalProfiler.CPUFrequency);
+}
+
 #else // PROFILER ////////////////////////////////////////////////////////////
 
 static void _StartTiming(zone_block *block, pm__u32 timingIndex, char const *label) {}
 static void _EndTiming(zone_block *block) {}
 static void _PreWarmTiming(zone_block *block, pm__u32 timingIndex, char const *label) {}
 static void _RestartTiming(zone_block *block) {}
+
+
+static void PrintProfileTimings()
+{
+    pm__f64 totalTimeMs = ((pm__f64)GlobalProfiler.TSCElapsed / (pm__f64)GlobalProfiler.CPUFrequency) * 1000.0f;
+
+    printf("Total cycles: %.4" PRId64"\n", GlobalProfiler.TSCElapsed);
+    printf("Total time:   %.4fms (CPU freq %" PRId64")\n", totalTimeMs, GlobalProfiler.CPUFrequency);
+}
 
 #endif // PROFILER ////////////////////////////////////////////////////////////
 
