@@ -291,7 +291,7 @@ static void PrintProfileTimings()
 
         pm__u64 elapsed = timingPtr->TSCElapsed - timingPtr->TSCElapsedChildren;
         pm__f64 percent = ((pm__f64)elapsed / (pm__f64)GlobalProfiler.TSCElapsed) * 100.0f;
-        printf("  %s[%" PRId64"]: %" PRId64" (%.2f%%)", timingPtr->Label, timingPtr->HitCount, elapsed, percent);
+        printf("  %s[%" PRIu64"]: %" PRIu64" (%.2f%%)", timingPtr->Label, timingPtr->HitCount, elapsed, percent);
 
         if (timingPtr->TSCElapsedOriginal != elapsed)
         {
@@ -308,8 +308,8 @@ static void PrintProfileTimings()
     pm__f64 percent = ((pm__f64)unaccounted / (pm__f64)GlobalProfiler.TSCElapsed) * 100.0f;
     printf("  Unaccounted: %" PRId64" (%.2f%s)\n\n", unaccounted, percent, "%");
 
-    printf("Total cycles: %.4" PRId64"\n", GlobalProfiler.TSCElapsed);
-    printf("Total time:   %.4fms (CPU freq %" PRId64")\n", totalTimeMs, GlobalProfiler.CPUFrequency);
+    printf("Total cycles: %.4" PRIu64"\n", GlobalProfiler.TSCElapsed);
+    printf("Total time:   %.4fms (CPU freq %" PRIu64")\n", totalTimeMs, GlobalProfiler.CPUFrequency);
 }
 
 #else // PROFILER ////////////////////////////////////////////////////////////
@@ -324,8 +324,8 @@ static void PrintProfileTimings()
 {
     pm__f64 totalTimeMs = ((pm__f64)GlobalProfiler.TSCElapsed / (pm__f64)GlobalProfiler.CPUFrequency) * 1000.0f;
 
-    printf("Total cycles: %.4" PRId64"\n", GlobalProfiler.TSCElapsed);
-    printf("Total time:   %.4fms (CPU freq %" PRId64")\n", totalTimeMs, GlobalProfiler.CPUFrequency);
+    printf("Total cycles: %.4" PRIu64"\n", GlobalProfiler.TSCElapsed);
+    printf("Total time:   %.4fms (CPU freq %" PRIu64")\n", totalTimeMs, GlobalProfiler.CPUFrequency);
 }
 
 #endif // PROFILER ////////////////////////////////////////////////////////////
