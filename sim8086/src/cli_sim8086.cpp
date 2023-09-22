@@ -1,8 +1,3 @@
-/* TODO (Aaron):
-    - Fix functionality broken be work on win32_sim8086
-    - Convert to length-based strings?
-*/
-
 #include "base_inc.h"
 
 #include "base_memory.c"
