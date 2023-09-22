@@ -10,6 +10,7 @@
 #include "sim8086.cpp"
 #include "sim8086_mnemonics.cpp"
 #define PLATFORM_METRICS_IMPLEMENTATION
+#define PROFILER 0
 #include "platform_metrics.h"
 
 
