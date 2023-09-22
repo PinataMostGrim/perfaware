@@ -13,6 +13,7 @@ OUT_EXE="haversine-generator"
 
 INCLUDES="-I $SCRIPT_DIR/common/src"
 SOURCES="$SCRIPT_DIR/$SRC_FOLDER/haversine-generator.c"
+LINKER_FLAGS="-lm"
 
 # Sets DEBUG environment variable to 0 if
 # it isn't already defined
@@ -38,5 +39,5 @@ mkdir -p "$SCRIPT_DIR/$BUILD_FOLDER"
 pushd $SCRIPT_DIR/$BUILD_FOLDER > /dev/null 2>&1
 
 # Compile
-clang $COMPILER_FLAGS $INCLUDES $SOURCES -o $OUT_EXE
+clang $COMPILER_FLAGS $INCLUDES $SOURCES -o $OUT_EXE $LINKER_FLAGS
 popd > /dev/null 2>&1
