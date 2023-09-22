@@ -1,8 +1,3 @@
-/* TODO (Aaron):
-    - Fix functionality broken be work on win32_sim8086
-    - Convert to length-based strings?
-*/
-
 #include "base_inc.h"
 
 #include "base_memory.c"
@@ -10,6 +5,7 @@
 #include "sim8086.cpp"
 #include "sim8086_mnemonics.cpp"
 #define PLATFORM_METRICS_IMPLEMENTATION
+#define PROFILER 0
 #include "platform_metrics.h"
 
 
@@ -292,6 +288,18 @@ int main(int argc, char const *argv[])
     }
     END_TIMING(InitProcessor)
 
+    // init scratch memory
+    U64 scratchMemorySize = Megabytes(1);
+    U8 *scratchMemoryPtr = (U8 *)calloc(scratchMemorySize, sizeof(U8));
+    if (!scratchMemoryPtr)
+    {
+        printf("ERROR: Unable to allocate scratch memory for sim8086\n");
+        exit(1);
+    }
+
+    memory_arena scratchArena;
+    ArenaInitialize(&scratchArena, scratchMemorySize, scratchMemoryPtr);
+
     START_TIMING(LoadProgramFromFile)
     FILE *file = {};
     file = fopen(filename, "rb");
@@ -350,7 +358,9 @@ int main(int argc, char const *argv[])
 
         if (simulateInstructions)
         {
-            ExecuteInstruction(&processor, &instruction);
+            Str8 result = ExecuteInstruction(&processor, &instruction, &scratchArena);
+            printf("%.*s", (int)result.Length, result.Str);
+            ArenaClear(&scratchArena);
         }
 
         printf("\n");
@@ -379,7 +389,7 @@ int main(int argc, char const *argv[])
     printf("\n");
 
     EndTimingsProfile();
-    PrintTimingsProfile();
+    PrintProfileTimings();
 
     return 0;
 }

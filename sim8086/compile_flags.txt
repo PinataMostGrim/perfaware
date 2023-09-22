@@ -1,7 +1,7 @@
 -I
-src\imgui
+src/imgui
 -I
-src\imgui\backends
+src/imgui/backends
 -I
-..\common\src
+../common/src
 -Wno-null-dereference

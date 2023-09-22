@@ -7,6 +7,7 @@
 #ifndef BASE_TYPES_H
 #define BASE_TYPES_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "base.h"

@@ -18,3 +18,7 @@ listing_*.*
 
 # ImGui files
 imgui.ini
+
+# Project build artifacts
+sim8086/build/
+haversine/build/

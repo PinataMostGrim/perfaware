@@ -1,2 +1,2 @@
 -I
-..\common\src
+../common/src

@@ -1,12 +1,4 @@
 /*  TODO (Aaron):
-    - Reduce the number of timings created so the profiler doesn't skew the runtime too much
-        - Original:
-            - Total time with profiler disabled: ~7200ms
-            - Total time with profiler enabled: ~8400ms
-        - Read file contents at once:
-            - Total time with profiler disabled: ~4100ms
-            - Total time with profiler enabled: ~5600ms
-
     - Lex / Parse JSON all at once
         - Add timing for lexing / parsing
 */
@@ -95,14 +87,14 @@ global_function memory_arena ReadFileContents(char *filename)
     }
 
 #if _WIN32
-    struct __stat64 stat;
-    _stat64(filename, &stat);
+    struct __stat64 stats;
+    _stat64(filename, &stats);
 #else
-    struct stat stat;
-    stat(filename, &stat);
+    struct stat stats;
+    stat(filename, &stats);
 #endif
 
-    memory_index fileSize = stat.st_size;
+    memory_index fileSize = stats.st_size;
     U8 *basePtr = (U8 *)malloc(fileSize);
 
     if (!basePtr)
@@ -185,11 +177,11 @@ global_function V2F64 GetVectorFromCoordinateTokens(haversine_token xValue, have
 
 global_function void PrintStats(processor_stats *stats)
 {
-    printf("[INFO] Tokens processed:    %lli\n", stats->TokenCount);
-    printf("[INFO] Max token length:    %lli\n", stats->MaxTokenLength);
-    printf("[INFO] Pairs processed:     %lli\n", stats->PairsProcessed);
+    printf("[INFO] Tokens processed:    %" PRIu64"\n", stats->TokenCount);
+    printf("[INFO] Max token length:    %" PRIu64"\n", stats->MaxTokenLength);
+    printf("[INFO] Pairs processed:     %" PRIu64"\n", stats->PairsProcessed);
 #if VALIDATE_ALL_PAIRS
-    printf("[INFO] Calculation errors:  %lli\n", stats->CalculationErrors);
+    printf("[INFO] Calculation errors:  %" PRIu64"\n", stats->CalculationErrors);
 #endif
     printf("\n");
     printf("[INFO] Expected sum:        %.16f\n", stats->ExpectedSum);
@@ -198,7 +190,7 @@ global_function void PrintStats(processor_stats *stats)
 
     if (stats->PairsProcessed != stats->ExpectedPairCount)
     {
-        printf("[ERROR] Parsed pair count (%llu) does not match value in answers file (%llu)\n",
+        printf("[ERROR] Parsed pair count (%" PRIu64") does not match value in answers file (%" PRIu64")\n",
                stats->PairsProcessed,
                stats->ExpectedPairCount);
     }
@@ -364,7 +356,7 @@ int main()
             {
                 if (context.X0Token)
                 {
-                    printf("[ERROR] Duplicate x0 identifier encountered in Haversine pair (%lli)\n", stats.PairsProcessed);
+                    printf("[ERROR] Duplicate x0 identifier encountered in Haversine pair (%" PRIu64")\n", stats.PairsProcessed);
                     exit(1);
                 }
                 context.X0Token = tokenPtr;
@@ -376,7 +368,7 @@ int main()
             {
                 if (context.Y0Token)
                 {
-                    printf("[ERROR] Duplicate y0 identifier encountered in Haversine pair (%lli)\n", stats.PairsProcessed);
+                    printf("[ERROR] Duplicate y0 identifier encountered in Haversine pair (%" PRIu64")\n", stats.PairsProcessed);
                     exit(1);
                 }
                 context.Y0Token = tokenPtr;
@@ -388,7 +380,7 @@ int main()
             {
                 if (context.X1Token)
                 {
-                    printf("[ERROR] Duplicate x1 identifier encountered in Haversine pair (%lli)\n", stats.PairsProcessed);
+                    printf("[ERROR] Duplicate x1 identifier encountered in Haversine pair (%" PRIu64")\n", stats.PairsProcessed);
                     exit(1);
                 }
                 context.X1Token = tokenPtr;
@@ -400,7 +392,7 @@ int main()
             {
                 if (context.Y1Token)
                 {
-                    printf("[ERROR] Duplicate y1 identifier encountered in Haversine pair (%lli)\n", stats.PairsProcessed);
+                    printf("[ERROR] Duplicate y1 identifier encountered in Haversine pair (%" PRIu64")\n", stats.PairsProcessed);
                     exit(1);
                 }
                 context.Y1Token = tokenPtr;
