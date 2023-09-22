@@ -7,6 +7,7 @@
 #pragma warning(disable:4996)
 
 #include <stdio.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -135,7 +136,7 @@ int main(int argc, char const *argv[])
 
     printf("[INFO] Generating Haversine distance coordinate pairs...\n");
     printf("[INFO] Seed:\t\t%u\n", seed);
-    printf("[INFO] Pair count:\t%llu\n", pairCount);
+    printf("[INFO] Pair count:\t%" PRIu64"\n", pairCount);
 
     srand(seed);
 
