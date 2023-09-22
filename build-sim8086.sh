@@ -39,5 +39,5 @@ mkdir -p "$SCRIPT_DIR/$BUILD_FOLDER"
 pushd $SCRIPT_DIR/$BUILD_FOLDER > /dev/null 2>&1
 
 # Compile sim8086
-clang $COMPILER_FLAGS $INCLUDES $SOURCES -o $OUT_EXE
+g++ $COMPILER_FLAGS $INCLUDES $SOURCES -o $OUT_EXE
 popd > /dev/null 2>&1
