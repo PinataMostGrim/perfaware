@@ -107,7 +107,10 @@ global_function memory_arena ReadFileContents(char *filename)
         return result;
     }
 
-    if(fread(basePtr, fileSize, 1, file) != 1)
+    START_BANDWIDTH_TIMING(ReadFileContents, fileSize);
+    B8 read_success = fread(basePtr, fileSize, 1, file) == 1;
+    END_TIMING(ReadFileContents)
+    if(!read_success)
     {
         fprintf(stderr, "[ERROR] Unable to read file \"%s\"\n", filename);
         free(basePtr);
