@@ -51,11 +51,6 @@ static pm__u64 GetCPUFrequency(pm__u64 millisecondsToWait);
                                 _StartTiming(&label##Block, __COUNTER__ + 1, #label);
 #define END_TIMING(label)       _EndTiming(&label##Block);
 
-// Note (Aaron): The following macros can be used to control the scope a timing is created in
-// so it can be re-used later in the same scope.
-#define PREWARM_TIMING(label)   zone_block label##Block = {0}; \
-                                _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label)
-#define RESTART_TIMING(label)   _RestartTiming(&label##Block);
 
 // Note (Aaron): Place this macro at the end of the profiler's compilation unit to assert there is enough room in the GlobalProfiler.Timings array
 #define ProfilerEndOfCompilationUnit static_assert(__COUNTER__ <= PM__ArrayCount(GlobalProfiler.Timings) , "__COUNTER__ exceeds the number of timings available");
@@ -71,15 +66,13 @@ static pm__u64 GetCPUFrequency(pm__u64 millisecondsToWait);
 #else // PROFILER ///////////////////////////////////////////////////
 
 // Note (Aaron): Macro stubs for disabled timings
-#define START_TIMING(label)
-#define END_TIMING(label)
-#define PREWARM_TIMING(label)
-#define RESTART_TIMING(label)
+#define START_TIMING(...)
+#define END_TIMING(...)
 #define ProfilerEndOfCompilationUnit
 
 #ifdef __cplusplus
 #define FUNCTION_TIMING
-#define ZONE_TIMING(label)
+#define ZONE_TIMING(...)
 #endif // __cplusplus
 
 #endif // PROFILER //////////////////////////////////////////////////
@@ -235,31 +228,6 @@ static void _EndTiming(zone_block *block)
 }
 
 
-inline
-static void _PreWarmTiming(zone_block *block, pm__u32 timingIndex, char const *label)
-{
-    block->Index = timingIndex;
-    block->Label = label;
-}
-
-
-inline
-static void _RestartTiming(zone_block *block)
-{
-    zone_timing *timing = &GlobalProfiler.Timings[block->Index];
-    block->TSCElapsedOriginal = timing->TSCElapsedOriginal;
-
-    block->ParentIndex = GlobalProfilerParent;
-    GlobalProfilerParent = block->Index;
-
-#if DETECT_ORPHAN_TIMINGS
-    GlobalProfiler.Timings[block->Index].HitCount++;
-#endif // DETECT_ORPHAN_TIMINGS
-
-    block->Start = ReadCPUTimer();
-}
-
-
 static void PrintProfileTimings()
 {
     pm__f64 totalTimeMs = ((pm__f64)GlobalProfiler.TSCElapsed / (pm__f64)GlobalProfiler.CPUFrequency) * 1000.0f;
@@ -316,8 +284,6 @@ static void PrintProfileTimings()
 
 static void _StartTiming(zone_block *block, pm__u32 timingIndex, char const *label) {}
 static void _EndTiming(zone_block *block) {}
-static void _PreWarmTiming(zone_block *block, pm__u32 timingIndex, char const *label) {}
-static void _RestartTiming(zone_block *block) {}
 
 
 static void PrintProfileTimings()
