@@ -220,7 +220,6 @@ int main()
     START_TIMING(Startup); ////////////////////////////////////////////////////
 
     // read data file
-    START_TIMING(ReadJSONFile)
     char *dataFilename = DATA_FILENAME;
     printf("[INFO] Processing file '%s'\n", dataFilename);
     memory_arena jsonContents = ReadFileContents(dataFilename);
@@ -229,10 +228,8 @@ int main()
         perror("[ERROR] ");
         return 1;
     }
-    END_TIMING(ReadJSONFile)
 
     // read answer file
-    START_TIMING(ReadAnswerFile)
     char *answerFilename = ANSWER_FILENAME;
     printf("[INFO] Processing file '%s'\n", answerFilename);
     memory_arena answerContents = ReadFileContents(answerFilename);
@@ -241,7 +238,6 @@ int main()
         perror("[ERROR] ");
         return 1;
     }
-    END_TIMING(ReadAnswerFile)
 
     // read answers file header
     answers_file_header answerHeader = {0};
