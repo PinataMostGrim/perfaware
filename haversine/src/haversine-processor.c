@@ -249,7 +249,7 @@ int main()
     U8 *tokenStackPtr = calloc(1, Megabytes(1));
     if (!tokenStackPtr)
     {
-        printf("[ERROR] Unable to allocate memory for token stack");
+        printf("[ERROR] Unable to allocate memory for token stack\n");
         exit(1);
     }
 
@@ -266,7 +266,7 @@ int main()
     U8 *pairsPtr = malloc(pairsArenaSize);
     if (!pairsPtr)
     {
-        printf("[ERROR] Unable to allocate memory for haversine pairs values");
+        printf("[ERROR] Unable to allocate memory for haversine pairs values\n");
         exit(1);
     }
 
@@ -281,6 +281,7 @@ int main()
 
     END_TIMING(Startup); //////////////////////////////////////////////////////
 
+    printf("[INFO] Processing haversine pairs\n");
     START_TIMING(JSONParsing)
     for (;;)
     {
