@@ -46,40 +46,42 @@ static pm__u64 GetCPUFrequency(pm__u64 millisecondsToWait);
 
 #if PROFILER ////////////////////////////////////////////////////////
 
-// Note (Aaron): Use the following macros to start and end named timings within the same scope.
-#define START_TIMING(label)     zone_block label##Block = {0};                       \
-                                _StartTiming(&label##Block, __COUNTER__ + 1, #label);
-#define END_TIMING(label)       _EndTiming(&label##Block);
+// Note (Aaron): Use the following macro to start a named timing that tracks data throughput.
+#define START_BANDWIDTH_TIMING(label, byteCount)    zone_block label##Block = {0}; \
+                                                    _StartTiming(&label##Block, #label, __COUNTER__ + 1, byteCount)
 
-// Note (Aaron): The following macros can be used to control the scope a timing is created in
-// so it can be re-used later in the same scope.
-#define PREWARM_TIMING(label)   zone_block label##Block = {0}; \
-                                _PreWarmTiming(&label##Block, __COUNTER__ + 1, #label)
-#define RESTART_TIMING(label)   _RestartTiming(&label##Block);
+// Note (Aaron): Use the following macro to start a named timing
+#define START_TIMING(label)                 START_BANDWIDTH_TIMING(label, 0);
 
-// Note (Aaron): Place this macro at the end of the profiler's compilation unit to assert there is enough room in the GlobalProfiler.Timings array
+// Note (Aaron): Use the following macro to end a named timing that was started within the same scope.
+#define END_TIMING(label)                   _EndTiming(&label##Block);
+
+// Note (Aaron): Place this macro at the end of the profiler's compilation unit
+// to assert there is enough room in the GlobalProfiler.Timings array to cover all timings.
 #define ProfilerEndOfCompilationUnit static_assert(__COUNTER__ <= PM__ArrayCount(GlobalProfiler.Timings) , "__COUNTER__ exceeds the number of timings available");
 
-
 #ifdef __cplusplus
+
 // Note (Aaron): Use the following macros to automatically start and stop timings when entering and exiting scope.
-// They do have more of an impact on timings than the START / END timing macros above.
-#define FUNCTION_TIMING         zone_block_autostart __func__##Block (__COUNTER__ + 1, __func__);
-#define ZONE_TIMING(label)      zone_block_autostart label##Block (__COUNTER__ + 1, #label);
+// They have more of an impact on timings than the START / END timing macros above but do not need to be manually ended.
+#define BANDWIDTH_TIMING(label, byteCount)  zone_block_autostart label##Block (#label, __COUNTER__ + 1, byteCount);
+#define ZONE_TIMING(label)                  BANDWIDTH_TIMING(label, 0)
+#define FUNCTION_TIMING                     zone_block_autostart __func__##Block (__func__, __COUNTER__ + 1, 0);
+
 #endif // __cplusplus
 
 #else // PROFILER ///////////////////////////////////////////////////
 
 // Note (Aaron): Macro stubs for disabled timings
-#define START_TIMING(label)
-#define END_TIMING(label)
-#define PREWARM_TIMING(label)
-#define RESTART_TIMING(label)
+#define START_BANDWIDTH_TIMING(...)
+#define START_TIMING(...)
+#define END_TIMING(...)
 #define ProfilerEndOfCompilationUnit
 
 #ifdef __cplusplus
+#define BANDWIDTH_TIMING(...)
+#define ZONE_TIMING(...)
 #define FUNCTION_TIMING
-#define ZONE_TIMING(label)
 #endif // __cplusplus
 
 #endif // PROFILER //////////////////////////////////////////////////
@@ -92,6 +94,7 @@ struct zone_timing
     pm__u64 TSCElapsedChildren;
     pm__u64 TSCElapsedOriginal;
     pm__u64 HitCount;
+    pm__u64 ProcessedByteCount;
     char const *Label;
 
 #if DETECT_ORPHAN_TIMINGS
@@ -127,7 +130,7 @@ struct timings_profile
 
 
 #ifdef __cplusplus
-static void _StartTiming(zone_block *block, pm__u32 timingIndex, char const *label);
+static void _StartTiming(zone_block *block, char const *label, pm__u32 timingIndex, pm__u64 byteCount);
 static void _EndTiming(zone_block *block);
 
 typedef struct zone_block_autostart zone_block_autostart;
@@ -135,10 +138,10 @@ struct zone_block_autostart
 {
     zone_block Block;
 
-    zone_block_autostart(pm__u32 index, char const *label)
+    zone_block_autostart(char const *label, pm__u32 index, pm__u64 byteCount)
     {
         Block = {};
-        _StartTiming(&Block, index, label);
+        _StartTiming(&Block, label, index, byteCount);
     }
 
     ~zone_block_autostart(void)
@@ -194,10 +197,11 @@ static void EndTimingsProfile()
 #if PROFILER //////////////////////////////////////////////////////////////////
 
 inline
-static void _StartTiming(zone_block *block, pm__u32 timingIndex, char const *label)
+static void _StartTiming(zone_block *block, char const *label, pm__u32 timingIndex, pm__u64 byteCount)
 {
     zone_timing *timing = &GlobalProfiler.Timings[timingIndex];
     block->TSCElapsedOriginal = timing->TSCElapsedOriginal;
+    timing->ProcessedByteCount += byteCount;
 
     block->ParentIndex = GlobalProfilerParent;
     block->Index = timingIndex;
@@ -232,31 +236,6 @@ static void _EndTiming(zone_block *block)
 #endif // DETECT_ORPHAN_TIMINGS
 
     timing->Label = block->Label;
-}
-
-
-inline
-static void _PreWarmTiming(zone_block *block, pm__u32 timingIndex, char const *label)
-{
-    block->Index = timingIndex;
-    block->Label = label;
-}
-
-
-inline
-static void _RestartTiming(zone_block *block)
-{
-    zone_timing *timing = &GlobalProfiler.Timings[block->Index];
-    block->TSCElapsedOriginal = timing->TSCElapsedOriginal;
-
-    block->ParentIndex = GlobalProfilerParent;
-    GlobalProfilerParent = block->Index;
-
-#if DETECT_ORPHAN_TIMINGS
-    GlobalProfiler.Timings[block->Index].HitCount++;
-#endif // DETECT_ORPHAN_TIMINGS
-
-    block->Start = ReadCPUTimer();
 }
 
 
@@ -299,6 +278,19 @@ static void PrintProfileTimings()
             printf(", %.2f%% w/children", percentWithChildren);
         }
 
+        if (timingPtr->ProcessedByteCount)
+        {
+            pm__f64 megabyte = 1024.0f * 1024.0f;
+            pm__f64 gigabyte = megabyte * 1024.0f;
+
+            pm__f64 seconds = timingPtr->TSCElapsed / (pm__f64)GlobalProfiler.CPUFrequency;
+            pm__f64 bytesPerSecond = timingPtr->ProcessedByteCount / seconds;
+            pm__f64 megabytes = timingPtr->ProcessedByteCount / megabyte;
+            pm__f64 gigabytesPerSecond = bytesPerSecond / gigabyte;
+
+            printf(", %.3f mb at %.2f gb/sec", megabytes, gigabytesPerSecond);
+        }
+
         printf("\n");
         unaccounted -= elapsed;
     }
@@ -314,10 +306,8 @@ static void PrintProfileTimings()
 
 #else // PROFILER ////////////////////////////////////////////////////////////
 
-static void _StartTiming(zone_block *block, pm__u32 timingIndex, char const *label) {}
+static void _StartTiming(zone_block *block, char const *label, pm__u32 timingIndex, pm__u64 byteCount) {}
 static void _EndTiming(zone_block *block) {}
-static void _PreWarmTiming(zone_block *block, pm__u32 timingIndex, char const *label) {}
-static void _RestartTiming(zone_block *block) {}
 
 
 static void PrintProfileTimings()

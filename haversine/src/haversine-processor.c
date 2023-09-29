@@ -107,7 +107,10 @@ global_function memory_arena ReadFileContents(char *filename)
         return result;
     }
 
-    if(fread(basePtr, fileSize, 1, file) != 1)
+    START_BANDWIDTH_TIMING(ReadFileContents, fileSize);
+    B8 read_success = fread(basePtr, fileSize, 1, file) == 1;
+    END_TIMING(ReadFileContents)
+    if(!read_success)
     {
         fprintf(stderr, "[ERROR] Unable to read file \"%s\"\n", filename);
         free(basePtr);
@@ -217,7 +220,6 @@ int main()
     START_TIMING(Startup); ////////////////////////////////////////////////////
 
     // read data file
-    START_TIMING(ReadJSONFile)
     char *dataFilename = DATA_FILENAME;
     printf("[INFO] Processing file '%s'\n", dataFilename);
     memory_arena jsonContents = ReadFileContents(dataFilename);
@@ -226,10 +228,8 @@ int main()
         perror("[ERROR] ");
         return 1;
     }
-    END_TIMING(ReadJSONFile)
 
     // read answer file
-    START_TIMING(ReadAnswerFile)
     char *answerFilename = ANSWER_FILENAME;
     printf("[INFO] Processing file '%s'\n", answerFilename);
     memory_arena answerContents = ReadFileContents(answerFilename);
@@ -238,7 +238,6 @@ int main()
         perror("[ERROR] ");
         return 1;
     }
-    END_TIMING(ReadAnswerFile)
 
     // read answers file header
     answers_file_header answerHeader = {0};
@@ -250,7 +249,7 @@ int main()
     U8 *tokenStackPtr = calloc(1, Megabytes(1));
     if (!tokenStackPtr)
     {
-        printf("[ERROR] Unable to allocate memory for token stack");
+        printf("[ERROR] Unable to allocate memory for token stack\n");
         exit(1);
     }
 
@@ -267,7 +266,7 @@ int main()
     U8 *pairsPtr = malloc(pairsArenaSize);
     if (!pairsPtr)
     {
-        printf("[ERROR] Unable to allocate memory for haversine pairs values");
+        printf("[ERROR] Unable to allocate memory for haversine pairs values\n");
         exit(1);
     }
 
@@ -282,6 +281,7 @@ int main()
 
     END_TIMING(Startup); //////////////////////////////////////////////////////
 
+    printf("[INFO] Processing haversine pairs\n");
     START_TIMING(JSONParsing)
     for (;;)
     {
