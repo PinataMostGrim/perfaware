@@ -252,7 +252,7 @@ static void PrintProfileTimings()
 
     printf("Timings (cycles):\n");
     // Note (Aaron): Timer at index 0 represents "no timer" and should be skipped
-    for (int i = 1; i < PM__ArrayCount(GlobalProfiler.Timings); ++i)
+    for (pm__u64 i = 1; i < PM__ArrayCount(GlobalProfiler.Timings); ++i)
     {
         zone_timing *timingPtr = &GlobalProfiler.Timings[i];
         if (!timingPtr->HitCount)

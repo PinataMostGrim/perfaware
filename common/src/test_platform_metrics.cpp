@@ -11,7 +11,7 @@ static void TestManualTimings(uint64_t loops)
     START_TIMING(TestManualTimings)
 
     uint64_t value = 0;
-    for (int i = 0; i < loops; ++i)
+    for (uint64_t i = 0; i < loops; ++i)
     {
         value = value + 1;
     }
@@ -25,7 +25,7 @@ static void TestAutomaticTimings(uint64_t loops)
     FUNCTION_TIMING
 
     uint64_t value = 0;
-    for (int i = 0; i < loops; ++i)
+    for (uint64_t i = 0; i < loops; ++i)
     {
         value = value + 1;
     }
@@ -37,7 +37,7 @@ static void TestBandwidthTimings(uint64_t loops, uint64_t byteCount)
     BANDWIDTH_TIMING(BandwidthTiming, byteCount);
 
     uint64_t value = 0;
-    for (int i = 0; i < loops; ++i)
+    for (uint64_t i = 0; i < loops; ++i)
     {
         value = value + 1;
     }
@@ -49,9 +49,11 @@ int main(int argc, char const *argv[])
     StartTimingsProfile();
 
     uint64_t loops = 1000000;
+    uint64_t bytes = 1024 * 1024 * 1;
+
     TestManualTimings(loops);
     TestAutomaticTimings(loops);
-    TestBandwidthTimings(loops, 4096);
+    TestBandwidthTimings(loops, bytes);
 
     EndTimingsProfile();
     PrintProfileTimings();
