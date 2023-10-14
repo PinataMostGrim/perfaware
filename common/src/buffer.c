@@ -20,14 +20,14 @@ static buffer BufferAllocate(size_t sizeBytes)
 }
 
 
-static void BufferFree(buffer *instance)
+static void BufferFree(buffer *buff)
 {
-    if (instance->Data)
+    if (buff->Data)
     {
-        free(instance->Data);
+        free(buff->Data);
     }
 
     uint64_t size = sizeof(buffer);
-    unsigned char *dest = (unsigned char *)instance;
+    unsigned char *dest = (unsigned char *)buff;
     while(size--) *dest++ = (unsigned char)0;
 }
