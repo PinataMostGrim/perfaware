@@ -21,6 +21,7 @@ typedef struct read_parameters read_parameters;
 typedef struct test_function test_function;
 typedef void read_overhead_test_func(repetition_tester *tester, read_parameters *params);
 
+static void WriteToAllBytes(repetition_tester *tester, read_parameters *params);
 static void ReadViaFRead(repetition_tester *tester, read_parameters *params);
 static void ReadViaRead(repetition_tester *tester, read_parameters *params);
 
@@ -49,6 +50,7 @@ struct test_function
 
 test_function testFunctions[] =
 {
+    {"WriteToAllBytes", WriteToAllBytes },
     {"fread", ReadViaFRead },
     {"read", ReadViaRead },
 };
@@ -110,6 +112,26 @@ static void HandleDeallocation(read_parameters *params, buffer *buff)
             fprintf(stderr, "[ERROR] Unrecognized allocation type");
             break;
         }
+    }
+}
+
+
+static void WriteToAllBytes(repetition_tester *tester, read_parameters *params)
+{
+    while (IsTesting(tester))
+    {
+        buffer buff = params->Buffer;
+        HandleAllocation(params, &buff);
+
+        BeginTime(tester);
+        for (rt__u64 index = 0; index < buff.SizeBytes; ++index)
+        {
+            buff.Data[index] = (rt__u8)index;
+        }
+        EndTime(tester);
+
+        CountBytes(tester, buff.SizeBytes);
+        HandleDeallocation(params, &buff);
     }
 }
 
