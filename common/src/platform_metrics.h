@@ -23,7 +23,7 @@
 
 
 #include <stdint.h>
-typedef int8_t pm__b8;
+typedef int32_t pm__b32;
 
 #define PM__TRUE 1
 #define PM__FALSE 0
@@ -123,8 +123,8 @@ struct timings_profile
     zone_timing Timings[MAX_NAMED_TIMINGS];
 
 #if DETECT_ORPHAN_TIMINGS
-    pm__b8 Started;
-    pm__b8 Ended;
+    pm__b32 Started;
+    pm__b32 Ended;
 #endif // DETECT_ORPHAN_TIMINGS
 };
 

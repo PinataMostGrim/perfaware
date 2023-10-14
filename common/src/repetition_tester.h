@@ -2,7 +2,7 @@
 #define REPETITION_TESTER_H
 
 #include <stdint.h>
-typedef int8_t rt__b32;
+typedef int32_t rt__b32;
 
 #define RT__TRUE 1
 #define RT__FALSE 0
