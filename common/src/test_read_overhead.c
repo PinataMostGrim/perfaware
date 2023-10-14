@@ -10,6 +10,8 @@
 #include "base_inc.h"
 #include "base_types.c"
 #include "base_memory.c"
+#include "buffer.h"
+#include "buffer.c"
 
 #define REPETITION_TESTER_IMPLEMENTATION
 #include "repetition_tester.h"
@@ -25,7 +27,7 @@ static void ReadViaRead(repetition_tester *tester, read_parameters *params);
 
 struct read_parameters
 {
-    memory_arena Arena;
+    buffer DestBuffer;
     char const *FileName;
 };
 
@@ -53,15 +55,15 @@ static void ReadViaFRead(repetition_tester *tester, read_parameters *params)
             continue;
         }
 
-        memory_arena arena = params->Arena;
+        buffer destBuffer = params->DestBuffer;
 
         BeginTime(tester);
-        size_t result = fread(arena.BasePtr, arena.Size, 1, file);
+        size_t result = fread(destBuffer.Data, destBuffer.SizeBytes, 1, file);
         EndTime(tester);
 
         if (result == 1)
         {
-            CountBytes(tester, arena.Size);
+            CountBytes(tester, destBuffer.SizeBytes);
         }
         else
         {
@@ -84,9 +86,9 @@ static void ReadViaRead(repetition_tester *tester, read_parameters *params)
             continue;
         }
 
-        memory_arena arena = params->Arena;
-        rt__u8 *dest = arena.BasePtr;
-        rt__u64 sizeRemaining = arena.Size;
+        buffer destBuffer = params->DestBuffer;
+        rt__u8 *dest = destBuffer.Data;
+        rt__u64 sizeRemaining = destBuffer.SizeBytes;
 
         while(sizeRemaining)
         {
@@ -115,32 +117,6 @@ static void ReadViaRead(repetition_tester *tester, read_parameters *params)
 }
 
 
-static memory_arena ArenaAllocate(memory_index size)
-{
-    memory_arena result = {0};
-    U8 *basePtr = (U8 *)malloc(size);
-    if (!basePtr)
-    {
-        return result;
-    }
-
-    ArenaInitialize(&result, size, basePtr);
-
-    return result;
-}
-
-
-static void ArenaFree(memory_arena *arena)
-{
-    if(arena)
-    {
-        free(arena->BasePtr);
-    }
-
-    MemoryZeroStruct(arena);
-}
-
-
 int main(int argCount, char const *args[])
 {
     rt__u64 cpuTimerFrequency = EstimateCPUTimerFrequency();
@@ -161,10 +137,9 @@ int main(int argCount, char const *args[])
 #endif
 
     read_parameters params = {0};
-    params.Arena = ArenaAllocate(stats.st_size);
     params.FileName = fileName;
-
-    if (params.Arena.Size == 0)
+    params.DestBuffer = BufferAllocate(stats.st_size);
+    if (params.DestBuffer.Data == 0)
     {
         fprintf(stderr, "[ERROR] Test data size must be non-zero\n");
         return 1;
@@ -181,7 +156,7 @@ int main(int argCount, char const *args[])
             rt__u32 secondsToTry = 10;
 
             printf("\n--- %s ---\n", testFunc.Name);
-            NewTestWave(tester, params.Arena.Size, cpuTimerFrequency, secondsToTry);
+            NewTestWave(tester, params.DestBuffer.SizeBytes, cpuTimerFrequency, secondsToTry);
             testFunc.Func(tester, &params);
         }
     }
