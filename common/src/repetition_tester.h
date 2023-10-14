@@ -12,6 +12,8 @@ typedef int8_t rt__b32;
 #define RT__TRUE 1
 #define RT__FALSE 0
 
+#define RT__ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
 
 typedef enum
 {
@@ -22,13 +24,31 @@ typedef enum
 } test_mode;
 
 
+typedef enum
+{
+    RepValue_TestCount,
+
+    RepValue_CPUTimer,
+    RepValue_MemPageFaults,
+    RepValue_ByteCount,
+
+    RepValue_Count,
+} repetition_value_type;
+
+
+typedef struct repetition_value repetition_value;
+struct repetition_value
+{
+   rt__u64 E[RepValue_Count];
+};
+
+
 typedef struct test_results test_results;
 struct test_results
 {
-    rt__u64 TestCount;
-    rt__u64 TotalTime;
-    rt__u64 MaxTime;
-    rt__u64 MinTime;
+    repetition_value Total;
+    repetition_value Min;
+    repetition_value Max;
 };
 
 
@@ -44,17 +64,17 @@ struct repetition_tester
     rt__b32 PrintNewMinimums;
     rt__u32 OpenBlockCount;
     rt__u32 CloseBlockCount;
-    rt__u64 TimeAccumulatedOnTestInstance;
-    rt__u64 BytesAccumulatedOnTestInstance;
 
+    repetition_value AccumulatedOnThisTest;
     test_results Results;
 };
 
 
 static rt__u64 ReadCPUTimer();
 static rt__u64 EstimateCPUTimerFrequency();
-static rt__u64 ReadOSTimer();
 static rt__u64 GetOSTimerFrequency();
+static rt__u64 ReadOSTimer();
+static rt__u64 ReadOSPageFaultCount();
 
 #endif // REPETITION_TESTER_H /////////////////////////////////////////////////
 
@@ -76,37 +96,46 @@ static rt__f64 SecondsFromCPUTime(rt__f64 cpuTime, rt__u64 cpuTimerFrequency)
 }
 
 
-static void PrintTime(char const *label, rt__f64 cpuTime, rt__u64 cpuTimerFrequency, rt__u64 byteCount)
+static void PrintValue(char const *label, repetition_value value, rt__u64 cpuTimerFrequency)
 {
-    printf("%s: %.0f", label, cpuTime);
+    rt__u64 testCount = value.E[RepValue_TestCount];
+    rt__f64 divisor = testCount ? (rt__f64)testCount : 1;
+
+    rt__f64 e[RepValue_Count];
+    for (rt__u32 i = 0; i < RT__ArrayCount(e); ++i)
+    {
+        e[i] = (rt__f64)value.E[i] / divisor;
+    }
+
+    printf("%s: %.0f", label, e[RepValue_CPUTimer]);
     if (cpuTimerFrequency)
     {
-        rt__f64 seconds = SecondsFromCPUTime(cpuTime, cpuTimerFrequency);
+        rt__f64 seconds = SecondsFromCPUTime(e[RepValue_CPUTimer], cpuTimerFrequency);
         printf(" (%fms)", 1000.0f * seconds);
 
-        if (byteCount)
+        if (e[RepValue_ByteCount] > 0)
         {
             rt__f64 gigabyte = (1024.0f * 1024.0f * 1024.0f);
-            rt__f64 bestbandwidth = byteCount / (gigabyte * seconds);
+            rt__f64 bestbandwidth = e[RepValue_ByteCount] / (gigabyte * seconds);
             printf(" %f gb/s", bestbandwidth);
         }
+    }
+
+    if(e[RepValue_MemPageFaults] > 0)
+    {
+        printf(" PF: %0.4f (%0.4fk/fault)", e[RepValue_MemPageFaults], e[RepValue_ByteCount] / (e[RepValue_MemPageFaults] * 1024.0));
     }
 }
 
 
-static void PrintResults(test_results results, rt__u64 cpuTimerFrequency, rt__u64 byteCount)
+static void PrintResults(test_results results, rt__u64 cpuTimerFrequency)
 {
-    PrintTime("Min", (rt__f64)results.MinTime, cpuTimerFrequency, byteCount);
+    PrintValue("Min", results.Min, cpuTimerFrequency);
     printf("\n");
-
-    PrintTime("Max", (rt__f64)results.MaxTime, cpuTimerFrequency, byteCount);
+    PrintValue("Max", results.Max, cpuTimerFrequency);
     printf("\n");
-
-    if (results.TestCount)
-    {
-        PrintTime("Avg", (rt__f64)results.TotalTime / (rt__f64)results.TestCount, cpuTimerFrequency, byteCount);
-        printf("\n");
-    }
+    PrintValue("Avg", results.Total, cpuTimerFrequency);
+    printf("\n");
 }
 
 
@@ -125,7 +154,7 @@ static void NewTestWave(repetition_tester *tester, rt__u64 targetProcessedByteCo
         tester->TargetProcessedByteCount = targetProcessedByteCount;
         tester->CPUTimerFrequency = cpuTimerFrequency;
         tester->PrintNewMinimums = RT__TRUE;
-        tester->Results.MinTime = (rt__u64)-1;
+        tester->Results.Min.E[RepValue_CPUTimer] = (rt__u64)-1;
     }
     else if (tester->Mode == TestMode_Completed)
     {
@@ -150,20 +179,26 @@ static void NewTestWave(repetition_tester *tester, rt__u64 targetProcessedByteCo
 static void BeginTime(repetition_tester *tester)
 {
     ++tester->OpenBlockCount;
-    tester->TimeAccumulatedOnTestInstance -= ReadCPUTimer();
+
+    repetition_value *accumulated = &tester->AccumulatedOnThisTest;
+    accumulated->E[RepValue_MemPageFaults] -= ReadOSPageFaultCount();
+    accumulated->E[RepValue_CPUTimer] -= ReadCPUTimer();
 }
 
 
 static void EndTime(repetition_tester *tester)
 {
+    repetition_value *accumulated = &tester->AccumulatedOnThisTest;
+    accumulated->E[RepValue_CPUTimer] += ReadCPUTimer();
+    accumulated->E[RepValue_MemPageFaults] += ReadOSPageFaultCount();
     ++tester->CloseBlockCount;
-    tester->TimeAccumulatedOnTestInstance += ReadCPUTimer();
 }
 
 
 static void CountBytes(repetition_tester *tester, rt__u64 byteCount)
 {
-    tester->BytesAccumulatedOnTestInstance += byteCount;
+    repetition_value *accumulated = &tester->AccumulatedOnThisTest;
+    accumulated->E[RepValue_ByteCount] += byteCount;
 }
 
 
@@ -171,8 +206,10 @@ static rt__b32 IsTesting(repetition_tester *tester)
 {
     if (tester->Mode == TestMode_Testing)
     {
+        repetition_value accumulated = tester->AccumulatedOnThisTest;
         rt__u64 currentTime = ReadCPUTimer();
 
+        // Note (Aaron): Don't count tests that had no timing blocks
         if (tester->OpenBlockCount)
         {
             if (tester->OpenBlockCount != tester->CloseBlockCount)
@@ -180,7 +217,7 @@ static rt__b32 IsTesting(repetition_tester *tester)
                 Error(tester, "Unbalanced BeginTime/EndTime");
             }
 
-            if (tester->BytesAccumulatedOnTestInstance != tester->TargetProcessedByteCount)
+            if (accumulated.E[RepValue_ByteCount] != tester->TargetProcessedByteCount)
             {
                 Error(tester, "Processed byte count mismatch");
             }
@@ -188,34 +225,39 @@ static rt__b32 IsTesting(repetition_tester *tester)
             if (tester->Mode == TestMode_Testing)
             {
                 test_results *results = &tester->Results;
-                rt__u64 elapsedTime = tester->TimeAccumulatedOnTestInstance;
-                results->TestCount++;
-                results->TotalTime += elapsedTime;
 
-                if(results->MaxTime < elapsedTime)
+                accumulated.E[RepValue_TestCount] = 1;
+                for(rt__u32 i = 0; i < RT__ArrayCount(accumulated.E); ++i)
                 {
-                    results->MaxTime = elapsedTime;
+                    results->Total.E[i] += accumulated.E[i];
                 }
 
-                if (results->MinTime > elapsedTime)
+                if (results->Max.E[RepValue_CPUTimer] < accumulated.E[RepValue_CPUTimer])
                 {
-                    results->MinTime = elapsedTime;
+                    results->Max = accumulated;
+                }
+
+                if (results->Min.E[RepValue_CPUTimer] > accumulated.E[RepValue_CPUTimer])
+                {
+                    results->Min = accumulated;
 
                     // Note (Aaron): If we hit a new minimum, we want to continue searching so the
                     // start time is reset to current time.
                     tester->TestsStartedAt = currentTime;
-
                     if (tester->PrintNewMinimums)
                     {
-                        PrintTime("Min", (rt__f64)results->MinTime, tester->CPUTimerFrequency, tester->BytesAccumulatedOnTestInstance);
-                        printf("               \r");
+                        PrintValue("Min", results->Min, tester->CPUTimerFrequency);
+                        printf("                                   \r");
                     }
                 }
 
                 tester->OpenBlockCount = 0;
                 tester->CloseBlockCount = 0;
-                tester->TimeAccumulatedOnTestInstance = 0;
-                tester->BytesAccumulatedOnTestInstance = 0;
+
+                uint64_t count = sizeof(tester->AccumulatedOnThisTest);
+                void *destPtr = &tester->AccumulatedOnThisTest;
+                unsigned char *dest = (unsigned char *)destPtr;
+                while(count--) *dest++ = (unsigned char)0;
             }
         }
 
@@ -224,7 +266,7 @@ static rt__b32 IsTesting(repetition_tester *tester)
             tester->Mode = TestMode_Completed;
 
             printf("                                                          \r");
-            PrintResults(tester->Results, tester->CPUTimerFrequency, tester->TargetProcessedByteCount);
+            PrintResults(tester->Results, tester->CPUTimerFrequency);
         }
     }
 
@@ -273,6 +315,14 @@ static rt__u64 ReadCPUTimer()
 }
 
 
+static rt__u64 GetOSTimerFrequency()
+{
+    LARGE_INTEGER frequency;
+    QueryPerformanceFrequency(&frequency);
+    return frequency.QuadPart;
+}
+
+
 static rt__u64 ReadOSTimer()
 {
     LARGE_INTEGER value;
@@ -281,22 +331,27 @@ static rt__u64 ReadOSTimer()
 }
 
 
-static rt__u64 GetOSTimerFrequency()
+static rt__u64 ReadOSPageFaultCount()
 {
-    LARGE_INTEGER frequency;
-    QueryPerformanceFrequency(&frequency);
-    return frequency.QuadPart;
+    RT__Assert(RT__FALSE && "Not implemented");
 }
 
 #else // _WIN32
 
 #include <x86intrin.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 
 
 static rt__u64 ReadCPUTimer()
 {
     return __rdtsc();
+}
+
+
+static rt__u64 GetOSTimerFrequency()
+{
+    return 1000000;
 }
 
 
@@ -310,9 +365,16 @@ static rt__u64 ReadOSTimer()
 }
 
 
-static rt__u64 GetOSTimerFrequency()
+static rt__u64 ReadOSPageFaultCount()
 {
-    return 1000000;
+    struct rusage usage = {0};
+    getrusage(RUSAGE_SELF, &usage);
+
+    // Note (Aaron):
+    //  ru_minflt: Page faults serviced without any I/O activity.
+    //  ru_majflt: Page faults serviced that required I/O activity.
+    rt__u64 result = usage.ru_minflt + usage.ru_majflt;
+    return result;
 }
 
 #endif
