@@ -25,10 +25,20 @@ static void ReadViaFRead(repetition_tester *tester, read_parameters *params);
 static void ReadViaRead(repetition_tester *tester, read_parameters *params);
 
 
+typedef enum
+{
+    AllocType_none,
+    AllocType_malloc,
+
+    AllocType_Count,
+} allocation_type;
+
+
 struct read_parameters
 {
-    buffer DestBuffer;
     char const *FileName;
+    buffer Buffer;
+    allocation_type AllocType;
 };
 
 struct test_function
@@ -44,6 +54,66 @@ test_function testFunctions[] =
 };
 
 
+static char const *DescribeAllocationType(allocation_type allocType)
+{
+    char const *result;
+    switch(allocType)
+    {
+        case AllocType_none: { result = ""; break; }
+        case AllocType_malloc: { result = "malloc"; break; }
+        default: { result = "UNKNOWN"; break; }
+    }
+
+    return result;
+}
+
+
+static void HandleAllocation(read_parameters *params, buffer *buff)
+{
+    switch(params->AllocType)
+    {
+        case AllocType_none:
+        {
+            break;
+        }
+        case AllocType_malloc:
+        {
+            *buff = BufferAllocate(params->Buffer.SizeBytes);
+            break;
+        }
+
+        default:
+        {
+            fprintf(stderr, "[ERROR] Unrecognized allocation type");
+            break;
+        }
+    }
+}
+
+
+static void HandleDeallocation(read_parameters *params, buffer *buff)
+{
+    switch(params->AllocType)
+    {
+        case AllocType_none:
+        {
+            break;
+        }
+        case AllocType_malloc:
+        {
+            BufferFree(buff);
+            break;
+        }
+
+        default:
+        {
+            fprintf(stderr, "[ERROR] Unrecognized allocation type");
+            break;
+        }
+    }
+}
+
+
 static void ReadViaFRead(repetition_tester *tester, read_parameters *params)
 {
     while(IsTesting(tester))
@@ -55,21 +125,23 @@ static void ReadViaFRead(repetition_tester *tester, read_parameters *params)
             continue;
         }
 
-        buffer destBuffer = params->DestBuffer;
+        buffer buff = params->Buffer;
+        HandleAllocation(params, &buff);
 
         BeginTime(tester);
-        size_t result = fread(destBuffer.Data, destBuffer.SizeBytes, 1, file);
+        size_t result = fread(buff.Data, buff.SizeBytes, 1, file);
         EndTime(tester);
 
         if (result == 1)
         {
-            CountBytes(tester, destBuffer.SizeBytes);
+            CountBytes(tester, buff.SizeBytes);
         }
         else
         {
             Error(tester, "fread failed");
         }
 
+        HandleDeallocation(params, &buff);
         fclose(file);
     }
 }
@@ -86,10 +158,11 @@ static void ReadViaRead(repetition_tester *tester, read_parameters *params)
             continue;
         }
 
-        buffer destBuffer = params->DestBuffer;
-        rt__u8 *dest = destBuffer.Data;
-        rt__u64 sizeRemaining = destBuffer.SizeBytes;
+        buffer buff = params->Buffer;
+        HandleAllocation(params, &buff);
 
+        rt__u8 *dest = buff.Data;
+        rt__u64 sizeRemaining = buff.SizeBytes;
         while(sizeRemaining)
         {
             rt__u32 readSize = INT32_MAX;
@@ -112,6 +185,7 @@ static void ReadViaRead(repetition_tester *tester, read_parameters *params)
             sizeRemaining -= readSize;
         }
 
+        HandleDeallocation(params, &buff);
         close(file);
     }
 }
@@ -138,26 +212,34 @@ int main(int argCount, char const *args[])
 
     read_parameters params = {0};
     params.FileName = fileName;
-    params.DestBuffer = BufferAllocate(stats.st_size);
-    if (params.DestBuffer.Data == 0)
+    params.Buffer = BufferAllocate(stats.st_size);
+    if (params.Buffer.SizeBytes == 0)
     {
         fprintf(stderr, "[ERROR] Test data size must be non-zero\n");
         return 1;
     }
 
-    repetition_tester testers[ArrayCount(testFunctions)] = {0};
+    repetition_tester testers[ArrayCount(testFunctions)][AllocType_Count] = {0};
 
     for(;;)
     {
         for(rt__u32 funcIndex = 0; funcIndex < ArrayCount(testFunctions); ++funcIndex)
         {
-            repetition_tester *tester = testers + funcIndex;
-            test_function testFunc = testFunctions[funcIndex];
-            rt__u32 secondsToTry = 10;
+            for(rt__u32 allocType = 0; allocType < AllocType_Count; ++allocType)
+            {
+                params.AllocType = (allocation_type)allocType;
 
-            printf("\n--- %s ---\n", testFunc.Name);
-            NewTestWave(tester, params.DestBuffer.SizeBytes, cpuTimerFrequency, secondsToTry);
-            testFunc.Func(tester, &params);
+                repetition_tester *tester = &testers[funcIndex][allocType];
+                test_function testFunc = testFunctions[funcIndex];
+                rt__u32 secondsToTry = 10;
+
+                printf("\n--- %s%s%s ---\n",
+                       DescribeAllocationType(params.AllocType),
+                       params.AllocType ? " + " : "",
+                       testFunc.Name);
+                NewTestWave(tester, params.Buffer.SizeBytes, cpuTimerFrequency, secondsToTry);
+                testFunc.Func(tester, &params);
+            }
         }
     }
 
