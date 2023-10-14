@@ -124,9 +124,9 @@ static void WriteToAllBytes(repetition_tester *tester, read_parameters *params)
         HandleAllocation(params, &buff);
 
         BeginTime(tester);
-        for (rt__u64 index = 0; index < buff.SizeBytes; ++index)
+        for (uint64_t index = 0; index < buff.SizeBytes; ++index)
         {
-            buff.Data[index] = (rt__u8)index;
+            buff.Data[index] = (uint8_t)index;
         }
         EndTime(tester);
 
@@ -183,14 +183,14 @@ static void ReadViaRead(repetition_tester *tester, read_parameters *params)
         buffer buff = params->Buffer;
         HandleAllocation(params, &buff);
 
-        rt__u8 *dest = buff.Data;
-        rt__u64 sizeRemaining = buff.SizeBytes;
+        uint8_t *dest = buff.Data;
+        uint64_t sizeRemaining = buff.SizeBytes;
         while(sizeRemaining)
         {
-            rt__u32 readSize = INT32_MAX;
-            if ((rt__u64)readSize > sizeRemaining)
+            uint32_t readSize = INT32_MAX;
+            if ((uint64_t)readSize > sizeRemaining)
             {
-                readSize = (rt__u32)sizeRemaining;
+                readSize = (uint32_t)sizeRemaining;
             }
 
             BeginTime(tester);
@@ -215,7 +215,7 @@ static void ReadViaRead(repetition_tester *tester, read_parameters *params)
 
 int main(int argCount, char const *args[])
 {
-    rt__u64 cpuTimerFrequency = EstimateCPUTimerFrequency();
+    uint64_t cpuTimerFrequency = EstimateCPUTimerFrequency();
 
     if (argCount != 2)
     {
@@ -245,15 +245,15 @@ int main(int argCount, char const *args[])
 
     for(;;)
     {
-        for(rt__u32 funcIndex = 0; funcIndex < ArrayCount(testFunctions); ++funcIndex)
+        for(uint32_t funcIndex = 0; funcIndex < ArrayCount(testFunctions); ++funcIndex)
         {
-            for(rt__u32 allocType = 0; allocType < AllocType_Count; ++allocType)
+            for(uint32_t allocType = 0; allocType < AllocType_Count; ++allocType)
             {
                 params.AllocType = (allocation_type)allocType;
 
                 repetition_tester *tester = &testers[funcIndex][allocType];
                 test_function testFunc = testFunctions[funcIndex];
-                rt__u32 secondsToTry = 10;
+                uint32_t secondsToTry = 10;
 
                 printf("\n--- %s%s%s ---\n",
                        DescribeAllocationType(params.AllocType),

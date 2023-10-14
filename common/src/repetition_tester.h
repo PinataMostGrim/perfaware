@@ -2,11 +2,6 @@
 #define REPETITION_TESTER_H
 
 #include <stdint.h>
-typedef uint8_t rt__u8;
-typedef uint32_t rt__u32;
-typedef uint64_t rt__u64;
-typedef int64_t rt__s64;
-typedef double rt__f64;
 typedef int8_t rt__b32;
 
 #define RT__TRUE 1
@@ -39,7 +34,7 @@ typedef enum
 typedef struct repetition_value repetition_value;
 struct repetition_value
 {
-   rt__u64 E[RepValue_Count];
+   uint64_t E[RepValue_Count];
 };
 
 
@@ -55,26 +50,26 @@ struct test_results
 typedef struct repetition_tester repetition_tester;
 struct repetition_tester
 {
-    rt__u64 TargetProcessedByteCount;
-    rt__u64 CPUTimerFrequency;
-    rt__u64 TryForTime;
-    rt__u64 TestsStartedAt;
+    uint64_t TargetProcessedByteCount;
+    uint64_t CPUTimerFrequency;
+    uint64_t TryForTime;
+    uint64_t TestsStartedAt;
 
     test_mode Mode;
     rt__b32 PrintNewMinimums;
-    rt__u32 OpenBlockCount;
-    rt__u32 CloseBlockCount;
+    uint32_t OpenBlockCount;
+    uint32_t CloseBlockCount;
 
     repetition_value AccumulatedOnThisTest;
     test_results Results;
 };
 
 
-static rt__u64 ReadCPUTimer();
-static rt__u64 EstimateCPUTimerFrequency();
-static rt__u64 GetOSTimerFrequency();
-static rt__u64 ReadOSTimer();
-static rt__u64 ReadOSPageFaultCount();
+static uint64_t ReadCPUTimer();
+static uint64_t EstimateCPUTimerFrequency();
+static uint64_t GetOSTimerFrequency();
+static uint64_t ReadOSTimer();
+static uint64_t ReadOSPageFaultCount();
 
 #endif // REPETITION_TESTER_H /////////////////////////////////////////////////
 
@@ -84,39 +79,39 @@ static rt__u64 ReadOSPageFaultCount();
 #include <stdio.h>
 
 
-static rt__f64 SecondsFromCPUTime(rt__f64 cpuTime, rt__u64 cpuTimerFrequency)
+static double SecondsFromCPUTime(double cpuTime, uint64_t cpuTimerFrequency)
 {
-    rt__f64 result = 0.0;
+    double result = 0.0;
     if (cpuTimerFrequency)
     {
-        result = (cpuTime / (rt__f64)cpuTimerFrequency);
+        result = (cpuTime / (double)cpuTimerFrequency);
     }
 
     return result;
 }
 
 
-static void PrintValue(char const *label, repetition_value value, rt__u64 cpuTimerFrequency)
+static void PrintValue(char const *label, repetition_value value, uint64_t cpuTimerFrequency)
 {
-    rt__u64 testCount = value.E[RepValue_TestCount];
-    rt__f64 divisor = testCount ? (rt__f64)testCount : 1;
+    uint64_t testCount = value.E[RepValue_TestCount];
+    double divisor = testCount ? (double)testCount : 1;
 
-    rt__f64 e[RepValue_Count];
-    for (rt__u32 i = 0; i < RT__ArrayCount(e); ++i)
+    double e[RepValue_Count];
+    for (uint32_t i = 0; i < RT__ArrayCount(e); ++i)
     {
-        e[i] = (rt__f64)value.E[i] / divisor;
+        e[i] = (double)value.E[i] / divisor;
     }
 
     printf("%s: %.0f", label, e[RepValue_CPUTimer]);
     if (cpuTimerFrequency)
     {
-        rt__f64 seconds = SecondsFromCPUTime(e[RepValue_CPUTimer], cpuTimerFrequency);
+        double seconds = SecondsFromCPUTime(e[RepValue_CPUTimer], cpuTimerFrequency);
         printf(" (%fms)", 1000.0f * seconds);
 
         if (e[RepValue_ByteCount] > 0)
         {
-            rt__f64 gigabyte = (1024.0f * 1024.0f * 1024.0f);
-            rt__f64 bestbandwidth = e[RepValue_ByteCount] / (gigabyte * seconds);
+            double gigabyte = (1024.0f * 1024.0f * 1024.0f);
+            double bestbandwidth = e[RepValue_ByteCount] / (gigabyte * seconds);
             printf(" %f gb/s", bestbandwidth);
         }
     }
@@ -128,7 +123,7 @@ static void PrintValue(char const *label, repetition_value value, rt__u64 cpuTim
 }
 
 
-static void PrintResults(test_results results, rt__u64 cpuTimerFrequency)
+static void PrintResults(test_results results, uint64_t cpuTimerFrequency)
 {
     PrintValue("Min", results.Min, cpuTimerFrequency);
     printf("\n");
@@ -146,7 +141,7 @@ static void Error(repetition_tester *tester, char const *message)
 }
 
 
-static void NewTestWave(repetition_tester *tester, rt__u64 targetProcessedByteCount, rt__u64 cpuTimerFrequency, rt__u32 secondsToTry)
+static void NewTestWave(repetition_tester *tester, uint64_t targetProcessedByteCount, uint64_t cpuTimerFrequency, uint32_t secondsToTry)
 {
     if (tester->Mode == TestMode_Uninitialized)
     {
@@ -154,7 +149,7 @@ static void NewTestWave(repetition_tester *tester, rt__u64 targetProcessedByteCo
         tester->TargetProcessedByteCount = targetProcessedByteCount;
         tester->CPUTimerFrequency = cpuTimerFrequency;
         tester->PrintNewMinimums = RT__TRUE;
-        tester->Results.Min.E[RepValue_CPUTimer] = (rt__u64)-1;
+        tester->Results.Min.E[RepValue_CPUTimer] = (uint64_t)-1;
     }
     else if (tester->Mode == TestMode_Completed)
     {
@@ -195,7 +190,7 @@ static void EndTime(repetition_tester *tester)
 }
 
 
-static void CountBytes(repetition_tester *tester, rt__u64 byteCount)
+static void CountBytes(repetition_tester *tester, uint64_t byteCount)
 {
     repetition_value *accumulated = &tester->AccumulatedOnThisTest;
     accumulated->E[RepValue_ByteCount] += byteCount;
@@ -207,7 +202,7 @@ static rt__b32 IsTesting(repetition_tester *tester)
     if (tester->Mode == TestMode_Testing)
     {
         repetition_value accumulated = tester->AccumulatedOnThisTest;
-        rt__u64 currentTime = ReadCPUTimer();
+        uint64_t currentTime = ReadCPUTimer();
 
         // Note (Aaron): Don't count tests that had no timing blocks
         if (tester->OpenBlockCount)
@@ -227,7 +222,7 @@ static rt__b32 IsTesting(repetition_tester *tester)
                 test_results *results = &tester->Results;
 
                 accumulated.E[RepValue_TestCount] = 1;
-                for(rt__u32 i = 0; i < RT__ArrayCount(accumulated.E); ++i)
+                for(uint32_t i = 0; i < RT__ArrayCount(accumulated.E); ++i)
                 {
                     results->Total.E[i] += accumulated.E[i];
                 }
@@ -275,17 +270,17 @@ static rt__b32 IsTesting(repetition_tester *tester)
 }
 
 
-static rt__u64 EstimateCPUTimerFrequency()
+static uint64_t EstimateCPUTimerFrequency()
 {
-    rt__u64 millisecondsToWait = 100;
-    rt__u64 osFrequency = GetOSTimerFrequency();
+    uint64_t millisecondsToWait = 100;
+    uint64_t osFrequency = GetOSTimerFrequency();
 
-    rt__u64 cpuStart = ReadCPUTimer();
-    rt__u64 osStart = ReadOSTimer();
-    rt__u64 osEnd = 0;
-    rt__u64 osElapsed = 0;
+    uint64_t cpuStart = ReadCPUTimer();
+    uint64_t osStart = ReadOSTimer();
+    uint64_t osEnd = 0;
+    uint64_t osElapsed = 0;
 
-    rt__u64 osWaitTime = osFrequency * millisecondsToWait / 1000;
+    uint64_t osWaitTime = osFrequency * millisecondsToWait / 1000;
 
     while (osElapsed < osWaitTime)
     {
@@ -293,9 +288,9 @@ static rt__u64 EstimateCPUTimerFrequency()
         osElapsed = osEnd - osStart;
     }
 
-    rt__u64 cpuEnd = ReadCPUTimer();
-    rt__u64 cpuElapsed = cpuEnd - cpuStart;
-    rt__u64 cpuFrequency = 0;
+    uint64_t cpuEnd = ReadCPUTimer();
+    uint64_t cpuElapsed = cpuEnd - cpuStart;
+    uint64_t cpuFrequency = 0;
     if (osElapsed)
     {
         cpuFrequency = osFrequency * cpuElapsed / osElapsed;
@@ -309,13 +304,13 @@ static rt__u64 EstimateCPUTimerFrequency()
 #include <intrin.h>
 #include <windows.h>
 
-static rt__u64 ReadCPUTimer()
+static uint64_t ReadCPUTimer()
 {
     return __rdtsc();
 }
 
 
-static rt__u64 GetOSTimerFrequency()
+static uint64_t GetOSTimerFrequency()
 {
     LARGE_INTEGER frequency;
     QueryPerformanceFrequency(&frequency);
@@ -323,7 +318,7 @@ static rt__u64 GetOSTimerFrequency()
 }
 
 
-static rt__u64 ReadOSTimer()
+static uint64_t ReadOSTimer()
 {
     LARGE_INTEGER value;
     QueryPerformanceCounter(&value);
@@ -331,7 +326,7 @@ static rt__u64 ReadOSTimer()
 }
 
 
-static rt__u64 ReadOSPageFaultCount()
+static uint64_t ReadOSPageFaultCount()
 {
     RT__Assert(RT__FALSE && "Not implemented");
 }
@@ -343,29 +338,29 @@ static rt__u64 ReadOSPageFaultCount()
 #include <sys/resource.h>
 
 
-static rt__u64 ReadCPUTimer()
+static uint64_t ReadCPUTimer()
 {
     return __rdtsc();
 }
 
 
-static rt__u64 GetOSTimerFrequency()
+static uint64_t GetOSTimerFrequency()
 {
     return 1000000;
 }
 
 
-static rt__u64 ReadOSTimer()
+static uint64_t ReadOSTimer()
 {
     struct timeval value;
     gettimeofday(&value, 0);
 
-    rt__u64 result = GetOSTimerFrequency()*(rt__u64)value.tv_sec + (rt__u64)value.tv_usec;
+    uint64_t result = GetOSTimerFrequency()*(uint64_t)value.tv_sec + (uint64_t)value.tv_usec;
     return result;
 }
 
 
-static rt__u64 ReadOSPageFaultCount()
+static uint64_t ReadOSPageFaultCount()
 {
     struct rusage usage = {0};
     getrusage(RUSAGE_SELF, &usage);
@@ -373,7 +368,7 @@ static rt__u64 ReadOSPageFaultCount()
     // Note (Aaron):
     //  ru_minflt: Page faults serviced without any I/O activity.
     //  ru_majflt: Page faults serviced that required I/O activity.
-    rt__u64 result = usage.ru_minflt + usage.ru_majflt;
+    uint64_t result = usage.ru_minflt + usage.ru_majflt;
     return result;
 }
 
