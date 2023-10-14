@@ -29,6 +29,9 @@ typedef int64_t pm__s64;
 typedef double pm__f64;
 typedef int8_t pm__b8;
 
+#define PM__TRUE 1
+#define PM__FALSE 0
+
 #include <assert.h>
 #define PM__ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 #define PM__Assert(expr) assert(expr)
@@ -38,10 +41,11 @@ static void StartTimingsProfile();
 static void EndTimingsProfile();
 static void PrintProfileTimings();
 
+static pm__u64 GetCPUFrequency(pm__u64 millisecondsToWait);
+static pm__u64 ReadCPUTimer();
 static pm__u64 GetOSTimerFrequency();
 static pm__u64 ReadOSTimer();
-static pm__u64 ReadCPUTimer();
-static pm__u64 GetCPUFrequency(pm__u64 millisecondsToWait);
+static pm__u64 ReadOSPageFaultCount();
 
 
 #if PROFILER ////////////////////////////////////////////////////////
@@ -376,10 +380,18 @@ static pm__u64 ReadOSTimer()
     return value.QuadPart;
 }
 
+
+static pm__u64 ReadOSPageFaultCount()
+{
+    PM__Assert(PM__FALSE && "Not implemented");
+}
+
+
 #else // _WIN32
 
 #include <x86intrin.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 
 
 static pm__u64 ReadCPUTimer()
@@ -400,6 +412,19 @@ static pm__u64 ReadOSTimer()
     gettimeofday(&value, 0);
 
     pm__u64 result = GetOSTimerFrequency()*(pm__u64)value.tv_sec + (pm__u64)value.tv_usec;
+    return result;
+}
+
+
+static pm__u64 ReadOSPageFaultCount()
+{
+    struct rusage usage = {0};
+    getrusage(RUSAGE_SELF, &usage);
+
+    // Note (Aaron):
+    //  ru_minflt: Page faults serviced without any I/O activity.
+    //  ru_majflt: Page faults serviced that required I/O activity.
+    pm__u64 result = usage.ru_minflt + usage.ru_majflt;
     return result;
 }
 
