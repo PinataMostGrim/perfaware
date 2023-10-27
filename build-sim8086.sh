@@ -12,7 +12,7 @@ SRC_FOLDER="sim8086/src"
 OUT_EXE="sim8086"
 
 INCLUDES="-I $SCRIPT_DIR/common/src"
-SOURCES="$SCRIPT_DIR/$SRC_FOLDER/cli_sim8086.cpp"
+SOURCES="$SCRIPT_DIR/$SRC_FOLDER/sim8086_cli.cpp"
 
 
 # Sets DEBUG environment variable to 0 if

@@ -5,7 +5,7 @@
 @echo off
 
 :: NOTE: Configure these variables
-set SOURCES=..\src\cli_sim8086.cpp
+set SOURCES=..\src\sim8086_cli.cpp
 set INCLUDES=-I..\..\common\src
 set LINKER_FLAGS=-incremental:no -opt:ref
 set LIBS=

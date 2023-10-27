@@ -44,12 +44,12 @@
             ],
         },
         {
-            "name": "Build win32_sim8086",
+            "name": "Build sim8086_win32",
             "windows":
             {
                 // file_regex for cl
                 "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
-                "shell_cmd": "build-win32-sim8086.bat",
+                "shell_cmd": "build-sim8086-win32.bat",
             },
             "working_dir": "${project_path}",
             "env":
