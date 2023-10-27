@@ -9,7 +9,7 @@ set SOURCES=..\src\haversine-processor.c
 set LINKER_FLAGS=-incremental:no -opt:ref
 set LIBS=
 
-set BUILD_FOLDER=haversine\build
+set BUILD_FOLDER=haversine\bin
 set OUT_EXE=haversine-processor
 
 :: NOTE: Set %DEBUG% to 1 for debug build

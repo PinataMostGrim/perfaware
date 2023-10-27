@@ -13,7 +13,7 @@ set IMGUI_OBJS=imgui*.obj
 
 set GUI_LOCK_FILE=sim8086_lock.tmp
 
-set BUILD_FOLDER=sim8086\build
+set BUILD_FOLDER=sim8086\bin
 set OUT_EXE=sim8086_win32
 
 :: 0 for disabled, 1 for enabled

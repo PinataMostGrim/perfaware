@@ -10,7 +10,7 @@ set INCLUDES=-I..\..\common\src
 set LINKER_FLAGS=-incremental:no -opt:ref
 set LIBS=
 
-set BUILD_FOLDER=sim8086\build
+set BUILD_FOLDER=sim8086\bin
 set OUT_EXE=sim8086
 
 :: NOTE: Set %DEBUG% to 1 for debug build

@@ -20,5 +20,5 @@ listing_*.*
 imgui.ini
 
 # Project build artifacts
-sim8086/build/
-haversine/build/
+sim8086/bin/
+haversine/bin/

@@ -7,7 +7,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 
 # Note: Configure these variables
-BUILD_FOLDER="sim8086/build"
+BUILD_FOLDER="sim8086/bin"
 SRC_FOLDER="sim8086/src"
 OUT_EXE="sim8086"
 
