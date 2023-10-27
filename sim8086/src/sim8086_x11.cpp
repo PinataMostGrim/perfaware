@@ -1,4 +1,8 @@
 // Note (Aaron):
+// DearImGui does not currently have a platform implementation that uses x11 directly. As such,
+// this script remains an example for how to open an X11 window and acquire an OpenGL context
+// but does not implement a platform layer for sim8086 (yet).
+
 // source: https://www.khronos.org/opengl/wiki/Programming_OpenGL_in_Linux:_GLX_and_Xlib
 // gcc -g -o test-opengl test-opengl.c -lX11 -lGL -lGLU
 

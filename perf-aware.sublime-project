@@ -68,13 +68,38 @@
                 },
             ],
         },
+        // {
+        //     "name": "Build sim8086_x11",
+        //     "linux":
+        //     {
+        //         // file_regex for gcc
+        //         "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
+        //         "shell_cmd": "./build-sim8086-x11.sh",
+        //     },
+        //     "working_dir": "${project_path}",
+        //     "env":
+        //     {
+        //         "DEBUG": "0",
+        //     },
+        //     "quiet": false,
+        //     "variants" :
+        //     [
+        //         {
+        //             "name": "Debug",
+        //             "env":
+        //             {
+        //                 "DEBUG": "1",
+        //             },
+        //         },
+        //     ],
+        // },
         {
-            "name": "Build sim8086_x11",
+            "name": "Build sim8086_glfw",
             "linux":
             {
                 // file_regex for gcc
                 "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
-                "shell_cmd": "./build-sim8086-x11.sh",
+                "shell_cmd": "./build-sim8086-glfw.sh",
             },
             "working_dir": "${project_path}",
             "env":
