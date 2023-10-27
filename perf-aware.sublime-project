@@ -20,7 +20,10 @@
             "linux":
             {
                 // file_regex for clang
-                "file_regex": "^(..[^:\\n]*):([0-9]+):?([0-9]+)?:? (.*)$",
+                // "file_regex": "^(..[^:\\n]*):([0-9]+):?([0-9]+)?:? (.*)$",
+
+                // file_regex for gcc
+                "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
                 "shell_cmd": "./build-sim8086.sh",
             },
             "working_dir": "${project_path}",
@@ -75,7 +78,10 @@
             "linux":
             {
                 // file_regex for clang
-                "file_regex": "^(..[^:\\n]*):([0-9]+):?([0-9]+)?:? (.*)$",
+                // "file_regex": "^(..[^:\\n]*):([0-9]+):?([0-9]+)?:? (.*)$",
+
+                // file_regex for gcc
+                "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
                 "shell_cmd": "./build-haversine-gen.sh",
             },
             "working_dir": "${project_path}",
@@ -105,7 +111,10 @@
             "linux":
             {
                 // file_regex for clang
-                "file_regex": "^(..[^:\\n]*):([0-9]+):?([0-9]+)?:? (.*)$",
+                // "file_regex": "^(..[^:\\n]*):([0-9]+):?([0-9]+)?:? (.*)$",
+
+                // file_regex for gcc
+                "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
                 "shell_cmd": "./build-haversine-proc.sh",
             },
             "working_dir": "${project_path}",
