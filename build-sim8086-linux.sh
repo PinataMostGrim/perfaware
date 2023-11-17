@@ -42,7 +42,9 @@ mkdir -p "$SCRIPT_DIR/$BUILD_FOLDER"
 pushd $SCRIPT_DIR/$BUILD_FOLDER > /dev/null 2>&1
 
 # Compile
+echo WAITING FOR APPLICATION CODE TO COMPILE > sim8086_lock.tmp
 g++ -fPIC $COMPILER_FLAGS $INCLUDES $LIB_SOURCES --shared -o $OUT_LIB
+rm sim8086_lock.tmp
 g++ $COMPILER_FLAGS $INCLUDES $SOURCES -o $OUT_EXE $LINKER_FLAGS
 
 popd > /dev/null 2>&1

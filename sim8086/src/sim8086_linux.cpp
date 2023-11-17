@@ -132,6 +132,19 @@ global_function application_code LinuxLoadAppCode(char *soSourcePath, char *soTe
 {
     application_code result = {};
 
+    // Check for the lock file and early out if it exists as we have not finished compiling
+    // and writing out the application code.
+    int lockFileExists = access(lockFilePath, F_OK);
+
+    // Note (Aaron): access() returns 0 if the file exists, -1 if it doesn't.
+    if (lockFileExists == 0)
+    {
+        result.SetImGuiContext = 0;
+        result.UpdateAndRender = 0;
+
+        return result;
+    }
+
     // gather source library information
     struct stat sourceFileInfo;
     stat(soSourcePath, &sourceFileInfo);
@@ -189,7 +202,7 @@ global_function application_code LinuxLoadAppCode(char *soSourcePath, char *soTe
 }
 
 
-global_function void LinuxUnloadCode(application_code *applicationCode)
+global_function void LinuxUnloadAppCode(application_code *applicationCode)
 {
     if (applicationCode->CodeSO)
     {
@@ -327,10 +340,7 @@ int main(int argc, char const *argv[])
         U64 soWriteTime = LinuxGetLastWriteTime((char *)linuxContext.SOPath.Str);
         if (soWriteTime != applicationCode.LastWriteTime)
         {
-            // TODO (Aaron): File write times seem longer on my laptop and something isn't quite
-            // right with the current execution path on this platform. Investigate.
-            LinuxUnloadCode(&applicationCode);
-            usleep(75);
+            LinuxUnloadAppCode(&applicationCode);
             applicationCode = LinuxLoadAppCode((char *)linuxContext.SOPath.Str,
                                                (char *)linuxContext.SOTempPath.Str,
                                                (char *)linuxContext.SOLockPath.Str);
