@@ -1,8 +1,3 @@
-// TODO (Aaron):
-/*
-    - [ ] Implement hotloading
-*/
-
 #include "imgui.cpp"
 #include "imgui_draw.cpp"
 #include "imgui_tables.cpp"
@@ -218,6 +213,22 @@ global_function void LinuxUnloadAppCode(application_code *applicationCode)
 
 int main(int argc, char const *argv[])
 {
+    if (argc < 2)
+    {
+        fprintf(stderr, "Usage: %s [assembly filename]\n", argv[0]);
+        return 1;
+    }
+
+    // Check that assembly program file exists
+    const char *assemblyFilename = argv[1];
+    int lockFileExists = access(assemblyFilename, F_OK);
+    // Note (Aaron): access() returns 0 if the file exists, -1 if it doesn't.
+    if (lockFileExists == -1)
+    {
+        fprintf(stderr, "Open file \"%s\" failed with error %d %s\n", assemblyFilename, errno, strerror(errno));
+        return 1;
+    }
+
     glfwSetErrorCallback(GLFW_ErrorCallback);
     if (!glfwInit())
     {
@@ -320,6 +331,7 @@ int main(int argc, char const *argv[])
 
     // initialize state
     application_state applicationState = {};
+    applicationState.AssemblyFilename = assemblyFilename;
     applicationState.IO = &io;
     applicationState.ClearColor = CLEAR_COLOR;
     applicationState.Memory_StartAddress = 0;

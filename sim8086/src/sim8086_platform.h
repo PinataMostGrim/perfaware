@@ -61,6 +61,8 @@ struct application_memory
 
 typedef struct
 {
+    const char *AssemblyFilename;
+
     // SIM8086
     B32 ProgramLoaded;
     B32 LoadFailure;
