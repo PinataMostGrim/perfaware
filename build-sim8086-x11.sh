@@ -1,4 +1,4 @@
-# Build script for haversine-generator.
+# Build script for sim8086-x11.
 # IMPORTANT: Run from project's root folder.
 
 # Note: Save the script's folder in order to construct full paths for each source.
@@ -7,13 +7,14 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 
 # Note: Configure these variables
-BUILD_FOLDER="haversine/bin"
-SRC_FOLDER="haversine/src"
-OUT_EXE="haversine-generator"
+BUILD_FOLDER="sim8086/bin"
+SRC_FOLDER="sim8086/src"
+OUT_EXE="sim8086-x11"
 
-INCLUDES="-I $SCRIPT_DIR/common/src"
-SOURCES="$SCRIPT_DIR/$SRC_FOLDER/haversine-generator.c"
-LINKER_FLAGS="-lm"
+INCLUDES=
+SOURCES="$SCRIPT_DIR/$SRC_FOLDER/sim8086_x11.cpp"
+LINKER_FLAGS="-lX11 -lGL -lGLU"
+
 
 # Sets DEBUG environment variable to 0 if
 # it isn't already defined
@@ -26,10 +27,10 @@ fi
 if [ $DEBUG = "1" ]
 then
     # Making debug build
-    COMPILER_FLAGS="-g -DHAVERSINE_SLOW=1 -Wno-null-dereference"
+    COMPILER_FLAGS="-g -Wno-null-dereference"
 else
     # Making release build
-    COMPILER_FLAGS="-DHAVERSINE_SLOW=0"
+    COMPILER_FLAGS=""
 fi
 
 # Create build folder if it doesn't exist
@@ -39,5 +40,5 @@ mkdir -p "$SCRIPT_DIR/$BUILD_FOLDER"
 pushd $SCRIPT_DIR/$BUILD_FOLDER > /dev/null 2>&1
 
 # Compile
-gcc $COMPILER_FLAGS $INCLUDES $SOURCES -o $OUT_EXE $LINKER_FLAGS
+g++ $COMPILER_FLAGS $INCLUDES $SOURCES -o $OUT_EXE $LINKER_FLAGS
 popd > /dev/null 2>&1

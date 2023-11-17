@@ -7,12 +7,12 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 
 # Note: Configure these variables
-BUILD_FOLDER="sim8086/build"
+BUILD_FOLDER="sim8086/bin"
 SRC_FOLDER="sim8086/src"
 OUT_EXE="sim8086"
 
 INCLUDES="-I $SCRIPT_DIR/common/src"
-SOURCES="$SCRIPT_DIR/$SRC_FOLDER/cli_sim8086.cpp"
+SOURCES="$SCRIPT_DIR/$SRC_FOLDER/sim8086_cli.cpp"
 
 
 # Sets DEBUG environment variable to 0 if

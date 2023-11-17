@@ -44,12 +44,62 @@
             ],
         },
         {
-            "name": "Build win32_sim8086",
+            "name": "Build sim8086_win32",
             "windows":
             {
                 // file_regex for cl
                 "file_regex": "^(..[^(\n]*)\\(([0-9]+)\\) ?:():? (.*)$",
-                "shell_cmd": "build-win32-sim8086.bat",
+                "shell_cmd": "build-sim8086-win32.bat",
+            },
+            "working_dir": "${project_path}",
+            "env":
+            {
+                "DEBUG": "0",
+            },
+            "quiet": false,
+            "variants" :
+            [
+                {
+                    "name": "Debug",
+                    "env":
+                    {
+                        "DEBUG": "1",
+                    },
+                },
+            ],
+        },
+        // {
+        //     "name": "Build sim8086_x11",
+        //     "linux":
+        //     {
+        //         // file_regex for gcc
+        //         "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
+        //         "shell_cmd": "./build-sim8086-x11.sh",
+        //     },
+        //     "working_dir": "${project_path}",
+        //     "env":
+        //     {
+        //         "DEBUG": "0",
+        //     },
+        //     "quiet": false,
+        //     "variants" :
+        //     [
+        //         {
+        //             "name": "Debug",
+        //             "env":
+        //             {
+        //                 "DEBUG": "1",
+        //             },
+        //         },
+        //     ],
+        // },
+        {
+            "name": "Build sim8086_linux",
+            "linux":
+            {
+                // file_regex for gcc
+                "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
+                "shell_cmd": "./build-sim8086-linux.sh",
             },
             "working_dir": "${project_path}",
             "env":

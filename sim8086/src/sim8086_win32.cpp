@@ -67,7 +67,7 @@
 #include <tchar.h>
 
 #include "base_inc.h"
-#include "win32_sim8086.h"
+#include "sim8086_win32.h"
 #include "sim8086_platform.h"
 #include "sim8086.h"
 #include "sim8086_mnemonics.h"
@@ -202,7 +202,7 @@ global_function application_code Win32LoadAppCode(char *sourceDLLPath, char *tem
         result.SetImGuiContext = (set_imgui_context *)GetProcAddress(result.CodeDLL, "SetImGuiContext");
         result.UpdateAndRender = (update_and_render *)GetProcAddress(result.CodeDLL, "UpdateAndRender");
 
-        result.IsValid = (result.UpdateAndRender && result.SetImGuiContext);
+        result.IsValid = (result.SetImGuiContext && result.UpdateAndRender);
     }
 
     if(!result.IsValid)
@@ -373,7 +373,7 @@ int CALLBACK WinMain(
     }
 
 
-    // construct paths in prep for GUI code hot-loading
+    // construct paths in prep for application code hot-loading
     win32_context win32Context = {};
     Win32GetExeInfo(&win32Context, &memory.Permanent.Arena);
 

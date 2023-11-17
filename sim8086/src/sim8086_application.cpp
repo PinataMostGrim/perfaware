@@ -1,5 +1,10 @@
-#include "imgui.h"
 #include <stdio.h>
+
+#include "imgui.cpp"
+#include "imgui_demo.cpp"
+#include "imgui_draw.cpp"
+#include "imgui_tables.cpp"
+#include "imgui_widgets.cpp"
 
 #include "base_inc.h"
 #include "sim8086_platform.h"
@@ -20,7 +25,7 @@
 
 // global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
 // global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0039_more_movs";
-global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0041_add_sub_cmp_jnz";
+global_variable const char * ASSEMBLY_FILE = "../listings/listing_0041_add_sub_cmp_jnz";
 
 
 // Note (Aaron): Push output string into a memory arena that behaves like a circular buffer

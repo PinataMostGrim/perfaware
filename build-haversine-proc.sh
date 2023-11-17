@@ -7,7 +7,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 
 # Note: Configure these variables
-BUILD_FOLDER="haversine/build"
+BUILD_FOLDER="haversine/bin"
 SRC_FOLDER="haversine/src"
 OUT_EXE="haversine-processor"
 
