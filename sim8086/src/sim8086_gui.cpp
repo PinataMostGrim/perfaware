@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <inttypes.h>
 
 #include "base_types.h"
 #include "sim8086_platform.h"
@@ -263,7 +264,7 @@ global_function void ShowMemoryWindow(application_state *applicationState, proce
     Assert((startAddress >= 0) && "Invalid start address");
     Assert((endAddress < processor->MemorySize) && "Invalid end address");
 
-    snprintf(buffer, BUFFER_SIZE, "Range: 0x%.2llx - 0x%.2llx", startAddress, endAddress);
+    snprintf(buffer, BUFFER_SIZE, "Range: 0x%.2" PRIu64 " - 0x%.2" PRIu64 "", startAddress, endAddress);
     ImGui::Text("%s", buffer);
     ImGui::Separator();
 
@@ -271,7 +272,7 @@ global_function void ShowMemoryWindow(application_state *applicationState, proce
     for (U64 i = startAddress; i < endAddress; i += bytesPerLine)
     {
         // display address
-        snprintf(buffer, BUFFER_SIZE, "%.16llx", i);
+        snprintf(buffer, BUFFER_SIZE, "%.16" PRIu64 "", i);
         ImGui::Text("0x%s:", buffer);
 
         F32 offset = 150;
@@ -356,7 +357,7 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
         ImGui::Text("Loaded program size: %u bytes", processor->ProgramSize);
         ImGui::Text("Instruction count: %u", applicationState->LoadedProgramInstructionCount);
         ImGui::Text("Estimated cycle count: %u", applicationState->LoadedProgramCycleCount);
-        ImGui::Text("");
+        ImGui::Text("%s", "");
 
         ImGui::Text("Instructions executed: %u", processor->InstructionCount);
         ImGui::Text("Estimated cycles: %u", processor->TotalClockCount);
@@ -367,7 +368,7 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
             ImGui::Text("Execution timed out!");
             ImGui::PopStyleColor(1);
         }
-        ImGui::Text("");
+        ImGui::Text("%s", "");
 
         ImGui::Text("Memory");
         ImGui::Separator();
@@ -393,13 +394,13 @@ global_function void ShowDiagnosticsWindow(application_state *applicationState, 
             (F64)totalUsed / Megabytes(1),
             (F64)memory->TotalSize / Megabytes(1));
 
-        ImGui::Text("");
+        ImGui::Text("%s", "");
 
         ImGui::Text("Performance");
         ImGui::Separator();
         ImGui::Text("Average ms/frame: %.3f", 1000.0f / applicationState->IO->Framerate);
         ImGui::Text("FPS: %.1f ", applicationState->IO->Framerate);
-        ImGui::Text("");
+        ImGui::Text("%s", "");
 
         ImGui::End();
     }
