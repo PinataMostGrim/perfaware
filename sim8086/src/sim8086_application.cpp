@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <errno.h>
 
 #include "imgui.cpp"
 #include "imgui_demo.cpp"
@@ -21,11 +22,6 @@
 
 
 #define HALT_GUARD_COUNT 100000
-
-
-// global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0037_single_register_mov";
-// global_variable const char * ASSEMBLY_FILE = "..\\listings\\listing_0039_more_movs";
-global_variable const char * ASSEMBLY_FILE = "../listings/listing_0041_add_sub_cmp_jnz";
 
 
 // Note (Aaron): Push output string into a memory arena that behaves like a circular buffer
@@ -133,10 +129,10 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
     {
         // load program into the processor
         FILE *file = {};
-        file = fopen(ASSEMBLY_FILE, "rb");
+        file = fopen(applicationState->AssemblyFilename, "rb");
         if (!file)
         {
-            Assert(FALSE && "Unable to load hard-coded assembly file");
+            fprintf(stderr, "Open file \"%s\" failed with error \"%d\": %s\n", applicationState->AssemblyFilename, errno, strerror(errno));
             applicationState->LoadFailure = TRUE;
             return;
         }
@@ -147,14 +143,14 @@ C_LINKAGE UPDATE_AND_RENDER(UpdateAndRender)
         // error handling for file read
         if (ferror(file))
         {
-            Assert(FALSE && "Encountered error while reading file");
+            fprintf(stderr, "Encountered error while reading file \"%s\", failed with error \"%d\": %s\n", applicationState->AssemblyFilename, errno, strerror(errno));
             applicationState->LoadFailure = TRUE;
             return;
         }
 
         if (!feof(file))
         {
-            Assert(FALSE && "Program size exceeds processor memory; unable to load");
+            fprintf(stderr, "Program size exceeds processor memory (%" PRIu32 "); unable to load\n", processor->MemorySize);
             applicationState->LoadFailure = TRUE;
             return;
         }
