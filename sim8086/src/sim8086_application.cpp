@@ -1,5 +1,10 @@
-#include "imgui.h"
 #include <stdio.h>
+
+#include "imgui.cpp"
+#include "imgui_demo.cpp"
+#include "imgui_draw.cpp"
+#include "imgui_tables.cpp"
+#include "imgui_widgets.cpp"
 
 #include "base_inc.h"
 #include "sim8086_platform.h"
