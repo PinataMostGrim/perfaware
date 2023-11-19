@@ -77,6 +77,7 @@ typedef struct
     U32 Memory_StartAddress;
     F32 OutputWindowLastScrollY;
     F32 OutputWindowLastMaxScrollY;
+    ImGuiID DockspaceId;
 
     // Diagnostics
     bool Diagnostics_ShowWindow;

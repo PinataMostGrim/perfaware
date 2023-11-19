@@ -3,6 +3,7 @@
 */
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_win32.h"
 
@@ -15,6 +16,68 @@
 #include "sim8086_gui.h"
 #include "sim8086.h"
 #include "sim8086_mnemonics.h"
+
+
+global_function void CustomDockSpaceOverViewport(application_state *applicationState)
+{
+    // Setup the dockspace's host window
+    ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_None;
+    const ImGuiWindowClass* windowClass = NULL;
+
+    ImGuiViewport *viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowViewport(viewport->ID);
+
+    ImGuiWindowFlags host_window_flags = 0;
+    host_window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking;
+    host_window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+    if (dockspaceFlags & ImGuiDockNodeFlags_PassthruCentralNode)
+        host_window_flags |= ImGuiWindowFlags_NoBackground;
+
+    char label[32];
+    ImFormatString(label, IM_ARRAYSIZE(label), "DockspaceViewport_%08X", viewport->ID);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::Begin(label, NULL, host_window_flags);
+    ImGui::PopStyleVar(3);
+
+    // Setup the dockspace if it hasn't been setup once before
+    if (ImGui::DockBuilderGetNode(applicationState->DockspaceId) == NULL)
+    {
+        applicationState->DockspaceId = ImGui::GetID("Dockspace");
+
+        ImGuiID dockspaceId = applicationState->DockspaceId;
+        ImVec2 dockspaceSize = viewport->Size;
+
+        ImGui::DockBuilderRemoveNode(dockspaceId);
+        ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
+        ImGui::DockBuilderSetNodeSize(dockspaceId, dockspaceSize);
+
+        ImGuiID dockIdDisassm, dockIdRegisters, dockIdMemory, dockIdOutput, dockIdDiagnostics;
+        ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, 0.5f, &dockIdDisassm, &dockIdRegisters);
+        ImGui::DockBuilderSplitNode(dockIdDisassm, ImGuiDir_Down, 0.4f, &dockIdOutput, &dockIdDisassm);
+        ImGui::DockBuilderSplitNode(dockIdRegisters, ImGuiDir_Down, 0.7f, &dockIdMemory, &dockIdRegisters);
+#if SIM8086_DIAGNOSTICS
+        ImGui::DockBuilderSplitNode(dockIdMemory, ImGuiDir_Down, 0.5f, &dockIdDiagnostics, &dockIdMemory);
+#endif
+
+        ImGui::DockBuilderDockWindow("Disassembly", dockIdDisassm);
+        ImGui::DockBuilderDockWindow("Registers", dockIdRegisters);
+        ImGui::DockBuilderDockWindow("Memory", dockIdMemory);
+        ImGui::DockBuilderDockWindow("Output", dockIdOutput);
+#if SIM8086_DIAGNOSTICS
+        ImGui::DockBuilderDockWindow("Diagnostics", dockIdDiagnostics);
+#endif
+
+        ImGui::DockBuilderFinish(dockspaceId);
+    }
+
+    ImGui::DockSpace(applicationState->DockspaceId, ImVec2(0.0f, 0.0f), dockspaceFlags, windowClass);
+    ImGui::End();
+}
 
 
 global_function void ShowMainMenuBar(application_state *applicationState)
@@ -411,7 +474,7 @@ global_function void DrawGui(application_state *applicationState, application_me
 {
     ShowMainMenuBar(applicationState);
 
-    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+    CustomDockSpaceOverViewport(applicationState);
 
     ShowDisassemblyWindow(applicationState, processor, &memory->Instructions.Arena);
     ShowRegistersWindow(applicationState, processor);
