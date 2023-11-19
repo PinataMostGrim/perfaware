@@ -452,7 +452,10 @@ int CALLBACK WinMain(
     applicationState.IO = &io;
     applicationState.ClearColor = CLEAR_COLOR;
     applicationState.Memory_StartAddress = 0;
+
+#if SIM8086_DIAGNOSTICS
     applicationState.Diagnostics_ShowWindow = true;
+#endif
 
     // Main loop
     bool done = false;

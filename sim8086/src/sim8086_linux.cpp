@@ -255,7 +255,6 @@ int main(int argc, char const *argv[])
         memory.TotalSize += memory.Defs[i].Size;
     }
 
-    // TODO (Aaron): Figure out how to use mmap()
     memory.BackingStore = mmap(NULL, memory.TotalSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (memory.BackingStore == (void *)-1)
     {
@@ -335,7 +334,10 @@ int main(int argc, char const *argv[])
     applicationState.IO = &io;
     applicationState.ClearColor = CLEAR_COLOR;
     applicationState.Memory_StartAddress = 0;
+
+#if SIM8086_DIAGNOSTICS
     applicationState.Diagnostics_ShowWindow = true;
+#endif
 
     // Main loop
     // bool done = FALSE;

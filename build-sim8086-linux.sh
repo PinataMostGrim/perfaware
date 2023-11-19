@@ -18,6 +18,9 @@ LIB_SOURCES="$SCRIPT_DIR/$SRC_FOLDER/sim8086_application.cpp"
 LINKER_FLAGS="-lGL -lglfw"
 
 
+# 0 for disabled, 1 for enabled
+DIAGNOSTICS=1
+
 # Sets DEBUG environment variable to 0 if
 # it isn't already defined
 if [ -z $DEBUG ]
@@ -29,10 +32,10 @@ fi
 if [ $DEBUG = "1" ]
 then
     # Making debug build
-    COMPILER_FLAGS="-g -Wno-null-dereference"
+    COMPILER_FLAGS="-g -Wno-null-dereference -DSIM8086_DIAGNOSTICS=$DIAGNOSTICS"
 else
     # Making release build
-    COMPILER_FLAGS=""
+    COMPILER_FLAGS="-DSIM8086_DIAGNOSTICS=$DIAGNOSTICS"
 fi
 
 # Create build folder if it doesn't exist
