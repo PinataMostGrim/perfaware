@@ -7,14 +7,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "base_inc.h"
-#include "base_types.c"
-#include "base_memory.c"
-#include "buffer.h"
-#include "buffer.c"
+#include "../../common/src/base_inc.h"
+#include "../../common/src/base_types.c"
+#include "../../common/src/base_memory.c"
+#include "../../common/src/buffer.h"
+#include "../../common/src/buffer.c"
 
 #define REPETITION_TESTER_IMPLEMENTATION
-#include "repetition_tester.h"
+#include "../../common/src/repetition_tester.h"
 
 
 typedef struct read_parameters read_parameters;
