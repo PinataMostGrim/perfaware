@@ -1,3 +1,5 @@
+// source: https://github.com/cmuratori/computer_enhance/blob/main/perfaware/part3/listing_0104_read_overhead_main.cpp
+
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
@@ -7,40 +9,23 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "../../common/src/base_inc.h"
-#include "../../common/src/base_types.c"
-#include "../../common/src/base_memory.c"
+#include "tester_common.h"
+
 #include "../../common/src/buffer.h"
 #include "../../common/src/buffer.c"
+#include "tester_common.c"
 
 #define REPETITION_TESTER_IMPLEMENTATION
 #include "../../common/src/repetition_tester.h"
 
 
-typedef struct read_parameters read_parameters;
-typedef struct test_function test_function;
-typedef void read_overhead_test_func(repetition_tester *tester, read_parameters *params);
+#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
 
 static void WriteToAllBytes(repetition_tester *tester, read_parameters *params);
 static void ReadViaFRead(repetition_tester *tester, read_parameters *params);
 static void ReadViaRead(repetition_tester *tester, read_parameters *params);
 
-
-typedef enum
-{
-    AllocType_none,
-    AllocType_malloc,
-
-    AllocType_Count,
-} allocation_type;
-
-
-struct read_parameters
-{
-    char const *FileName;
-    buffer Buffer;
-    allocation_type AllocType;
-};
 
 struct test_function
 {
@@ -48,72 +33,12 @@ struct test_function
     read_overhead_test_func *Func;
 };
 
-test_function testFunctions[] =
+test_function TestFunctions[] =
 {
     {"WriteToAllBytes", WriteToAllBytes },
     {"fread", ReadViaFRead },
     {"read", ReadViaRead },
 };
-
-
-static char const *DescribeAllocationType(allocation_type allocType)
-{
-    char const *result;
-    switch(allocType)
-    {
-        case AllocType_none: { result = ""; break; }
-        case AllocType_malloc: { result = "malloc"; break; }
-        default: { result = "UNKNOWN"; break; }
-    }
-
-    return result;
-}
-
-
-static void HandleAllocation(read_parameters *params, buffer *buff)
-{
-    switch(params->AllocType)
-    {
-        case AllocType_none:
-        {
-            break;
-        }
-        case AllocType_malloc:
-        {
-            *buff = BufferAllocate(params->Buffer.SizeBytes);
-            break;
-        }
-
-        default:
-        {
-            fprintf(stderr, "[ERROR] Unrecognized allocation type");
-            break;
-        }
-    }
-}
-
-
-static void HandleDeallocation(read_parameters *params, buffer *buff)
-{
-    switch(params->AllocType)
-    {
-        case AllocType_none:
-        {
-            break;
-        }
-        case AllocType_malloc:
-        {
-            BufferFree(buff);
-            break;
-        }
-
-        default:
-        {
-            fprintf(stderr, "[ERROR] Unrecognized allocation type");
-            break;
-        }
-    }
-}
 
 
 static void WriteToAllBytes(repetition_tester *tester, read_parameters *params)
@@ -241,18 +166,18 @@ int main(int argCount, char const *args[])
         return 1;
     }
 
-    repetition_tester testers[ArrayCount(testFunctions)][AllocType_Count] = {0};
+    repetition_tester testers[ArrayCount(TestFunctions)][AllocType_Count] = {0};
 
     for(;;)
     {
-        for(uint32_t funcIndex = 0; funcIndex < ArrayCount(testFunctions); ++funcIndex)
+        for(uint32_t funcIndex = 0; funcIndex < ArrayCount(TestFunctions); ++funcIndex)
         {
             for(uint32_t allocType = 0; allocType < AllocType_Count; ++allocType)
             {
                 params.AllocType = (allocation_type)allocType;
 
                 repetition_tester *tester = &testers[funcIndex][allocType];
-                test_function testFunc = testFunctions[funcIndex];
+                test_function testFunc = TestFunctions[funcIndex];
                 uint32_t secondsToTry = 10;
 
                 printf("\n--- %s%s%s ---\n",
