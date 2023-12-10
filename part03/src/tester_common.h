@@ -1,6 +1,8 @@
 #ifndef TESTER_COMMON_H
 #define TESTER_COMMON_H
 
+#include <stdbool.h>
+
 #include "../../common/src/repetition_tester.h"
 #include "../../common/src/buffer.h"
 
@@ -24,5 +26,14 @@ struct read_parameters
     buffer Buffer;
     allocation_type AllocType;
 };
+
+
+static char const *DescribeAllocationType(allocation_type allocType);
+static void HandleAllocation(read_parameters *params, buffer *buff);
+static void HandleDeallocation(read_parameters *params, buffer *buff);
+
+static uint64_t GetMaxOSRandomCount();
+static bool ReadOSRandomBytes(uint64_t Count, void *Dest);
+static void FillWithRandomBytes(buffer dest);
 
 #endif // TESTER_COMMON_H

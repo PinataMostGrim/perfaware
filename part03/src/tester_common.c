@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "tester_common.h"
 #include "../../common/src/buffer.h"
@@ -62,3 +63,58 @@ static void HandleDeallocation(read_parameters *params, buffer *buff)
         }
     }
 }
+
+
+static void FillWithRandomBytes(buffer dest)
+{
+    uint64_t maxRandCount = GetMaxOSRandomCount();
+    uint64_t atOffset = 0;
+    while (atOffset < dest.SizeBytes)
+    {
+        uint64_t readCount = dest.SizeBytes - atOffset;
+        if (readCount > maxRandCount)
+        {
+            readCount = maxRandCount;
+        }
+
+        ReadOSRandomBytes(readCount, dest.Data + atOffset);
+        atOffset += readCount;
+    }
+}
+
+
+#if _WIN32
+
+#include <assert.h>
+
+static uint64_t GetMaxOSRandomCount() { assert(0 && "Not implemented"); }
+static b32 ReadOSRandomBytes(uint64_t Count, void *Dest) { assert(0 && "Not implemented"); }
+
+#else
+
+#include <sys/random.h>
+#include <sys/time.h>
+
+static uint64_t GetMaxOSRandomCount()
+{
+    return SIZE_MAX;
+}
+
+
+static bool ReadOSRandomBytes(uint64_t count, void *dest)
+{
+    uint64_t bytesRead = 0;
+    while (bytesRead < count)
+    {
+        bytesRead += getrandom(dest, count - bytesRead, 0);
+        if (bytesRead < 0)
+        {
+            return false;
+        }
+        // TODO (Aaron): Print the error using errno
+    }
+
+    return true;
+}
+
+#endif
