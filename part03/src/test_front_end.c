@@ -16,6 +16,9 @@
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
 
+typedef struct test_function test_function;
+
+
 static void WriteToAllBytes(repetition_tester *tester, read_parameters *params);
 
 static void MOVAllBytes(repetition_tester *tester, read_parameters *params);
