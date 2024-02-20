@@ -22,3 +22,4 @@ imgui.ini
 # Project build artifacts
 sim8086/bin/
 haversine/bin/
+part03/bin
