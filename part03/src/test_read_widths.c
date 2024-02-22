@@ -1,5 +1,4 @@
-// source: https://github.com/cmuratori/computer_enhance/blob/main/perfaware/part3/listing_0145_read_unroll_main.cpp
-
+// source: https://github.com/cmuratori/computer_enhance/blob/main/perfaware/part3/listing_0151_read_widths_main.cpp
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,10 +26,10 @@ typedef double f64;
 typedef struct test_function test_function;
 typedef void ASMFunction(u64 Count, u8 *Data);
 
-extern void Read_x1(uint64_t Count, uint8_t *Data);
-extern void Read_x2(uint64_t Count, uint8_t *Data);
-extern void Read_x3(uint64_t Count, uint8_t *Data);
-extern void Read_x4(uint64_t Count, uint8_t *Data);
+extern void Read_4x2(u64 Count, u8 *Data);
+extern void Read_8x2(u64 Count, u8 *Data);
+extern void Read_16x2(u64 Count, u8 *Data);
+extern void Read_32x2(u64 Count, u8 *Data);
 
 struct test_function
 {
@@ -38,21 +37,19 @@ struct test_function
     ASMFunction *Func;
 };
 
-
 test_function TestFunctions[] =
 {
-    {"Read_x1", Read_x1},
-    {"Read_x2", Read_x2},
-    {"Read_x3", Read_x3},
-    {"Read_x4", Read_x4},
+    {"Read_4x2", Read_4x2},
+    {"Read_8x2", Read_8x2},
+    {"Read_16x2", Read_16x2},
+    {"Read_32x2", Read_32x2},
 };
 
 int main(void)
 {
     u64 cpuTimerFrequency = EstimateCPUTimerFrequency();
-    u64 RepeatCount = 1024*1024*1024ull;
 
-    buffer buff = BufferAllocate(4096);
+    buffer buff = BufferAllocate(1*1024*1024*1024);
     if (buff.SizeBytes == 0)
     {
         fprintf(stderr, "Unable to allocate memory buffer for testing");
@@ -69,14 +66,14 @@ int main(void)
             u32 secondsToTry = 10;
 
             printf("\n--- %s ---\n", TestFunc.Name);
-            NewTestWave(Tester, RepeatCount, cpuTimerFrequency, secondsToTry);
+            NewTestWave(Tester, buff.SizeBytes, cpuTimerFrequency, secondsToTry);
 
             while(IsTesting(Tester))
             {
                 BeginTime(Tester);
-                TestFunc.Func(RepeatCount, buff.Data);
+                TestFunc.Func(buff.SizeBytes, buff.Data);
                 EndTime(Tester);
-                CountBytes(Tester, RepeatCount);
+                CountBytes(Tester, buff.SizeBytes);
             }
         }
     }
