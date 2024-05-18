@@ -150,5 +150,20 @@ int main(void)
         }
     }
 
+    // Note (Aaron): Output CSV data
+    printf("\n--- CSV Output ---\n");
+    printf("Label, Throughput (gb/s)\n");
+    for (int i = 0; i < ArrayCount(testers); ++i)
+    {
+        repetition_value bestResult = testers[i].Results.Min;
+        double gigabyte_f = (1024.0f * 1024.0f * 1024.0f);
+        double bestSeconds = SecondsFromCPUTime(bestResult.E[RepValue_CPUTimer], cpuTimerFrequency);
+        double bestBandwidth = bestResult.E[RepValue_ByteCount] / (gigabyte_f * bestSeconds);
+
+        printf("%s, %f\n", TestFunctions[i].Name, bestBandwidth);
+    }
+
+    printf("\n");
+
     return 0;
 }
