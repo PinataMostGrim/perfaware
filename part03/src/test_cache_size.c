@@ -33,11 +33,11 @@ typedef struct test_function test_function;
 // 2**32 = 4294967296
 // 1073741824 - 4294967296 = -3221225472
 // A 32 bit integer will be fine for the mask
-typedef void ASMFunction(u64 count, u32 mask, u8 *data);
+typedef void ASMFunction(u64 count, u8 *data, u32 mask);
 
-extern void Read_32x4(u64 count, u32 mask, u8 *data);
-extern void Read_32x8(u64 count, u32 mask, u8 *data);
-extern void Read_32x16(u64 count, u32 mask, u8 *data);
+extern void Read_32x4(u64 count, u8 *data, u32 mask);
+extern void Read_32x8(u64 count, u8 *data, u32 mask);
+extern void Read_32x16(u64 count,u8 *data,  u32 mask);
 
 struct test_function
 {
@@ -81,13 +81,10 @@ struct test_function
 
 test_function TestFunctions[] =
 {
-    // Note (Aaron): 128 bytes is the minimum span read by Read_32x4
-    // Note (Aaron): 256 bytes is the minimum span read by Read_32x8
-    // Note (Aaron): 512 bytes is the minimum span read by Read_32x16
+    // Note (Aaron): 128 bytes is the minimum block size read by Read_32x4
+    // Note (Aaron): 256 bytes is the minimum block size read by Read_32x8
+    // Note (Aaron): 512 bytes is the minimum block size read by Read_32x16
 
-    // TEST_FUNCTION_ENTRY(128, "128b"),
-    TEST_FUNCTION_ENTRY(256, "256b"),
-    TEST_FUNCTION_ENTRY(512, "512b"),
     TEST_FUNCTION_ENTRY(Kilobytes(1), "1kb"),
     TEST_FUNCTION_ENTRY(Kilobytes(2), "2kb"),
     TEST_FUNCTION_ENTRY(Kilobytes(4), "4kb"),
@@ -144,7 +141,7 @@ int main(void)
         while(IsTesting(tester))
         {
             BeginTime(tester);
-            testFunc.Func(bufferSizeBytes, testFunc.AddressMask, buff.Data);
+            testFunc.Func(bufferSizeBytes, buff.Data, testFunc.AddressMask);
             EndTime(tester);
             CountBytes(tester, bufferSizeBytes);
         }

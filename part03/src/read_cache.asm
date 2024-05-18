@@ -30,8 +30,8 @@ Read_32x4:
 
     ; parameters:
     ; rdi - total byte count to read
-    ; rsi - address mask
-    ; rdx - pointer to buffer address
+    ; rsi - pointer to buffer address
+    ; rdx - address mask
 
     ; internal register use:
     ; rax - effective pointer
@@ -40,7 +40,7 @@ Read_32x4:
     ; minimum read span: 128 bytes (32x4)
 
     xor r10, r10    ; clear base pointer offset
-    mov rax, rdx    ; reset rax to the base pointer value
+    mov rax, rsi    ; reset rax to the base pointer value
 
     align 64
 
@@ -51,9 +51,9 @@ Read_32x4:
     vmovdqu ymm3, [rax + 96]
 
     add r10, 128    ; increment the pointer offset
-    and r10, rsi    ; AND the pointer offset with the mask to produce the effective pointer offset
+    and r10, rdx    ; AND the pointer offset with the mask to produce the effective pointer offset
 
-    mov rax, rdx    ; reset rax to the base pointer value
+    mov rax, rsi    ; reset rax to the base pointer value
     add rax, r10    ; add the effective pointer offset to the base pointer
 
     sub rdi, 128
@@ -68,8 +68,8 @@ Read_32x8:
 
     ; parameters:
     ; rdi - total byte count to read
-    ; rsi - address mask
-    ; rdx - pointer to buffer address
+    ; rsi - pointer to buffer address
+    ; rdx - address mask
 
     ; internal register use:
     ; rax - effective pointer
@@ -78,7 +78,7 @@ Read_32x8:
     ; minimum read span: 256 bytes (32x8)
 
     xor r10, r10    ; clear base pointer offset
-    mov rax, rdx    ; reset rax to the base pointer value
+    mov rax, rsi   ; reset rax to the base pointer value
 
     align 64
 
@@ -93,9 +93,9 @@ Read_32x8:
     vmovdqu ymm7, [rax + 224]
 
     add r10, 256    ; increment the pointer offset
-    and r10, rsi    ; AND the pointer offset with the mask to produce the effective pointer offset
+    and r10, rdx    ; AND the pointer offset with the mask to produce the effective pointer offset
 
-    mov rax, rdx    ; reset rax to the base pointer value
+    mov rax, rsi    ; reset rax to the base pointer value
     add rax, r10    ; add the effective pointer offset to the base pointer
 
     sub rdi, 256
@@ -110,8 +110,8 @@ Read_32x16:
 
     ; parameters:
     ; rdi - bytes count to read
-    ; rsi - mask
-    ; rdx - pointer to buffer address
+    ; rsi - pointer to buffer address
+    ; rdx - address mask
 
     ; internal register use:
     ; rax - effective pointer
@@ -120,7 +120,7 @@ Read_32x16:
     ; minimum read span: 512 bytes (32x16)
 
     xor r10, r10    ; clear base pointer offset
-    mov rax, rdx    ; reset rax to the base pointer value
+    mov rax, rsi   ; reset rax to the base pointer value
 
     align 64
 
@@ -143,9 +143,9 @@ Read_32x16:
     vmovdqu ymm15, [rax + 480]
 
     add r10, 512    ; increment the bytes read counter
-    and r10, rsi    ; AND the pointer offset with the mask to produce the effective pointer offset
+    and r10, rdx    ; AND the pointer offset with the mask to produce the effective pointer offset
 
-    mov rax, rdx    ; reset rax to the base pointer value
+    mov rax, rsi    ; reset rax to the base pointer value
     add rax, r10    ; add the effective pointer offset to the base pointer
 
     sub rdi, 512
