@@ -132,24 +132,21 @@ int main(void)
 #endif
 
     repetition_tester testers[ArrayCount(TestFunctions)] = {0};
-    for(;;)
+    for(u32 funcIndex = 0; funcIndex < ArrayCount(TestFunctions); ++funcIndex)
     {
-        for(u32 funcIndex = 0; funcIndex < ArrayCount(TestFunctions); ++funcIndex)
+        repetition_tester *tester = &testers[funcIndex];
+        test_function testFunc = TestFunctions[funcIndex];
+        u32 secondsToTry = 10;
+
+        printf("\n--- %s ---\n", testFunc.Name);
+        NewTestWave(tester, bufferSizeBytes, cpuTimerFrequency, secondsToTry);
+
+        while(IsTesting(tester))
         {
-            repetition_tester *tester = &testers[funcIndex];
-            test_function testFunc = TestFunctions[funcIndex];
-            u32 secondsToTry = 10;
-
-            printf("\n--- %s ---\n", testFunc.Name);
-            NewTestWave(tester, bufferSizeBytes, cpuTimerFrequency, secondsToTry);
-
-            while(IsTesting(tester))
-            {
-                BeginTime(tester);
-                testFunc.Func(bufferSizeBytes, testFunc.AddressMask, buff.Data);
-                EndTime(tester);
-                CountBytes(tester, bufferSizeBytes);
-            }
+            BeginTime(tester);
+            testFunc.Func(bufferSizeBytes, testFunc.AddressMask, buff.Data);
+            EndTime(tester);
+            CountBytes(tester, bufferSizeBytes);
         }
     }
 
