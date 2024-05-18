@@ -29,10 +29,6 @@ typedef double f64;
 
 typedef struct test_function test_function;
 
-// 1024 * 1024 * 1024 = 1073741824
-// 2**32 = 4294967296
-// 1073741824 - 4294967296 = -3221225472
-// A 32 bit integer will be fine for the mask
 typedef void ASMFunction(u64 count, u8 *data, u32 mask);
 
 extern void Read_32x4(u64 count, u8 *data, u32 mask);
@@ -45,36 +41,6 @@ struct test_function
     ASMFunction *Func;
     u32 AddressMask;
 };
-
-//  64 bits =  8 bytes
-// 128 bits = 16 bytes
-// 256 bits = 32 bytes
-// 512 bits = 64 bytes
-
-// A WORD is 16 bits or 2 bytes
-// A QUAD WORD is 64 bits, or 8 bytes
-
-//  1x vmovdqu ymm0, [rsi] moves 32 bytes of memory
-//  2x vmovdqu ymm0, [rsi] moves 64 bytes of memory
-//  4x vmovdqu ymm0, [rsi] moves 128 bytes of memory
-//  8x vmovdqu ymm0, [rsi] moves 256 bytes of memory
-// 16x vmovdqu ymm0, [rsi] moves 512 bytes of memory
-
-// 0x3F == 0b0011 1111 == 63
-// 0x7F == 0b0111 1111 == 127
-// 0xFF == 0b1111 1111 == 255
-// 0x1FF == 0b0001 1111 1111 == 511
-// 0x3FF == 0b0011 1111 1111 == 1023
-// 0x7FF == 0b0111 1111 1111 == 2047
-// 0xFFF == 0b1111 1111 1111 == 4095
-// 0x1FFF == 0b0001 1111 1111 1111 == 8191
-// 0x3FFF == 0b0011 1111 1111 1111 == 16383
-// 0x7FFF == 0b0111 1111 1111 1111 == 32768
-// 0xFFFF == 0b1111 1111 1111 1111 == 65536
-// 0x1FFFF == 0b0001 1111 1111 1111 1111 == 131071
-// 0x3FFFF == 0b0011 1111 1111 1111 1111 == 262143
-// 0x7FFFF == 0b0111 1111 1111 1111 1111 == 524287
-// 0xFFFFF == 0b1111 1111 1111 1111 1111 == 1048575
 
 #define TEST_FUNCTION_ENTRY(bytes, human_readable) \
     { "read_bytes_" human_readable, Read_32x8, (bytes) - 1 }
