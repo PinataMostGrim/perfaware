@@ -20,73 +20,69 @@ section .text
 ;     ret
 
 
-;
 ; -----------------------------
 Read_32x4:
+; -----------------------------
+
+    ; L1 cache speeds can be fast enough such that this function is artificially
+    ; limited by the dependency chains created by address calculation and its use
+    ; is not recommended.
 
     ; parameters:
-    ; rdi - bytes count to read
-    ; rsi - mask
+    ; rdi - total byte count to read
+    ; rsi - address mask
     ; rdx - pointer to buffer address
 
     ; internal register use:
     ; rax - effective pointer
-    ; r10 - bytes read counter
-    ; r11 - base pointer offset
+    ; r10 - base pointer offset
 
     ; minimum read span: 128 bytes (32x4)
 
-    xor rax, rax
-    xor r10, r10
-    xor r11, r11
+    xor r10, r10    ; clear base pointer offset
+    mov rax, rdx    ; reset rax to the base pointer value
 
     align 64
 
 .loop:
-    mov rax, rdx    ; reset rax to the base pointer value
-    add rax, r11    ; add base pointer to the base pointer offset
-
     vmovdqu ymm0, [rax]
     vmovdqu ymm1, [rax + 32]
     vmovdqu ymm2, [rax + 64]
     vmovdqu ymm3, [rax + 96]
 
-    add r10, 128    ; increment the bytes read counter
-    mov r11, r10    ; prepare the base pointer offset
-    and r11, rsi    ; AND the pointer offset with the mask to produce the effective pointer offset
+    add r10, 128    ; increment the pointer offset
+    and r10, rsi    ; AND the pointer offset with the mask to produce the effective pointer offset
 
-    cmp r10, rdi
-    jb .loop
+    mov rax, rdx    ; reset rax to the base pointer value
+    add rax, r10    ; add the effective pointer offset to the base pointer
+
+    sub rdi, 128
+    ja .loop
 
     ret
 
 
-;
 ; -----------------------------
 Read_32x8:
+; -----------------------------
 
     ; parameters:
-    ; rdi - bytes count to read
-    ; rsi - mask
+    ; rdi - total byte count to read
+    ; rsi - address mask
     ; rdx - pointer to buffer address
 
     ; internal register use:
     ; rax - effective pointer
-    ; r10 - bytes read counter
-    ; r11 - base pointer offset
+    ; r10 - base pointer offset
 
     ; minimum read span: 256 bytes (32x8)
 
-    xor rax, rax
-    xor r10, r10
-    xor r11, r11
+    xor r10, r10    ; clear base pointer offset
+    mov rax, rdx    ; reset rax to the base pointer value
 
     align 64
 
 .loop:
-    mov rax, rdx    ; reset rax to the base pointer value
-    add rax, r11    ; add base pointer to the base pointer offset
-
     vmovdqu ymm0, [rax]
     vmovdqu ymm1, [rax + 32]
     vmovdqu ymm2, [rax + 64]
@@ -96,12 +92,14 @@ Read_32x8:
     vmovdqu ymm6, [rax + 192]
     vmovdqu ymm7, [rax + 224]
 
-    add r10, 256   ; increment the bytes read counter
-    mov r11, r10    ; prepare the base pointer offset
-    and r11, rsi    ; AND the pointer offset with the mask to produce the effective pointer offset
+    add r10, 256    ; increment the pointer offset
+    and r10, rsi    ; AND the pointer offset with the mask to produce the effective pointer offset
 
-    cmp r10, rdi
-    jb .loop
+    mov rax, rdx    ; reset rax to the base pointer value
+    add rax, r10    ; add the effective pointer offset to the base pointer
+
+    sub rdi, 256
+    ja .loop
 
     ret
 
@@ -117,21 +115,16 @@ Read_32x16:
 
     ; internal register use:
     ; rax - effective pointer
-    ; r10 - bytes read counter
-    ; r11 - base pointer offset
+    ; r10 - base pointer offset
 
     ; minimum read span: 512 bytes (32x16)
 
-    xor rax, rax
-    xor r10, r10
-    xor r11, r11
+    xor r10, r10    ; clear base pointer offset
+    mov rax, rdx    ; reset rax to the base pointer value
 
     align 64
 
 .loop:
-    mov rax, rdx    ; reset rax to the base pointer value
-    add rax, r11    ; add base pointer to the base pointer offset
-
     vmovdqu ymm0, [rax]
     vmovdqu ymm1, [rax + 32]
     vmovdqu ymm2, [rax + 64]
@@ -149,11 +142,13 @@ Read_32x16:
     vmovdqu ymm14, [rax + 448]
     vmovdqu ymm15, [rax + 480]
 
-    add r10, 512   ; increment the bytes read counter
-    mov r11, r10    ; prepare the base pointer offset
-    and r11, rsi    ; AND the pointer offset with the mask to produce the effective pointer offset
+    add r10, 512    ; increment the bytes read counter
+    and r10, rsi    ; AND the pointer offset with the mask to produce the effective pointer offset
 
-    cmp r10, rdi
-    jb .loop
+    mov rax, rdx    ; reset rax to the base pointer value
+    add rax, r10    ; add the effective pointer offset to the base pointer
+
+    sub rdi, 512
+    ja .loop
 
     ret
