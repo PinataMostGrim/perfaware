@@ -125,10 +125,9 @@ int main(void)
     // Note (Aaron): Linux maps all allocated pages to a single page full of 0s until
     // a write is attempted. Write to each page so Linux is forced to actually commit
     // them and we pull the expected amount of memory into cache.
-    u32 PAGE_SIZE = 4096;
-    for (int i = 0; i < buff.SizeBytes; i+=PAGE_SIZE)
+    for (int i = 0; i < buff.SizeBytes; i++)
     {
-        *(buff.Data + i) = 1;
+        *(buff.Data + i) = (u8)i;
     }
 #endif
 
