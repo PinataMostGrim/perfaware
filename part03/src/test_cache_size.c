@@ -4,6 +4,7 @@
 #include <math.h>
 #include <sys/stat.h>
 
+#define LINUX 1
 #define WRITE_TO_BUFFER 1
 
 #include "../../common/src/buffer.h"
