@@ -28,42 +28,45 @@ typedef double f64;
 #define ArrayCount(Array) (sizeof(Array)/sizeof((Array)[0]))
 
 typedef struct test_function test_function;
-
-typedef void ASMFunction(u64 count, u8 *data, u32 mask);
-
-extern void Read_32x4(u64 count, u8 *data, u32 mask);
-extern void Read_32x8(u64 count, u8 *data, u32 mask);
-extern void Read_32x16(u64 count,u8 *data,  u32 mask);
+typedef void AsmFunction(u64 byteCount, u8 *data, u64 repeatCount);
+extern void Read_32x8(u64 byteCount, u8 *data, u64 repeatCount);
 
 struct test_function
 {
     char const *Name;
-    ASMFunction *Func;
-    u32 AddressMask;
+    AsmFunction *Func;
+    u64 ReadSizeBytes;
 };
 
 #define TEST_FUNCTION_ENTRY(bytes, human_readable) \
-    { "read_bytes_" human_readable, Read_32x8, (bytes) - 1 }
+    { "read_bytes_" human_readable, Read_32x8, bytes }
 
 test_function TestFunctions[] =
 {
-    // Note (Aaron): 128 bytes is the minimum block size read by Read_32x4
-    // Note (Aaron): 256 bytes is the minimum block size read by Read_32x8
-    // Note (Aaron): 512 bytes is the minimum block size read by Read_32x16
+    // Note (Aaron): 256 bytes is the minimum read span for Read_32x8
 
-    TEST_FUNCTION_ENTRY(Kilobytes(1), "1kb"),
-    TEST_FUNCTION_ENTRY(Kilobytes(2), "2kb"),
-    TEST_FUNCTION_ENTRY(Kilobytes(4), "4kb"),
     TEST_FUNCTION_ENTRY(Kilobytes(8), "8kb"),
     TEST_FUNCTION_ENTRY(Kilobytes(16), "16kb"),
+
+    TEST_FUNCTION_ENTRY(Kilobytes(30), "30kb"),
+    TEST_FUNCTION_ENTRY(Kilobytes(31), "31kb"),
     TEST_FUNCTION_ENTRY(Kilobytes(32), "32kb"),
+    TEST_FUNCTION_ENTRY(Kilobytes(33), "33kb"),
+    TEST_FUNCTION_ENTRY(Kilobytes(34), "34kb"),
+
     TEST_FUNCTION_ENTRY(Kilobytes(64), "64kb"),
     TEST_FUNCTION_ENTRY(Kilobytes(128), "128kb"),
     TEST_FUNCTION_ENTRY(Kilobytes(256), "256kb"),
+
+    TEST_FUNCTION_ENTRY(Kilobytes(320), "320kb"),
+    TEST_FUNCTION_ENTRY(Kilobytes(384), "384kb"),
     TEST_FUNCTION_ENTRY(Kilobytes(512), "512kb"),
+
     TEST_FUNCTION_ENTRY(Megabytes(1), "1mb"),
     TEST_FUNCTION_ENTRY(Megabytes(2), "2mb"),
+    TEST_FUNCTION_ENTRY(Megabytes(3), "3mb"),
     TEST_FUNCTION_ENTRY(Megabytes(4), "4mb"),
+
     TEST_FUNCTION_ENTRY(Megabytes(8), "8mb"),
     TEST_FUNCTION_ENTRY(Megabytes(16), "16mb"),
     TEST_FUNCTION_ENTRY(Megabytes(32), "32mb"),
@@ -73,7 +76,7 @@ test_function TestFunctions[] =
 
 int main(void)
 {
-    // Note (Aaron): The read-size of each test function call must divide evenly into the buffer size.
+    // Note (Aaron): The read size of each test function call must divide evenly into the buffer size.
     u64 bufferSizeBytes = Gigabytes(1);
     u64 cpuTimerFrequency = EstimateCPUTimerFrequency();
 
@@ -101,15 +104,18 @@ int main(void)
         test_function testFunc = TestFunctions[funcIndex];
         u32 secondsToTry = 10;
 
+        u64 readRepeatCount = bufferSizeBytes / testFunc.ReadSizeBytes;
+        u64 testSizeBytes = testFunc.ReadSizeBytes * readRepeatCount;
+
         printf("\n--- %s ---\n", testFunc.Name);
-        NewTestWave(tester, bufferSizeBytes, cpuTimerFrequency, secondsToTry);
+        NewTestWave(tester, testSizeBytes, cpuTimerFrequency, secondsToTry);
 
         while(IsTesting(tester))
         {
             BeginTime(tester);
-            testFunc.Func(bufferSizeBytes, buff.Data, testFunc.AddressMask);
+            testFunc.Func(testFunc.ReadSizeBytes, buff.Data, readRepeatCount);
             EndTime(tester);
-            CountBytes(tester, bufferSizeBytes);
+            CountBytes(tester, testSizeBytes);
         }
     }
 
