@@ -124,10 +124,10 @@ int main(void)
     printf("Label, Throughput (gb/s)\n");
     for (int i = 0; i < ArrayCount(testers); ++i)
     {
-        repetition_value bestResult = testers[i].Results.Min;
+        test_measurements bestResult = testers[i].Results.Min;
         double gigabyte_f = (1024.0f * 1024.0f * 1024.0f);
-        double bestSeconds = SecondsFromCPUTime(bestResult.E[RepValue_CPUTimer], cpuTimerFrequency);
-        double bestBandwidth = bestResult.E[RepValue_ByteCount] / (gigabyte_f * bestSeconds);
+        double bestSeconds = SecondsFromCPUTime(bestResult.E[MType_CPUTimer], cpuTimerFrequency);
+        double bestBandwidth = bestResult.E[MType_ByteCount] / (gigabyte_f * bestSeconds);
 
         printf("%s, %f\n", TestFunctions[i].Name, bestBandwidth);
     }
