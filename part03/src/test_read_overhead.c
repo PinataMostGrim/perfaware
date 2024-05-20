@@ -23,7 +23,7 @@
 
 
 typedef struct test_function test_function;
-
+typedef void read_overhead_test_func(repetition_tester *tester, read_parameters *params);
 
 static void WriteToAllBytes(repetition_tester *tester, read_parameters *params);
 static void ReadViaFRead(repetition_tester *tester, read_parameters *params);

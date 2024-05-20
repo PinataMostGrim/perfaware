@@ -8,7 +8,6 @@
 
 
 typedef struct read_parameters read_parameters;
-typedef void read_overhead_test_func(repetition_tester *tester, read_parameters *params);
 
 typedef enum
 {

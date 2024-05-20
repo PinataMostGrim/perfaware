@@ -16,34 +16,34 @@ typedef enum
     TestMode_Testing,
     TestMode_Completed,
     TestMode_Error,
-} test_mode;
+} test_modes;
 
 
 typedef enum
 {
-    RepValue_TestCount,
+    MType_TestCount,
 
-    RepValue_CPUTimer,
-    RepValue_MemPageFaults,
-    RepValue_ByteCount,
+    MType_CPUTimer,
+    MType_MemPageFaults,
+    MType_ByteCount,
 
-    RepValue_Count,
-} repetition_value_type;
+    MType_Count,
+} measurement_types;
 
 
-typedef struct repetition_value repetition_value;
-struct repetition_value
+typedef struct test_measurements test_measurements;
+struct test_measurements
 {
-   uint64_t E[RepValue_Count];
+    uint64_t E[MType_Count];
 };
 
 
 typedef struct test_results test_results;
 struct test_results
 {
-    repetition_value Total;
-    repetition_value Min;
-    repetition_value Max;
+    test_measurements Total;
+    test_measurements Min;
+    test_measurements Max;
 };
 
 
@@ -55,12 +55,12 @@ struct repetition_tester
     uint64_t TryForTime;
     uint64_t TestsStartedAt;
 
-    test_mode Mode;
+    test_modes Mode;
     rt__b32 PrintNewMinimums;
     uint32_t OpenBlockCount;
     uint32_t CloseBlockCount;
 
-    repetition_value AccumulatedOnThisTest;
+    test_measurements AccumulatedOnThisTest;
     test_results Results;
 };
 
@@ -91,34 +91,34 @@ static double SecondsFromCPUTime(double cpuTime, uint64_t cpuTimerFrequency)
 }
 
 
-static void PrintValue(char const *label, repetition_value value, uint64_t cpuTimerFrequency)
+static void PrintValue(char const *label, test_measurements value, uint64_t cpuTimerFrequency)
 {
-    uint64_t testCount = value.E[RepValue_TestCount];
+    uint64_t testCount = value.E[MType_TestCount];
     double divisor = testCount ? (double)testCount : 1;
 
-    double e[RepValue_Count];
+    double e[MType_Count];
     for (uint32_t i = 0; i < RT__ArrayCount(e); ++i)
     {
         e[i] = (double)value.E[i] / divisor;
     }
 
-    printf("%s: %.0f", label, e[RepValue_CPUTimer]);
+    printf("%s: %.0f", label, e[MType_CPUTimer]);
     if (cpuTimerFrequency)
     {
-        double seconds = SecondsFromCPUTime(e[RepValue_CPUTimer], cpuTimerFrequency);
+        double seconds = SecondsFromCPUTime(e[MType_CPUTimer], cpuTimerFrequency);
         printf(" (%fms)", 1000.0f * seconds);
 
-        if (e[RepValue_ByteCount] > 0)
+        if (e[MType_ByteCount] > 0)
         {
             double gigabyte = (1024.0f * 1024.0f * 1024.0f);
-            double bestbandwidth = e[RepValue_ByteCount] / (gigabyte * seconds);
+            double bestbandwidth = e[MType_ByteCount] / (gigabyte * seconds);
             printf(" %f gb/s", bestbandwidth);
         }
     }
 
-    if(e[RepValue_MemPageFaults] > 0)
+    if(e[MType_MemPageFaults] > 0)
     {
-        printf(" PF: %0.4f (%0.4fk/fault)", e[RepValue_MemPageFaults], e[RepValue_ByteCount] / (e[RepValue_MemPageFaults] * 1024.0));
+        printf(" PF: %0.4f (%0.4fk/fault)", e[MType_MemPageFaults], e[MType_ByteCount] / (e[MType_MemPageFaults] * 1024.0));
     }
 }
 
@@ -149,7 +149,7 @@ static void NewTestWave(repetition_tester *tester, uint64_t targetProcessedByteC
         tester->TargetProcessedByteCount = targetProcessedByteCount;
         tester->CPUTimerFrequency = cpuTimerFrequency;
         tester->PrintNewMinimums = RT__TRUE;
-        tester->Results.Min.E[RepValue_CPUTimer] = (uint64_t)-1;
+        tester->Results.Min.E[MType_CPUTimer] = (uint64_t)-1;
     }
     else if (tester->Mode == TestMode_Completed)
     {
@@ -175,25 +175,25 @@ static void BeginTime(repetition_tester *tester)
 {
     ++tester->OpenBlockCount;
 
-    repetition_value *accumulated = &tester->AccumulatedOnThisTest;
-    accumulated->E[RepValue_MemPageFaults] -= ReadOSPageFaultCount();
-    accumulated->E[RepValue_CPUTimer] -= ReadCPUTimer();
+    test_measurements *accumulated = &tester->AccumulatedOnThisTest;
+    accumulated->E[MType_MemPageFaults] -= ReadOSPageFaultCount();
+    accumulated->E[MType_CPUTimer] -= ReadCPUTimer();
 }
 
 
 static void EndTime(repetition_tester *tester)
 {
-    repetition_value *accumulated = &tester->AccumulatedOnThisTest;
-    accumulated->E[RepValue_CPUTimer] += ReadCPUTimer();
-    accumulated->E[RepValue_MemPageFaults] += ReadOSPageFaultCount();
+    test_measurements *accumulated = &tester->AccumulatedOnThisTest;
+    accumulated->E[MType_CPUTimer] += ReadCPUTimer();
+    accumulated->E[MType_MemPageFaults] += ReadOSPageFaultCount();
     ++tester->CloseBlockCount;
 }
 
 
 static void CountBytes(repetition_tester *tester, uint64_t byteCount)
 {
-    repetition_value *accumulated = &tester->AccumulatedOnThisTest;
-    accumulated->E[RepValue_ByteCount] += byteCount;
+    test_measurements *accumulated = &tester->AccumulatedOnThisTest;
+    accumulated->E[MType_ByteCount] += byteCount;
 }
 
 
@@ -201,7 +201,7 @@ static rt__b32 IsTesting(repetition_tester *tester)
 {
     if (tester->Mode == TestMode_Testing)
     {
-        repetition_value accumulated = tester->AccumulatedOnThisTest;
+        test_measurements accumulated = tester->AccumulatedOnThisTest;
         uint64_t currentTime = ReadCPUTimer();
 
         // Note (Aaron): Don't count tests that had no timing blocks
@@ -212,7 +212,7 @@ static rt__b32 IsTesting(repetition_tester *tester)
                 Error(tester, "Unbalanced BeginTime/EndTime");
             }
 
-            if (accumulated.E[RepValue_ByteCount] != tester->TargetProcessedByteCount)
+            if (accumulated.E[MType_ByteCount] != tester->TargetProcessedByteCount)
             {
                 Error(tester, "Processed byte count mismatch");
             }
@@ -221,18 +221,18 @@ static rt__b32 IsTesting(repetition_tester *tester)
             {
                 test_results *results = &tester->Results;
 
-                accumulated.E[RepValue_TestCount] = 1;
+                accumulated.E[MType_TestCount] = 1;
                 for(uint32_t i = 0; i < RT__ArrayCount(accumulated.E); ++i)
                 {
                     results->Total.E[i] += accumulated.E[i];
                 }
 
-                if (results->Max.E[RepValue_CPUTimer] < accumulated.E[RepValue_CPUTimer])
+                if (results->Max.E[MType_CPUTimer] < accumulated.E[MType_CPUTimer])
                 {
                     results->Max = accumulated;
                 }
 
-                if (results->Min.E[RepValue_CPUTimer] > accumulated.E[RepValue_CPUTimer])
+                if (results->Min.E[MType_CPUTimer] > accumulated.E[MType_CPUTimer])
                 {
                     results->Min = accumulated;
 

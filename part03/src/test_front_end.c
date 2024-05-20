@@ -17,6 +17,7 @@
 
 
 typedef struct test_function test_function;
+typedef void frontend_test_func(repetition_tester *tester, read_parameters *params);
 
 
 static void WriteToAllBytes(repetition_tester *tester, read_parameters *params);
@@ -35,7 +36,7 @@ extern void DECAllBytesASM(uint64_t Count, uint8_t *Data);
 struct test_function
 {
     char const *Name;
-    read_overhead_test_func *Func;
+    frontend_test_func *Func;
 };
 
 
