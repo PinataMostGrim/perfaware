@@ -36,11 +36,19 @@ struct test_function
     char const *Name;
     AsmFunction *Func;
     u64 ReadSizeBytes;
+    u64 ReadOffset;
 };
 
 #define TEST_FUNCTION_ENTRY(bytes, human_readable) \
-    { "read_bytes_" human_readable, Read_32x8, bytes }
+    { "load_bytes_" human_readable, Read_32x8, bytes, 0 }
 
+// Note (Aaron): Using this macro with too small of a buffer and too large of an offset
+// will result in segmentation faults.
+#define TEST_FUNCTION_ENTRY_WITH_OFFSET(bytes, offset, human_readable) \
+    { "load_bytes_" human_readable, Read_32x8, bytes, offset }
+
+
+#if 1 // Test cache load speeds
 test_function TestFunctions[] =
 {
     // Note (Aaron): 256 bytes is the minimum read span for Read_32x8
@@ -73,6 +81,150 @@ test_function TestFunctions[] =
     TEST_FUNCTION_ENTRY(Megabytes(128), "128mb"),
 };
 
+#endif
+
+#if 0 // Test unaligned load penalties for the L1 cache
+test_function TestFunctions[] =
+{
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 0, "30kb_offset_0"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 1, "30kb_offset_1"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 2, "30kb_offset_2"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 3, "30kb_offset_3"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 4, "30kb_offset_4"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 5, "30kb_offset_5"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 6, "30kb_offset_6"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 7, "30kb_offset_7"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 8, "30kb_offset_8"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 9, "30kb_offset_9"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 10, "30kb_offset_10"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 11, "30kb_offset_11"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 12, "30kb_offset_12"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 13, "30kb_offset_13"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 14, "30kb_offset_14"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 15, "30kb_offset_15"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 16, "30kb_offset_16"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 17, "30kb_offset_17"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 18, "30kb_offset_18"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 19, "30kb_offset_19"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 20, "30kb_offset_20"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 21, "30kb_offset_21"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 22, "30kb_offset_22"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 23, "30kb_offset_23"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 24, "30kb_offset_24"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 25, "30kb_offset_25"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 26, "30kb_offset_26"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 27, "30kb_offset_27"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 28, "30kb_offset_28"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 29, "30kb_offset_29"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 30, "30kb_offset_30"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 31, "30kb_offset_31"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 32, "30kb_offset_32"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 33, "30kb_offset_33"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 34, "30kb_offset_34"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 35, "30kb_offset_35"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 36, "30kb_offset_36"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 37, "30kb_offset_37"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 38, "30kb_offset_38"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 39, "30kb_offset_39"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 40, "30kb_offset_40"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 41, "30kb_offset_41"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 42, "30kb_offset_42"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 43, "30kb_offset_43"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 44, "30kb_offset_44"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 45, "30kb_offset_45"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 46, "30kb_offset_46"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 47, "30kb_offset_47"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 48, "30kb_offset_48"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 49, "30kb_offset_49"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 50, "30kb_offset_50"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 51, "30kb_offset_51"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 52, "30kb_offset_52"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 53, "30kb_offset_53"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 54, "30kb_offset_54"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 55, "30kb_offset_55"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 56, "30kb_offset_56"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 57, "30kb_offset_57"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 58, "30kb_offset_58"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 59, "30kb_offset_59"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 60, "30kb_offset_60"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 61, "30kb_offset_61"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 62, "30kb_offset_62"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 63, "30kb_offset_63"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(30), 64, "30kb_offset_64"),
+};
+#endif
+
+#if 0 // Test unaligned load penalties for the L2 cache
+test_function TestFunctions[] =
+{
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 0, "256kb_offset_0"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 1, "256kb_offset_1"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 2, "256kb_offset_2"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 3, "256kb_offset_3"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 4, "256kb_offset_4"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 5, "256kb_offset_5"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 6, "256kb_offset_6"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 7, "256kb_offset_7"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 8, "256kb_offset_8"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 9, "256kb_offset_9"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 10, "256kb_offset_10"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 11, "256kb_offset_11"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 12, "256kb_offset_12"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 13, "256kb_offset_13"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 14, "256kb_offset_14"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 15, "256kb_offset_15"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 16, "256kb_offset_16"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 17, "256kb_offset_17"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 18, "256kb_offset_18"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 19, "256kb_offset_19"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 20, "256kb_offset_20"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 21, "256kb_offset_21"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 22, "256kb_offset_22"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 23, "256kb_offset_23"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 24, "256kb_offset_24"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 25, "256kb_offset_25"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 26, "256kb_offset_26"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 27, "256kb_offset_27"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 28, "256kb_offset_28"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 29, "256kb_offset_29"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 30, "256kb_offset_30"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 31, "256kb_offset_31"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 32, "256kb_offset_32"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 33, "256kb_offset_33"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 34, "256kb_offset_34"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 35, "256kb_offset_35"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 36, "256kb_offset_36"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 37, "256kb_offset_37"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 38, "256kb_offset_38"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 39, "256kb_offset_39"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 40, "256kb_offset_40"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 41, "256kb_offset_41"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 42, "256kb_offset_42"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 43, "256kb_offset_43"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 44, "256kb_offset_44"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 45, "256kb_offset_45"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 46, "256kb_offset_46"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 47, "256kb_offset_47"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 48, "256kb_offset_48"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 49, "256kb_offset_49"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 50, "256kb_offset_50"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 51, "256kb_offset_51"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 52, "256kb_offset_52"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 53, "256kb_offset_53"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 54, "256kb_offset_54"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 55, "256kb_offset_55"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 56, "256kb_offset_56"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 57, "256kb_offset_57"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 58, "256kb_offset_58"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 59, "256kb_offset_59"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 60, "256kb_offset_60"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 61, "256kb_offset_61"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 62, "256kb_offset_62"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 63, "256kb_offset_63"),
+    TEST_FUNCTION_ENTRY_WITH_OFFSET(Kilobytes(256), 64, "256kb_offset_64"),
+};
+
+#endif
 
 int main(void)
 {
@@ -113,7 +265,7 @@ int main(void)
         while(IsTesting(tester))
         {
             BeginTime(tester);
-            testFunc.Func(testFunc.ReadSizeBytes, buff.Data, readRepeatCount);
+            testFunc.Func(testFunc.ReadSizeBytes, buff.Data + testFunc.ReadOffset, readRepeatCount);
             EndTime(tester);
             CountBytes(tester, testSizeBytes);
         }
