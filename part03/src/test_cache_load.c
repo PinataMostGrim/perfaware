@@ -79,6 +79,7 @@ test_function TestFunctions[] =
     TEST_FUNCTION_ENTRY(Megabytes(16), "16mb"),
     TEST_FUNCTION_ENTRY(Megabytes(32), "32mb"),
     TEST_FUNCTION_ENTRY(Megabytes(128), "128mb"),
+    TEST_FUNCTION_ENTRY(Gigabytes(1), "1gb"),
 };
 
 #endif
