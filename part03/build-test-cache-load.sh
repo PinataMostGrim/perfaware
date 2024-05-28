@@ -1,4 +1,4 @@
-# Build script for test_cache_size
+# Build script for test_cache_load
 
 # Note: Uncomment to debug commands
 # set -ex
@@ -10,11 +10,11 @@ SCRIPT_FOLDER=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd
 # Note: Configure these variables
 SRC_FOLDER="src"
 BUILD_FOLDER="bin"
-OUT_EXE="test_cache_size"
+OUT_EXE="test_cache_load"
 
 INCLUDES=""
-SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/test_cache_size.c"
-LINKER_FLAGS="-L. -l:read_cache.a"
+SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/test_cache_load.c"
+LINKER_FLAGS="-L. -l:cache_load.a"
 
 # Temp
 DEBUG=1
@@ -41,9 +41,9 @@ mkdir -p "$SCRIPT_FOLDER/$BUILD_FOLDER"
 pushd "$SCRIPT_FOLDER/$BUILD_FOLDER" > /dev/null 2>&1
 
 # Package assembly into library using nasm
-nasm -f elf64 -o read_cache.o $SCRIPT_FOLDER/$SRC_FOLDER/read_cache.asm && \
-ar -crs read_cache.a read_cache.o && \
+nasm -f elf64 -o cache_load.o $SCRIPT_FOLDER/$SRC_FOLDER/cache_load.asm && \
+ar -crs cache_load.a cache_load.o && \
 
-# Compile test_cache_size
+# Compile test_cache_load
 gcc $COMPILER_FLAGS $INCLUDES $SOURCES -o $OUT_EXE $LINKER_FLAGS
 popd > /dev/null 2>&1
