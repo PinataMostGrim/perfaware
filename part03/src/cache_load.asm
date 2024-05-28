@@ -1,10 +1,10 @@
 ; Written for the System-V ABI
 
-global Read_32x8
+global Load_32x8
 
 section .text
 
-Read_32x8:
+Load_32x8:
     ; parameters:
     ; rdi - byte count to read per-loop
     ; rsi - pointer to buffer address

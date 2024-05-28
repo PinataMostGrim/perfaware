@@ -29,7 +29,7 @@ typedef double f64;
 
 typedef struct test_function test_function;
 typedef void AsmFunction(u64 byteCount, u8 *data, u64 repeatCount);
-extern void Read_32x8(u64 byteCount, u8 *data, u64 repeatCount);
+extern void Load_32x8(u64 byteCount, u8 *data, u64 repeatCount);
 
 struct test_function
 {
@@ -40,18 +40,18 @@ struct test_function
 };
 
 #define TEST_FUNCTION_ENTRY(bytes, human_readable) \
-    { "load_bytes_" human_readable, Read_32x8, bytes, 0 }
+    { "load_bytes_" human_readable, Load_32x8, bytes, 0 }
 
 // Note (Aaron): Using this macro with too small of a buffer and too large of an offset
 // will result in segmentation faults.
 #define TEST_FUNCTION_ENTRY_WITH_OFFSET(bytes, offset, human_readable) \
-    { "load_bytes_" human_readable, Read_32x8, bytes, offset }
+    { "load_bytes_" human_readable, Load_32x8, bytes, offset }
 
 
 #if 1 // Test cache load speeds
 test_function TestFunctions[] =
 {
-    // Note (Aaron): 256 bytes is the minimum read span for Read_32x8
+    // Note (Aaron): 256 bytes is the minimum read span for Load_32x8
 
     TEST_FUNCTION_ENTRY(Kilobytes(8), "8kb"),
     TEST_FUNCTION_ENTRY(Kilobytes(16), "16kb"),
