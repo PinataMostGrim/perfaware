@@ -30,11 +30,6 @@ typedef double f64;
 typedef struct test_function test_function;
 typedef void AsmFunction(u64 byteCount, u8 *data, u64 repeatCount, u64 loadOffset);
 
-extern void Load_32x8(u64 byteCount, u8 *data, u64 repeatCount, u64 loadOffset);
-extern void Load_32x8a(u64 byteCount, u8 *data, u64 repeatCount, u64 loadOffset);
-extern void Load_32x4b(u64 byteCount, u8 *data, u64 repeatCount, u64 loadOffset);
-extern void Load_32x4c(u64 byteCount, u8 *data, u64 repeatCount, u64 loadOffset);
-extern void Load_32x4d(u64 byteCount, u8 *data, u64 repeatCount, u64 loadOffset);
 extern void Load_32x2(u64 byteCount, u8 *data, u64 repeatCount, u64 stride);
 
 struct test_function
