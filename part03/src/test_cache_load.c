@@ -158,7 +158,6 @@ test_function TestFunctions[] =
 
 int main(void)
 {
-    // Note (Aaron): The read size of each test function call must divide evenly into the buffer size.
     u64 bufferSizeBytes = Gigabytes(1);
     u64 cpuTimerFrequency = EstimateCPUTimerFrequency();
 
