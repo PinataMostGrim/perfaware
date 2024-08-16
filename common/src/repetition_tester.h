@@ -65,6 +65,17 @@ struct repetition_tester
 };
 
 
+static void NewTestWave(repetition_tester *tester, uint64_t targetProcessedByteCount, uint64_t cpuTimerFrequency, uint32_t secondsToTry);
+static rt__b32 IsTesting(repetition_tester *tester);
+static void BeginTime(repetition_tester *tester);
+static void EndTime(repetition_tester *tester);
+static void CountBytes(repetition_tester *tester, uint64_t byteCount);
+
+static void Error(repetition_tester *tester, char const *message);
+static double SecondsFromCPUTime(double cpuTime, uint64_t cpuTimerFrequency);
+static void PrintValue(char const *label, test_measurements value, uint64_t cpuTimerFrequency);
+static void PrintResults(test_results results, uint64_t cpuTimerFrequency);
+
 static uint64_t ReadCPUTimer();
 static uint64_t EstimateCPUTimerFrequency();
 static uint64_t GetOSTimerFrequency();
