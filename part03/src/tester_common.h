@@ -34,4 +34,7 @@ static uint64_t GetMaxOSRandomCount();
 static bool ReadOSRandomBytes(uint64_t Count, void *Dest);
 static void FillWithRandomBytes(buffer dest);
 
+static uint64_t GetFileSize(char *fileName);
+static buffer ReadEntireFile(char *fileName);
+
 #endif // TESTER_COMMON_H

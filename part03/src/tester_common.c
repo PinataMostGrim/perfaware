@@ -88,7 +88,9 @@ static void FillWithRandomBytes(buffer dest)
 #include <assert.h>
 
 static uint64_t GetMaxOSRandomCount() { assert(0 && "Not implemented"); }
-static b32 ReadOSRandomBytes(uint64_t Count, void *Dest) { assert(0 && "Not implemented"); }
+static bool ReadOSRandomBytes(uint64_t Count, void *Dest) { assert(0 && "Not implemented"); }
+static uint64_t GetFileSize(char *fileName) { assert(0 && "Not implemented"); }
+static buffer ReadEntireFile(char *fileName) { assert(0 && "Not implemented"); }
 
 #else
 
@@ -115,6 +117,40 @@ static bool ReadOSRandomBytes(uint64_t count, void *dest)
     }
 
     return true;
+}
+
+static uint64_t GetFileSize(char *fileName)
+{
+    struct stat stats;
+    stat(fileName, &stats);
+
+    return stats.st_size;
+}
+
+static buffer ReadEntireFile(char *fileName)
+{
+    buffer result = {0};
+
+    FILE *file = fopen(fileName, "rb");
+    if (!file)
+    {
+        fprintf(stderr, "[ERROR]: Unable to open \"%s\".\\n", fileName);
+        return result;
+    }
+
+    uint64_t fileSize = GetFileSize(fileName);
+    result = BufferAllocate(fileSize);
+    if (result.Data)
+    {
+        if (fread(result.Data, result.SizeBytes, 1, file) != 1)
+        {
+            fprintf(stderr, "[ERROR]: Unable to read \"%s\".\n", fileName);
+            BufferFree(&result);
+        }
+    }
+    fclose(file);
+
+    return result;
 }
 
 #endif
