@@ -79,7 +79,6 @@ static void EndTime(repetition_tester *tester);
 static void CountBytes(repetition_tester *tester, uint64_t byteCount);
 
 static void Error(repetition_tester *tester, char const *message);
-static double SecondsFromCPUTime(double cpuTime, uint64_t cpuTimerFrequency);
 static void PrintValue(char const *label, test_measurements value);
 static void PrintResults(test_results results);
 
