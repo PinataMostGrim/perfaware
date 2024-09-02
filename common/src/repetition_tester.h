@@ -27,6 +27,10 @@ typedef enum
     MType_MemPageFaults,
     MType_ByteCount,
 
+    StatValue_Seconds,
+    StatValue_GBPerSecond,
+    StatValue_KBPerPageFault,
+
     MType_Count,
 } measurement_types;
 
@@ -35,6 +39,9 @@ typedef struct test_measurements test_measurements;
 struct test_measurements
 {
     uint64_t E[MType_Count];
+
+    // Note (Aaron H): These values are computed from the E[] array and the CPUTimerFrequency
+    double DerivedValues[MType_Count];
 };
 
 
@@ -73,8 +80,8 @@ static void CountBytes(repetition_tester *tester, uint64_t byteCount);
 
 static void Error(repetition_tester *tester, char const *message);
 static double SecondsFromCPUTime(double cpuTime, uint64_t cpuTimerFrequency);
-static void PrintValue(char const *label, test_measurements value, uint64_t cpuTimerFrequency);
-static void PrintResults(test_results results, uint64_t cpuTimerFrequency);
+static void PrintValue(char const *label, test_measurements value);
+static void PrintResults(test_results results);
 
 static uint64_t ReadCPUTimer();
 static uint64_t EstimateCPUTimerFrequency();
@@ -102,45 +109,60 @@ static double SecondsFromCPUTime(double cpuTime, uint64_t cpuTimerFrequency)
 }
 
 
-static void PrintValue(char const *label, test_measurements value, uint64_t cpuTimerFrequency)
+static void ComputeDerivedValues(test_measurements *value, uint64_t cpuTimerFrequency)
 {
-    uint64_t testCount = value.E[MType_TestCount];
+    uint64_t testCount = value->E[MType_TestCount];
     double divisor = testCount ? (double)testCount : 1;
 
-    double e[MType_Count];
-    for (uint32_t i = 0; i < RT__ArrayCount(e); ++i)
+    double *perCount = value->DerivedValues;
+    for(uint32_t eIndex = 0; eIndex < RT__ArrayCount(value->DerivedValues); ++eIndex)
     {
-        e[i] = (double)value.E[i] / divisor;
+        perCount[eIndex] = (double)value->E[eIndex] / divisor;
     }
 
-    printf("%s: %.0f", label, e[MType_CPUTimer]);
-    if (cpuTimerFrequency)
+    if(cpuTimerFrequency)
     {
-        double seconds = SecondsFromCPUTime(e[MType_CPUTimer], cpuTimerFrequency);
-        printf(" (%fms)", 1000.0f * seconds);
+        double seconds = SecondsFromCPUTime(perCount[MType_CPUTimer], cpuTimerFrequency);
+        perCount[StatValue_Seconds] = seconds;
 
-        if (e[MType_ByteCount] > 0)
+        if(perCount[MType_ByteCount] > 0)
         {
             double gigabyte = (1024.0f * 1024.0f * 1024.0f);
-            double bestbandwidth = e[MType_ByteCount] / (gigabyte * seconds);
-            printf(" %f gb/s", bestbandwidth);
+            perCount[StatValue_GBPerSecond] = perCount[MType_ByteCount] / (gigabyte * seconds);
         }
     }
 
-    if(e[MType_MemPageFaults] > 0)
+    if(perCount[MType_MemPageFaults] > 0)
     {
-        printf(" PF: %0.4f (%0.4fk/fault)", e[MType_MemPageFaults], e[MType_ByteCount] / (e[MType_MemPageFaults] * 1024.0));
+        // TODO (Aaron H): Why 1024.0? I guess because we need more precision than just KBs
+        perCount[StatValue_KBPerPageFault] = perCount[MType_ByteCount] / (perCount[MType_MemPageFaults] * 1024.0);
     }
 }
 
 
-static void PrintResults(test_results results, uint64_t cpuTimerFrequency)
+static void PrintValue(char const *label, test_measurements value)
 {
-    PrintValue("Min", results.Min, cpuTimerFrequency);
+    printf("%s: %.0f", label, value.DerivedValues[MType_CPUTimer]);
+    printf(" (%fms)", 1000.0f * value.DerivedValues[StatValue_Seconds]);
+    if(value.DerivedValues[MType_ByteCount] > 0)
+    {
+        printf(" %fgb/s", value.DerivedValues[StatValue_GBPerSecond]);
+    }
+
+    if(value.DerivedValues[StatValue_KBPerPageFault])
+    {
+        printf(" PF: %0.4f (%0.4fkb/fault)", value.DerivedValues[MType_MemPageFaults], value.DerivedValues[StatValue_KBPerPageFault]);
+    }
+}
+
+
+static void PrintResults(test_results results)
+{
+    PrintValue("Min", results.Min);
     printf("\n");
-    PrintValue("Max", results.Max, cpuTimerFrequency);
+    PrintValue("Max", results.Max);
     printf("\n");
-    PrintValue("Avg", results.Total, cpuTimerFrequency);
+    PrintValue("Avg", results.Total);
     printf("\n");
 }
 
@@ -252,7 +274,8 @@ static rt__b32 IsTesting(repetition_tester *tester)
                     tester->TestsStartedAt = currentTime;
                     if (tester->PrintNewMinimums)
                     {
-                        PrintValue("Min", results->Min, tester->CPUTimerFrequency);
+                        ComputeDerivedValues(&results->Min, tester->CPUTimerFrequency);
+                        PrintValue("Min", results->Min);
                         printf("                                   \r");
                     }
                 }
@@ -260,6 +283,7 @@ static rt__b32 IsTesting(repetition_tester *tester)
                 tester->OpenBlockCount = 0;
                 tester->CloseBlockCount = 0;
 
+                // Note (Aaron H): Zero out tester->AccumulatedOnThisTest
                 uint64_t count = sizeof(tester->AccumulatedOnThisTest);
                 void *destPtr = &tester->AccumulatedOnThisTest;
                 unsigned char *dest = (unsigned char *)destPtr;
@@ -271,8 +295,12 @@ static rt__b32 IsTesting(repetition_tester *tester)
         {
             tester->Mode = TestMode_Completed;
 
+            ComputeDerivedValues(&tester->Results.Total, tester->CPUTimerFrequency);
+            ComputeDerivedValues(&tester->Results.Min, tester->CPUTimerFrequency);
+            ComputeDerivedValues(&tester->Results.Max, tester->CPUTimerFrequency);
+
             printf("                                                          \r");
-            PrintResults(tester->Results, tester->CPUTimerFrequency);
+            PrintResults(tester->Results);
         }
     }
 
