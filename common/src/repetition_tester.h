@@ -38,9 +38,9 @@ typedef enum
 typedef struct test_measurements test_measurements;
 struct test_measurements
 {
-    uint64_t E[MType_Count];
+    uint64_t Raw[MType_Count];
 
-    // Note (Aaron H): These values are computed from the E[] array and the CPUTimerFrequency
+    // Note (Aaron H): These values are computed from the Raw[] array and the CPUTimerFrequency
     double DerivedValues[MType_Count];
 };
 
@@ -110,31 +110,30 @@ static double SecondsFromCPUTime(double cpuTime, uint64_t cpuTimerFrequency)
 
 static void ComputeDerivedValues(test_measurements *value, uint64_t cpuTimerFrequency)
 {
-    uint64_t testCount = value->E[MType_TestCount];
+    uint64_t testCount = value->Raw[MType_TestCount];
     double divisor = testCount ? (double)testCount : 1;
 
-    double *perCount = value->DerivedValues;
-    for(uint32_t eIndex = 0; eIndex < RT__ArrayCount(value->DerivedValues); ++eIndex)
+    double *derivedValues = value->DerivedValues;
+    for(uint32_t i = 0; i < RT__ArrayCount(value->DerivedValues); ++i)
     {
-        perCount[eIndex] = (double)value->E[eIndex] / divisor;
+        derivedValues[i] = (double)value->Raw[i] / divisor;
     }
 
     if(cpuTimerFrequency)
     {
-        double seconds = SecondsFromCPUTime(perCount[MType_CPUTimer], cpuTimerFrequency);
-        perCount[StatValue_Seconds] = seconds;
+        double seconds = SecondsFromCPUTime(derivedValues[MType_CPUTimer], cpuTimerFrequency);
+        derivedValues[StatValue_Seconds] = seconds;
 
-        if(perCount[MType_ByteCount] > 0)
+        if(derivedValues[MType_ByteCount] > 0)
         {
             double gigabyte = (1024.0f * 1024.0f * 1024.0f);
-            perCount[StatValue_GBPerSecond] = perCount[MType_ByteCount] / (gigabyte * seconds);
+            derivedValues[StatValue_GBPerSecond] = derivedValues[MType_ByteCount] / (gigabyte * seconds);
         }
     }
 
-    if(perCount[MType_MemPageFaults] > 0)
+    if(derivedValues[MType_MemPageFaults] > 0)
     {
-        // TODO (Aaron H): Why 1024.0? I guess because we need more precision than just KBs
-        perCount[StatValue_KBPerPageFault] = perCount[MType_ByteCount] / (perCount[MType_MemPageFaults] * 1024.0);
+        derivedValues[StatValue_KBPerPageFault] = derivedValues[MType_ByteCount] / (derivedValues[MType_MemPageFaults] * 1024.0);
     }
 }
 
@@ -181,7 +180,7 @@ static void NewTestWave(repetition_tester *tester, uint64_t targetProcessedByteC
         tester->TargetProcessedByteCount = targetProcessedByteCount;
         tester->CPUTimerFrequency = cpuTimerFrequency;
         tester->PrintNewMinimums = RT__TRUE;
-        tester->Results.Min.E[MType_CPUTimer] = (uint64_t)-1;
+        tester->Results.Min.Raw[MType_CPUTimer] = (uint64_t)-1;
     }
     else if (tester->Mode == TestMode_Completed)
     {
@@ -208,16 +207,16 @@ static void BeginTime(repetition_tester *tester)
     ++tester->OpenBlockCount;
 
     test_measurements *accumulated = &tester->AccumulatedOnThisTest;
-    accumulated->E[MType_MemPageFaults] -= ReadOSPageFaultCount();
-    accumulated->E[MType_CPUTimer] -= ReadCPUTimer();
+    accumulated->Raw[MType_MemPageFaults] -= ReadOSPageFaultCount();
+    accumulated->Raw[MType_CPUTimer] -= ReadCPUTimer();
 }
 
 
 static void EndTime(repetition_tester *tester)
 {
     test_measurements *accumulated = &tester->AccumulatedOnThisTest;
-    accumulated->E[MType_CPUTimer] += ReadCPUTimer();
-    accumulated->E[MType_MemPageFaults] += ReadOSPageFaultCount();
+    accumulated->Raw[MType_CPUTimer] += ReadCPUTimer();
+    accumulated->Raw[MType_MemPageFaults] += ReadOSPageFaultCount();
     ++tester->CloseBlockCount;
 }
 
@@ -225,7 +224,7 @@ static void EndTime(repetition_tester *tester)
 static void CountBytes(repetition_tester *tester, uint64_t byteCount)
 {
     test_measurements *accumulated = &tester->AccumulatedOnThisTest;
-    accumulated->E[MType_ByteCount] += byteCount;
+    accumulated->Raw[MType_ByteCount] += byteCount;
 }
 
 
@@ -244,7 +243,7 @@ static rt__b32 IsTesting(repetition_tester *tester)
                 Error(tester, "Unbalanced BeginTime/EndTime");
             }
 
-            if (accumulated.E[MType_ByteCount] != tester->TargetProcessedByteCount)
+            if (accumulated.Raw[MType_ByteCount] != tester->TargetProcessedByteCount)
             {
                 Error(tester, "Processed byte count mismatch");
             }
@@ -253,18 +252,18 @@ static rt__b32 IsTesting(repetition_tester *tester)
             {
                 test_results *results = &tester->Results;
 
-                accumulated.E[MType_TestCount] = 1;
-                for(uint32_t i = 0; i < RT__ArrayCount(accumulated.E); ++i)
+                accumulated.Raw[MType_TestCount] = 1;
+                for(uint32_t i = 0; i < RT__ArrayCount(accumulated.Raw); ++i)
                 {
-                    results->Total.E[i] += accumulated.E[i];
+                    results->Total.Raw[i] += accumulated.Raw[i];
                 }
 
-                if (results->Max.E[MType_CPUTimer] < accumulated.E[MType_CPUTimer])
+                if (results->Max.Raw[MType_CPUTimer] < accumulated.Raw[MType_CPUTimer])
                 {
                     results->Max = accumulated;
                 }
 
-                if (results->Min.E[MType_CPUTimer] > accumulated.E[MType_CPUTimer])
+                if (results->Min.Raw[MType_CPUTimer] > accumulated.Raw[MType_CPUTimer])
                 {
                     results->Min = accumulated;
 
