@@ -49,3 +49,10 @@ static void BufferFree(buffer *buff)
     unsigned char *dest = (unsigned char *)buff;
     while(size--) *dest++ = (unsigned char)0;
 }
+
+
+static uint32_t BufferIsValid(buffer buff)
+{
+    uint32_t result = (buff.Data != 0);
+    return result;
+}
