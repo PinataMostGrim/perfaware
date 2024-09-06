@@ -7,6 +7,12 @@
 #include "../../common/src/repetition_tester.h"
 #include "../../common/src/buffer.h"
 
+#define TC__Assert(condition, ...) \
+    do { \
+        if (!(condition)) { \
+            *(volatile unsigned *)0 = 0; \
+        } \
+    } while(0)
 
 typedef enum
 {

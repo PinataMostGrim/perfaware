@@ -8,6 +8,12 @@ typedef int32_t rt__b32;
 #define RT__FALSE 0
 
 #define RT__ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+#define RT__Assert(condition, ...) \
+    do { \
+        if (!(condition)) { \
+            *(volatile unsigned *)0 = 0; \
+        } \
+    } while(0)
 
 
 typedef enum
