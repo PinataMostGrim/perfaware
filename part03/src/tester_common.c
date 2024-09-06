@@ -249,8 +249,8 @@ static void FillWithRandomBytes(buffer dest)
 
 static uint64_t GetMaxOSRandomCount() { assert(0 && "Not implemented"); }
 static bool ReadOSRandomBytes(uint64_t Count, void *Dest) { assert(0 && "Not implemented"); }
-static uint64_t GetFileSize(char *fileName) { assert(0 && "Not implemented"); }
-static buffer ReadEntireFile(char *fileName) { assert(0 && "Not implemented"); }
+static uint64_t TC__GetFileSize(char *fileName) { assert(0 && "Not implemented"); }
+static buffer TC__ReadEntireFile(char *fileName) { assert(0 && "Not implemented"); }
 
 #else
 
@@ -279,7 +279,7 @@ static bool ReadOSRandomBytes(uint64_t count, void *dest)
     return true;
 }
 
-static uint64_t GetFileSize(char *fileName)
+static uint64_t TC__GetFileSize(char *fileName)
 {
     struct stat stats;
     stat(fileName, &stats);
