@@ -243,14 +243,50 @@ static void FillWithRandomBytes(buffer dest)
 }
 
 
+static buffer ReadEntireFile(char *fileName)
+{
+    buffer result = {0};
+
+    FILE *file = fopen(fileName, "rb");
+    if (!file)
+    {
+        fprintf(stderr, "[ERROR]: Unable to open \"%s\".\\n", fileName);
+        return result;
+    }
+
+    uint64_t fileSize = TC__GetFileSize(fileName);
+    result = BufferAllocate(fileSize);
+    if (result.Data)
+    {
+        if (fread(result.Data, result.SizeBytes, 1, file) != 1)
+        {
+            fprintf(stderr, "[ERROR]: Unable to read \"%s\".\n", fileName);
+            BufferFree(&result);
+        }
+    }
+    fclose(file);
+
+    return result;
+}
+
+
 #if _WIN32
 
 #include <assert.h>
+#include <windows.h>
 
 static uint64_t GetMaxOSRandomCount() { assert(0 && "Not implemented"); }
 static bool ReadOSRandomBytes(uint64_t Count, void *Dest) { assert(0 && "Not implemented"); }
-static uint64_t TC__GetFileSize(char *fileName) { assert(0 && "Not implemented"); }
-static buffer TC__ReadEntireFile(char *fileName) { assert(0 && "Not implemented"); }
+
+static uint64_t TC__GetFileSize(char *fileName)
+{
+    WIN32_FILE_ATTRIBUTE_DATA data = {0};
+    GetFileAttributesExA(fileName, GetFileExInfoStandard, &data);
+
+    uint64_t result = (((uint64_t)data.nFileSizeHigh) << 32) | (uint64_t)data.nFileSizeLow;
+    return result;
+}
+
 
 #else
 
@@ -285,32 +321,6 @@ static uint64_t TC__GetFileSize(char *fileName)
     stat(fileName, &stats);
 
     return stats.st_size;
-}
-
-static buffer ReadEntireFile(char *fileName)
-{
-    buffer result = {0};
-
-    FILE *file = fopen(fileName, "rb");
-    if (!file)
-    {
-        fprintf(stderr, "[ERROR]: Unable to open \"%s\".\\n", fileName);
-        return result;
-    }
-
-    uint64_t fileSize = GetFileSize(fileName);
-    result = BufferAllocate(fileSize);
-    if (result.Data)
-    {
-        if (fread(result.Data, result.SizeBytes, 1, file) != 1)
-        {
-            fprintf(stderr, "[ERROR]: Unable to read \"%s\".\n", fileName);
-            BufferFree(&result);
-        }
-    }
-    fclose(file);
-
-    return result;
 }
 
 #endif
