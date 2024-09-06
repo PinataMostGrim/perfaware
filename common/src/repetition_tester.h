@@ -347,6 +347,7 @@ static uint64_t EstimateCPUTimerFrequency()
 
 #include <intrin.h>
 #include <windows.h>
+#include <psapi.h>
 
 typedef struct tester_globals tester_globals;
 struct tester_globals
@@ -394,7 +395,12 @@ static uint64_t ReadOSTimer()
 
 static uint64_t ReadOSPageFaultCount()
 {
-    RT__Assert(RT__FALSE && "Not implemented");
+    PROCESS_MEMORY_COUNTERS_EX memoryCounters = {0};
+    memoryCounters.cb = sizeof(memoryCounters);
+    GetProcessMemoryInfo(TesterGlobals.ProcessHandle, (PROCESS_MEMORY_COUNTERS *)&memoryCounters, sizeof(memoryCounters));
+
+    uint64_t result = memoryCounters.PageFaultCount;
+    return result;
 }
 
 #else // _WIN32
