@@ -78,6 +78,7 @@ struct repetition_tester
 };
 
 
+static void InitializeTester();
 static void NewTestWave(repetition_tester *tester, uint64_t targetProcessedByteCount, uint64_t cpuTimerFrequency, uint32_t secondsToTry);
 static rt__b32 IsTesting(repetition_tester *tester);
 static void BeginTime(repetition_tester *tester);
@@ -347,6 +348,28 @@ static uint64_t EstimateCPUTimerFrequency()
 #include <intrin.h>
 #include <windows.h>
 
+typedef struct tester_globals tester_globals;
+struct tester_globals
+{
+    uint32_t Initialized;
+    HANDLE ProcessHandle;
+    uint64_t CPUTimerFrequency;
+    uint32_t SecondsToTry;
+};
+static tester_globals TesterGlobals;
+
+static void InitializeTester()
+{
+    if (!TesterGlobals.Initialized)
+    {
+        TesterGlobals.Initialized = true;
+        TesterGlobals.ProcessHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, GetCurrentProcessId());
+        TesterGlobals.CPUTimerFrequency = EstimateCPUTimerFrequency();
+        TesterGlobals.SecondsToTry = 10;
+    }
+}
+
+
 static uint64_t ReadCPUTimer()
 {
     return __rdtsc();
@@ -379,6 +402,27 @@ static uint64_t ReadOSPageFaultCount()
 #include <x86intrin.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+
+
+typedef struct tester_globals tester_globals;
+struct tester_globals
+{
+    uint32_t Initialized;
+    uint64_t CPUTimerFrequency;
+    uint32_t SecondsToTry;
+};
+static tester_globals TesterGlobals;
+
+
+static void InitializeTester()
+{
+    if (!TesterGlobals.Initialized)
+    {
+        TesterGlobals.Initialized = true;
+        TesterGlobals.CPUTimerFrequency = EstimateCPUTimerFrequency();
+        TesterGlobals.SecondsToTry = 10;
+    }
+}
 
 
 static uint64_t ReadCPUTimer()
