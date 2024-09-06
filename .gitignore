@@ -19,6 +19,9 @@ listing_*.*
 # ImGui files
 imgui.ini
 
+# Rad Debugger files
+raddbg
+
 # Project build artifacts
 sim8086/bin/
 haversine/bin/
