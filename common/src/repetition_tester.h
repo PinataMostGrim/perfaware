@@ -149,6 +149,7 @@ static void PrintValue(char const *label, test_measurements value)
 {
     printf("%s: %.0f", label, value.DerivedValues[MType_CPUTimer]);
     printf(" (%fms)", 1000.0f * value.DerivedValues[StatValue_Seconds]);
+
     if(value.DerivedValues[MType_ByteCount] > 0)
     {
         printf(" %fgb/s", value.DerivedValues[StatValue_GBPerSecond]);
@@ -280,8 +281,9 @@ static rt__b32 IsTesting(repetition_tester *tester)
                     if (tester->PrintNewMinimums)
                     {
                         ComputeDerivedValues(&results->Min, tester->CPUTimerFrequency);
+                        printf("\r\x1b[K"); // Note (Aaron): Move to start of line and clear it
                         PrintValue("Min", results->Min);
-                        printf("                                   \r");
+                        fflush(stdout); // Note (Aaron): Flush to ensure the output is immediately displayed.
                     }
                 }
 
@@ -304,8 +306,9 @@ static rt__b32 IsTesting(repetition_tester *tester)
             ComputeDerivedValues(&tester->Results.Min, tester->CPUTimerFrequency);
             ComputeDerivedValues(&tester->Results.Max, tester->CPUTimerFrequency);
 
-            printf("                                                          \r");
+            printf("\r\x1b[K"); // Note (Aaron): Move to start of line and clear it
             PrintResults(tester->Results);
+            fflush(stdout); // Note (Aaron): Flush to ensure the output is immediately displayed.
         }
     }
 
