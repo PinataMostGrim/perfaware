@@ -117,7 +117,8 @@ static uint32_t TestSeriesIsTesting(test_series *series, repetition_tester *test
     {
         if (TestSeriesIsInBounds(series))
         {
-            *GetTestResults(series, series->ColumnIndex, series->RowIndex) = tester->Results;
+            test_results *testSeriesResults = GetTestResultsPtr(series, series->ColumnIndex, series->RowIndex);
+            *testSeriesResults = tester->Results;
 
             if(++series->ColumnIndex >= series->ColumnCount)
             {
@@ -131,7 +132,7 @@ static uint32_t TestSeriesIsTesting(test_series *series, repetition_tester *test
 }
 
 
-static test_results *GetTestResults(test_series *series, uint32_t columnIndex, uint32_t rowIndex)
+static test_results *GetTestResultsPtr(test_series *series, uint32_t columnIndex, uint32_t rowIndex)
 {
     test_results *result = 0;
     if ((columnIndex < series->ColumnCount) && (rowIndex < series->MaxRowCount))
@@ -157,7 +158,7 @@ static void PrintCSVForValue(test_series *series, measurement_types measurementT
         fprintf(dest, "%s", series->RowLabels[rowIndex].Chars);
         for(uint32_t columnIndex = 0; columnIndex < series->ColumnCount; ++columnIndex)
         {
-            test_results *testResults = GetTestResults(series, columnIndex, rowIndex);
+            test_results *testResults = GetTestResultsPtr(series, columnIndex, rowIndex);
             fprintf(dest, ",%f", coefficient * testResults->Min.DerivedValues[measurementType]);
         }
         fprintf(dest, "\n");

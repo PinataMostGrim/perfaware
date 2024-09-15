@@ -66,7 +66,7 @@ static void SetRowLabelLabel(test_series *series, char const *format, ...);
 
 static void TestSeriesNewTestWave(test_series *series, repetition_tester *tester, uint64_t targetProcessedByteCount, uint64_t cpuTimerFrequency, uint32_t secondsToTry);
 static uint32_t TestSeriesIsTesting(test_series *series, repetition_tester *tester);
-static test_results *GetTestResults(test_series *series, uint32_t columnIndex, uint32_t rowIndex);
+static test_results *GetTestResultsPtr(test_series *series, uint32_t columnIndex, uint32_t rowIndex);
 static void PrintCSVForValue(test_series *series, measurement_types measurementType, FILE *dest, double coefficient);
 
 static char const *DescribeAllocationType(allocation_type allocType);
