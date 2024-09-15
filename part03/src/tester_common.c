@@ -288,10 +288,10 @@ static uint64_t TC__GetFileSize(char *fileName)
     return result;
 }
 
-
 #else
 
 #include <sys/random.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 
 static uint64_t GetMaxOSRandomCount()
