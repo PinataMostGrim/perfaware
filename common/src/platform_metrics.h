@@ -48,7 +48,7 @@ static uint64_t ReadOSPageFaultCount();
 
 // Note (Aaron): Use the following macro to start a named timing that tracks data throughput.
 #define START_BANDWIDTH_TIMING(label, byteCount)    zone_block label##Block = {0}; \
-                                                    _StartTiming(&label##Block, #label, __COUNTER__ + 1, byteCount)
+                                                    _StartTiming(&label##Block, #label, __COUNTER__ + 1, byteCount);
 
 // Note (Aaron): Use the following macro to start a named timing
 #define START_TIMING(label)                 START_BANDWIDTH_TIMING(label, 0);
