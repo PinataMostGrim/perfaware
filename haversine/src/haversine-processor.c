@@ -282,7 +282,7 @@ int main()
     END_TIMING(Startup); //////////////////////////////////////////////////////
 
     printf("[INFO] Processing haversine pairs\n");
-    START_TIMING(JSONParsing)
+    START_BANDWIDTH_TIMING(JSONParsing, jsonContents.Size)
     for (;;)
     {
         haversine_token nextToken = GetNextToken(&jsonContents);
@@ -432,7 +432,7 @@ int main()
     }
     END_TIMING(JSONParsing)
 
-    START_TIMING(HaversineDistance);
+    START_BANDWIDTH_TIMING(HaversineDistance, pairsArena.Used)
     haversine_pair *pairs = (haversine_pair *)pairsArena.BasePtr;
 
 #if VALIDATE_ALL_PAIRS
