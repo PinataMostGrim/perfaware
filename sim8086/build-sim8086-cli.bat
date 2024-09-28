@@ -1,27 +1,25 @@
+:: Build script for sim8086_cli.
 :: IMPORTANT: "vcvarsall.bat" must be reachable via the PATH variable.
-:: Highly recommended to run batch file from the project's root folder.
 
 @echo off
 
 :: NOTE: Configure these variables
-set INCLUDES=-I..\..\common\src
-set SOURCES=..\src\haversine-processor.c
+set INCLUDES=-I..\common\src
+set SOURCES=src\sim8086_cli.cpp
 set LINKER_FLAGS=-incremental:no -opt:ref
 set LIBS=
 
-set BUILD_FOLDER=haversine\bin
-set OUT_EXE=haversine-processor
+set BUILD_FOLDER=bin
+set OUT_EXE=sim8086
 
 :: NOTE: Set %DEBUG% to 1 for debug build
 IF [%DEBUG%] == [1] (
     :: Making debug build
-    set COMPILER_FLAGS=-nologo -Od -Gm- -MT -W4 -FC -wd4996 -wd4201 -wd4100 -wd4505 -DHAVERSINE_SLOW=1 -Zi -DEBUG:FULL
+    set COMPILER_FLAGS=-nologo -Od -Gm- -MT -W4 -FC -wd4996 -wd4201 -wd4100 -wd4505 -wd4127 -DSIM8086_SLOW=1 -Zi -DEBUG:FULL
     set OUT_EXE=%OUT_EXE%_debug.exe
 ) ELSE (
     :: Making release build
-    set COMPILER_FLAGS=-nologo -Od -Gm- -MT -W4 -FC -DHAVERSINE_SLOW=0
-    :: Optimize code for speed
-    :: set COMPILER_FLAGS=-nologo -Ot -Gm- -MT -W4 -FC -DHAVERSINE_SLOW=0
+    set COMPILER_FLAGS=-nologo -Od -Gm- -MT -W4 -FC -DSIM8086_SLOW=0
     set OUT_EXE=%OUT_EXE%_release.exe
 )
 
@@ -36,7 +34,6 @@ IF NOT %ERRORLEVEL% == 0 (
 )
 
 :: Compile and link
-:: Execute this line instead to view application after the pre-processor has been applied
-::cl -E %COMPILER_FLAGS% %INCLUDES% %SOURCES% -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS% | clang-format -style="Microsoft" > temp.txt
+:: cl -E %COMPILER_FLAGS% %INCLUDES% %SOURCES% -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS% | clang-format -style="Microsoft" > temp.txt
 cl %COMPILER_FLAGS% %INCLUDES% %SOURCES% -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS%
 popd

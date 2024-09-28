@@ -1,19 +1,19 @@
+:: Build script for sim8086_win32.
 :: IMPORTANT: "vcvarsall.bat" must be reachable via the PATH variable.
-:: Highly recommended to run batch file from the project's root folder.
 
 @echo off
 
 :: NOTE: Configure these variables
-set INCLUDES=-I..\..\common\src -I..\src\imgui -I..\src\imgui\backends
+set INCLUDES=-I..\common\src -Isrc\imgui -Isrc\imgui\backends
 set SOURCES=
-set IMGUI_SOURCES=..\src\imgui\imgui*.cpp ..\src\imgui\backends\imgui_impl_opengl3.cpp ..\src\imgui\backends\imgui_impl_win32.cpp
+set IMGUI_SOURCES=src\imgui\imgui*.cpp src\imgui\backends\imgui_impl_opengl3.cpp ..\src\imgui\backends\imgui_impl_win32.cpp
 set LINKER_FLAGS=-incremental:no -opt:ref
 set LIBS=User32.lib gdi32.lib winmm.lib opengl32.lib sim8086_application.lib
 set IMGUI_OBJS=imgui*.obj
 
 set GUI_LOCK_FILE=sim8086_lock.tmp
 
-set BUILD_FOLDER=sim8086\bin
+set BUILD_FOLDER=bin
 set OUT_EXE=sim8086_win32
 
 :: 0 for disabled, 1 for enabled
