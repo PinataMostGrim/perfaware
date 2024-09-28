@@ -1,16 +1,15 @@
-:: Build script for cli_sim8086.
+:: Build script for sim8086_cli.
 :: IMPORTANT: "vcvarsall.bat" must be reachable via the PATH variable.
-:: Highly recommended to run batch file from the project's root folder.
 
 @echo off
 
 :: NOTE: Configure these variables
-set SOURCES=..\src\sim8086_cli.cpp
-set INCLUDES=-I..\..\common\src
+set INCLUDES=-I..\common\src
+set SOURCES=src\sim8086_cli.cpp
 set LINKER_FLAGS=-incremental:no -opt:ref
 set LIBS=
 
-set BUILD_FOLDER=sim8086\bin
+set BUILD_FOLDER=bin
 set OUT_EXE=sim8086
 
 :: NOTE: Set %DEBUG% to 1 for debug build
