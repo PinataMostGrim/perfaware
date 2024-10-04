@@ -281,9 +281,10 @@ static rt__b32 IsTesting(repetition_tester *tester)
                     if (tester->PrintNewMinimums)
                     {
                         ComputeDerivedValues(&results->Min, tester->CPUTimerFrequency);
-                        printf("\r\x1b[K"); // Note (Aaron): Move to start of line and clear it
+                        printf("\r");
+                        printf("                                                                                ");
+                        printf("\r");
                         PrintValue("Min", results->Min);
-                        fflush(stdout); // Note (Aaron): Flush to ensure the output is immediately displayed.
                     }
                 }
 
@@ -306,9 +307,10 @@ static rt__b32 IsTesting(repetition_tester *tester)
             ComputeDerivedValues(&tester->Results.Min, tester->CPUTimerFrequency);
             ComputeDerivedValues(&tester->Results.Max, tester->CPUTimerFrequency);
 
-            printf("\r\x1b[K"); // Note (Aaron): Move to start of line and clear it
+            printf("\r");
+            printf("                                                                                ");
+            printf("\r");
             PrintResults(tester->Results);
-            fflush(stdout); // Note (Aaron): Flush to ensure the output is immediately displayed.
         }
     }
 
