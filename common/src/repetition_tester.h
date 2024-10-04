@@ -8,6 +8,12 @@ typedef int32_t rt__b32;
 #define RT__FALSE 0
 
 #define RT__ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+#define RT__Assert(condition, ...) \
+    do { \
+        if (!(condition)) { \
+            *(volatile unsigned *)0 = 0; \
+        } \
+    } while(0)
 
 
 typedef enum
@@ -27,6 +33,10 @@ typedef enum
     MType_MemPageFaults,
     MType_ByteCount,
 
+    StatValue_Seconds,
+    StatValue_GBPerSecond,
+    StatValue_KBPerPageFault,
+
     MType_Count,
 } measurement_types;
 
@@ -34,7 +44,10 @@ typedef enum
 typedef struct test_measurements test_measurements;
 struct test_measurements
 {
-    uint64_t E[MType_Count];
+    uint64_t Raw[MType_Count];
+
+    // Note (Aaron H): These values are computed from the Raw[] array and the CPUTimerFrequency
+    double DerivedValues[MType_Count];
 };
 
 
@@ -65,6 +78,17 @@ struct repetition_tester
 };
 
 
+static void InitializeTester();
+static void NewTestWave(repetition_tester *tester, uint64_t targetProcessedByteCount, uint64_t cpuTimerFrequency, uint32_t secondsToTry);
+static rt__b32 IsTesting(repetition_tester *tester);
+static void BeginTime(repetition_tester *tester);
+static void EndTime(repetition_tester *tester);
+static void CountBytes(repetition_tester *tester, uint64_t byteCount);
+
+static void Error(repetition_tester *tester, char const *message);
+static void PrintValue(char const *label, test_measurements value);
+static void PrintResults(test_results results);
+
 static uint64_t ReadCPUTimer();
 static uint64_t EstimateCPUTimerFrequency();
 static uint64_t GetOSTimerFrequency();
@@ -91,45 +115,60 @@ static double SecondsFromCPUTime(double cpuTime, uint64_t cpuTimerFrequency)
 }
 
 
-static void PrintValue(char const *label, test_measurements value, uint64_t cpuTimerFrequency)
+static void ComputeDerivedValues(test_measurements *value, uint64_t cpuTimerFrequency)
 {
-    uint64_t testCount = value.E[MType_TestCount];
+    uint64_t testCount = value->Raw[MType_TestCount];
     double divisor = testCount ? (double)testCount : 1;
 
-    double e[MType_Count];
-    for (uint32_t i = 0; i < RT__ArrayCount(e); ++i)
+    double *derivedValues = value->DerivedValues;
+    for(uint32_t i = 0; i < RT__ArrayCount(value->DerivedValues); ++i)
     {
-        e[i] = (double)value.E[i] / divisor;
+        derivedValues[i] = (double)value->Raw[i] / divisor;
     }
 
-    printf("%s: %.0f", label, e[MType_CPUTimer]);
-    if (cpuTimerFrequency)
+    if(cpuTimerFrequency)
     {
-        double seconds = SecondsFromCPUTime(e[MType_CPUTimer], cpuTimerFrequency);
-        printf(" (%fms)", 1000.0f * seconds);
+        double seconds = SecondsFromCPUTime(derivedValues[MType_CPUTimer], cpuTimerFrequency);
+        derivedValues[StatValue_Seconds] = seconds;
 
-        if (e[MType_ByteCount] > 0)
+        if(derivedValues[MType_ByteCount] > 0)
         {
             double gigabyte = (1024.0f * 1024.0f * 1024.0f);
-            double bestbandwidth = e[MType_ByteCount] / (gigabyte * seconds);
-            printf(" %f gb/s", bestbandwidth);
+            derivedValues[StatValue_GBPerSecond] = derivedValues[MType_ByteCount] / (gigabyte * seconds);
         }
     }
 
-    if(e[MType_MemPageFaults] > 0)
+    if(derivedValues[MType_MemPageFaults] > 0)
     {
-        printf(" PF: %0.4f (%0.4fk/fault)", e[MType_MemPageFaults], e[MType_ByteCount] / (e[MType_MemPageFaults] * 1024.0));
+        derivedValues[StatValue_KBPerPageFault] = derivedValues[MType_ByteCount] / (derivedValues[MType_MemPageFaults] * 1024.0);
     }
 }
 
 
-static void PrintResults(test_results results, uint64_t cpuTimerFrequency)
+static void PrintValue(char const *label, test_measurements value)
 {
-    PrintValue("Min", results.Min, cpuTimerFrequency);
+    printf("%s: %.0f", label, value.DerivedValues[MType_CPUTimer]);
+    printf(" (%fms)", 1000.0f * value.DerivedValues[StatValue_Seconds]);
+
+    if(value.DerivedValues[MType_ByteCount] > 0)
+    {
+        printf(" %fgb/s", value.DerivedValues[StatValue_GBPerSecond]);
+    }
+
+    if(value.DerivedValues[StatValue_KBPerPageFault])
+    {
+        printf(" PF: %0.4f (%0.4fkb/fault)", value.DerivedValues[MType_MemPageFaults], value.DerivedValues[StatValue_KBPerPageFault]);
+    }
+}
+
+
+static void PrintResults(test_results results)
+{
+    PrintValue("Min", results.Min);
     printf("\n");
-    PrintValue("Max", results.Max, cpuTimerFrequency);
+    PrintValue("Max", results.Max);
     printf("\n");
-    PrintValue("Avg", results.Total, cpuTimerFrequency);
+    PrintValue("Avg", results.Total);
     printf("\n");
 }
 
@@ -149,7 +188,7 @@ static void NewTestWave(repetition_tester *tester, uint64_t targetProcessedByteC
         tester->TargetProcessedByteCount = targetProcessedByteCount;
         tester->CPUTimerFrequency = cpuTimerFrequency;
         tester->PrintNewMinimums = RT__TRUE;
-        tester->Results.Min.E[MType_CPUTimer] = (uint64_t)-1;
+        tester->Results.Min.Raw[MType_CPUTimer] = (uint64_t)-1;
     }
     else if (tester->Mode == TestMode_Completed)
     {
@@ -176,16 +215,16 @@ static void BeginTime(repetition_tester *tester)
     ++tester->OpenBlockCount;
 
     test_measurements *accumulated = &tester->AccumulatedOnThisTest;
-    accumulated->E[MType_MemPageFaults] -= ReadOSPageFaultCount();
-    accumulated->E[MType_CPUTimer] -= ReadCPUTimer();
+    accumulated->Raw[MType_MemPageFaults] -= ReadOSPageFaultCount();
+    accumulated->Raw[MType_CPUTimer] -= ReadCPUTimer();
 }
 
 
 static void EndTime(repetition_tester *tester)
 {
     test_measurements *accumulated = &tester->AccumulatedOnThisTest;
-    accumulated->E[MType_CPUTimer] += ReadCPUTimer();
-    accumulated->E[MType_MemPageFaults] += ReadOSPageFaultCount();
+    accumulated->Raw[MType_CPUTimer] += ReadCPUTimer();
+    accumulated->Raw[MType_MemPageFaults] += ReadOSPageFaultCount();
     ++tester->CloseBlockCount;
 }
 
@@ -193,7 +232,7 @@ static void EndTime(repetition_tester *tester)
 static void CountBytes(repetition_tester *tester, uint64_t byteCount)
 {
     test_measurements *accumulated = &tester->AccumulatedOnThisTest;
-    accumulated->E[MType_ByteCount] += byteCount;
+    accumulated->Raw[MType_ByteCount] += byteCount;
 }
 
 
@@ -212,7 +251,7 @@ static rt__b32 IsTesting(repetition_tester *tester)
                 Error(tester, "Unbalanced BeginTime/EndTime");
             }
 
-            if (accumulated.E[MType_ByteCount] != tester->TargetProcessedByteCount)
+            if (accumulated.Raw[MType_ByteCount] != tester->TargetProcessedByteCount)
             {
                 Error(tester, "Processed byte count mismatch");
             }
@@ -221,18 +260,18 @@ static rt__b32 IsTesting(repetition_tester *tester)
             {
                 test_results *results = &tester->Results;
 
-                accumulated.E[MType_TestCount] = 1;
-                for(uint32_t i = 0; i < RT__ArrayCount(accumulated.E); ++i)
+                accumulated.Raw[MType_TestCount] = 1;
+                for(uint32_t i = 0; i < RT__ArrayCount(accumulated.Raw); ++i)
                 {
-                    results->Total.E[i] += accumulated.E[i];
+                    results->Total.Raw[i] += accumulated.Raw[i];
                 }
 
-                if (results->Max.E[MType_CPUTimer] < accumulated.E[MType_CPUTimer])
+                if (results->Max.Raw[MType_CPUTimer] < accumulated.Raw[MType_CPUTimer])
                 {
                     results->Max = accumulated;
                 }
 
-                if (results->Min.E[MType_CPUTimer] > accumulated.E[MType_CPUTimer])
+                if (results->Min.Raw[MType_CPUTimer] > accumulated.Raw[MType_CPUTimer])
                 {
                     results->Min = accumulated;
 
@@ -241,14 +280,17 @@ static rt__b32 IsTesting(repetition_tester *tester)
                     tester->TestsStartedAt = currentTime;
                     if (tester->PrintNewMinimums)
                     {
-                        PrintValue("Min", results->Min, tester->CPUTimerFrequency);
-                        printf("                                   \r");
+                        ComputeDerivedValues(&results->Min, tester->CPUTimerFrequency);
+                        printf("\r\x1b[K"); // Note (Aaron): Move to start of line and clear it
+                        PrintValue("Min", results->Min);
+                        fflush(stdout); // Note (Aaron): Flush to ensure the output is immediately displayed.
                     }
                 }
 
                 tester->OpenBlockCount = 0;
                 tester->CloseBlockCount = 0;
 
+                // Note (Aaron H): Zero out tester->AccumulatedOnThisTest
                 uint64_t count = sizeof(tester->AccumulatedOnThisTest);
                 void *destPtr = &tester->AccumulatedOnThisTest;
                 unsigned char *dest = (unsigned char *)destPtr;
@@ -260,8 +302,13 @@ static rt__b32 IsTesting(repetition_tester *tester)
         {
             tester->Mode = TestMode_Completed;
 
-            printf("                                                          \r");
-            PrintResults(tester->Results, tester->CPUTimerFrequency);
+            ComputeDerivedValues(&tester->Results.Total, tester->CPUTimerFrequency);
+            ComputeDerivedValues(&tester->Results.Min, tester->CPUTimerFrequency);
+            ComputeDerivedValues(&tester->Results.Max, tester->CPUTimerFrequency);
+
+            printf("\r\x1b[K"); // Note (Aaron): Move to start of line and clear it
+            PrintResults(tester->Results);
+            fflush(stdout); // Note (Aaron): Flush to ensure the output is immediately displayed.
         }
     }
 
@@ -303,6 +350,29 @@ static uint64_t EstimateCPUTimerFrequency()
 
 #include <intrin.h>
 #include <windows.h>
+#include <psapi.h>
+
+typedef struct tester_globals tester_globals;
+struct tester_globals
+{
+    uint32_t Initialized;
+    HANDLE ProcessHandle;
+    uint64_t CPUTimerFrequency;
+    uint32_t SecondsToTry;
+};
+static tester_globals TesterGlobals;
+
+static void InitializeTester()
+{
+    if (!TesterGlobals.Initialized)
+    {
+        TesterGlobals.Initialized = true;
+        TesterGlobals.ProcessHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, GetCurrentProcessId());
+        TesterGlobals.CPUTimerFrequency = EstimateCPUTimerFrequency();
+        TesterGlobals.SecondsToTry = 10;
+    }
+}
+
 
 static uint64_t ReadCPUTimer()
 {
@@ -328,7 +398,12 @@ static uint64_t ReadOSTimer()
 
 static uint64_t ReadOSPageFaultCount()
 {
-    RT__Assert(RT__FALSE && "Not implemented");
+    PROCESS_MEMORY_COUNTERS_EX memoryCounters = {0};
+    memoryCounters.cb = sizeof(memoryCounters);
+    GetProcessMemoryInfo(TesterGlobals.ProcessHandle, (PROCESS_MEMORY_COUNTERS *)&memoryCounters, sizeof(memoryCounters));
+
+    uint64_t result = memoryCounters.PageFaultCount;
+    return result;
 }
 
 #else // _WIN32
@@ -336,6 +411,27 @@ static uint64_t ReadOSPageFaultCount()
 #include <x86intrin.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+
+
+typedef struct tester_globals tester_globals;
+struct tester_globals
+{
+    uint32_t Initialized;
+    uint64_t CPUTimerFrequency;
+    uint32_t SecondsToTry;
+};
+static tester_globals TesterGlobals;
+
+
+static void InitializeTester()
+{
+    if (!TesterGlobals.Initialized)
+    {
+        TesterGlobals.Initialized = true;
+        TesterGlobals.CPUTimerFrequency = EstimateCPUTimerFrequency();
+        TesterGlobals.SecondsToTry = 10;
+    }
+}
 
 
 static uint64_t ReadCPUTimer()

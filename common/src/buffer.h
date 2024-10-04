@@ -13,5 +13,6 @@ struct buffer
 
 static buffer BufferAllocate(size_t sizeBytes);
 static void BufferFree(buffer *buff);
+static uint32_t BufferIsValid(buffer buff);
 
 #endif // BUFFER_H
