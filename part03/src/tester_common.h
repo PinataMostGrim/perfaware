@@ -7,6 +7,8 @@
 #include "../../common/src/repetition_tester.h"
 #include "../../common/src/buffer.h"
 
+#define TC__UNUSED(x) (void)(x)
+
 #define TC__Assert(condition, ...) \
     do { \
         if (!(condition)) { \

@@ -277,7 +277,12 @@ static buffer ReadEntireFile(char *fileName)
 #include <windows.h>
 
 static uint64_t GetMaxOSRandomCount() { assert(0 && "Not implemented"); }
-static bool ReadOSRandomBytes(uint64_t Count, void *Dest) { assert(0 && "Not implemented"); }
+static bool ReadOSRandomBytes(uint64_t count, void *dest)
+{
+    TC__UNUSED(count);
+    TC__UNUSED(dest);
+    assert(0 && "Not implemented");
+}
 
 static uint64_t TC__GetFileSize(char *fileName)
 {
