@@ -288,8 +288,24 @@ static uint64_t TC__GetFileSize(char *fileName)
     return result;
 }
 
+typedef HANDLE thread_handle;
+#define THREAD_ENTRY_POINT(Name, arg) static DWORD WINAPI Name(void *arg)
+
+static inline thread_handle CreateAndStartThread(LPTHREAD_START_ROUTINE threadFunction, void *threadArg)
+{
+    thread_handle result = CreateThread(0, 0, threadFunction, threadArg, 0, 0);
+    return result;
+}
+
+inline int32_t ThreadIsValid(thread_handle handle)
+{
+    int32_t result = (handle != 0);
+    return result;
+}
+
 #else
 
+#include <pthread.h>
 #include <sys/random.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -322,6 +338,27 @@ static uint64_t TC__GetFileSize(char *fileName)
     stat(fileName, &stats);
 
     return stats.st_size;
+}
+
+
+typedef pthread_t thread_handle;
+#define THREAD_ENTRY_POINT(Name, arg) static void *Name(void *arg)
+
+static inline thread_handle CreateAndStartThread(void *(threadFunction)(void *), void *threadArg)
+{
+    pthread_t result = {0};
+    pthread_create(&result,
+        NULL,
+        threadFunction,
+        threadArg);
+
+    return result;
+}
+
+static inline int32_t ThreadIsValid(thread_handle handle)
+{
+    int32_t result = (handle != 0);
+    return result;
 }
 
 #endif
