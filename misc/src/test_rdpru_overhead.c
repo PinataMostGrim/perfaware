@@ -7,6 +7,10 @@
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 #define UNUSED(x) (void)(x)
 
+#define CLANG_COMPILER (defined(__clang__))
+#define GCC_COMPILER (defined(__GNUC__) && !defined(__clang__))
+#define MSVC_COMPILER (defined(_MSC_VER))
+
 typedef uint8_t u8;
 typedef uint32_t u32;
 typedef uint64_t u64;
@@ -39,6 +43,8 @@ test_function TestFunctions[] =
 
 static uint64_t read_mperf()
 {
+#if defined(CLANG_COMPILER)
+#elif defined(GCC_COMPILER)
     u32 low, high;
     __asm__ volatile("mov $0, %%ecx; rdpru"
                  : "=a" (low), "=d" (high)
@@ -46,10 +52,18 @@ static uint64_t read_mperf()
                  : "ecx");
 
     return ((u64)high << 32) | low;
+
+#elif defined(MSVC_COMPILER)
+#endif
+
+    return 0;
 }
+
 
 static uint64_t read_aperf()
 {
+#if defined(CLANG_COMPILER)
+#elif defined(GCC_COMPILER)
     u32 low, high;
     __asm__ volatile("mov $1, %%ecx; rdpru"
                  : "=a" (low), "=d" (high)
@@ -57,6 +71,11 @@ static uint64_t read_aperf()
                  : "ecx");
 
     return ((u64)high << 32) | low;
+
+#elif defined(MSVC_COMPILER)
+#endif
+
+    return 0;
 }
 
 
