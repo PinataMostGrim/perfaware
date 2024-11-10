@@ -1,3 +1,4 @@
+#include <cpuid.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -39,6 +40,21 @@ test_function TestFunctions[] =
     {"MPerf", MPerf},
     {"APerf", APerf},
 };
+
+
+static b32 is_rdpru_supported()
+{
+    u32 eax, ebx, ecx, edx;
+    u32 result = 0;
+
+    if (__get_cpuid_max(0, NULL) >= 7)
+    {
+        __cpuid_count(7, 0, eax, ebx, ecx, edx);
+        result = (ecx & (1 << 22)) != 0;
+    }
+
+    return result;
+}
 
 
 static uint64_t read_mperf()
@@ -135,6 +151,12 @@ static u64 APerf(u64 count)
 
 int main(int argc, char const *argv[])
 {
+    if (!is_rdpru_supported())
+    {
+        fprintf(stderr, "'rdpru' instruction is not supported on this processor.\n");
+        return 1;
+    }
+
     InitializeTester();
     repetition_tester testers[ArrayCount(TestFunctions)] = {0};
     u64 count = 10000;
