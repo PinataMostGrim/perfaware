@@ -1,3 +1,12 @@
+/*
+- [ ] Create a repetition tester that measures timings from different rdpru implementations
+    - [ ] Gain an understanding of maximum performance vs actual performance values
+    - [ ] Add function to estimate actual CPU frequency
+        - [ ] Use multi-threading for this?
+    - [ ] Move RDPRU into its own header?
+- [ ] Add linked assembly version instead of inline assembly
+*/
+
 #include <cpuid.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -72,6 +81,7 @@ static uint64_t read_mperf()
 #elif defined(MSVC_COMPILER)
 #endif
 
+    // TODO (Aaron): Assert unsupported
     return 0;
 }
 
@@ -91,6 +101,7 @@ static uint64_t read_aperf()
 #elif defined(MSVC_COMPILER)
 #endif
 
+    // TODO (Aaron): Assert unsupported
     return 0;
 }
 
