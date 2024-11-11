@@ -94,8 +94,8 @@ int main(void)
         test_measurements bestResult = testers[strideIndex].Results.Min;
 
         double gigabyte_f = (1024.0f * 1024.0f * 1024.0f);
-        double bestSeconds = SecondsFromCPUTime(bestResult.E[MType_CPUTimer], cpuTimerFrequency);
-        double bestBandwidth = bestResult.E[MType_ByteCount] / (gigabyte_f * bestSeconds);
+        double bestSeconds = SecondsFromCPUTime(bestResult.Raw[MType_CPUTimer], cpuTimerFrequency);
+        double bestBandwidth = bestResult.Raw[MType_ByteCount] / (gigabyte_f * bestSeconds);
 
         u64 stride = cacheLineSize * strideIndex;
 
