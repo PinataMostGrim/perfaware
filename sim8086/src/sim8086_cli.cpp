@@ -1,6 +1,7 @@
 #include "base_inc.h"
 
 #include "base_memory.c"
+#include "base_arena.c"
 #include "base_string.c"
 #include "sim8086.cpp"
 #include "sim8086_mnemonics.cpp"
@@ -290,15 +291,12 @@ int main(int argc, char const *argv[])
 
     // init scratch memory
     U64 scratchMemorySize = Megabytes(1);
-    U8 *scratchMemoryPtr = (U8 *)calloc(scratchMemorySize, sizeof(U8));
-    if (!scratchMemoryPtr)
+    memory_arena scratchArena = ArenaAllocate(scratchMemorySize, scratchMemorySize);
+    if (!ArenaIsAllocated(&scratchArena))
     {
         printf("ERROR: Unable to allocate scratch memory for sim8086\n");
         exit(1);
     }
-
-    memory_arena scratchArena;
-    ArenaInitialize(&scratchArena, scratchMemorySize, scratchMemoryPtr);
 
     START_TIMING(LoadProgramFromFile)
     FILE *file = {};
