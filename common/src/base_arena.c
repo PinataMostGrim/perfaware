@@ -1,4 +1,7 @@
 /* TODO (Aaron):
+    - Add support for page alignment
+        - mmap might already align memory to pages
+        - Not sure about the VirtualAlloc() for Windows
     - Add ArenaPushFile() method?
 */
 
@@ -58,6 +61,31 @@ global_function B32 ArenaFree(memory_arena *arena)
 }
 
 
+// TODO (Aaron): Test this
+global_function B32 ArenaIsValid(memory_arena *arena)
+{
+    // Note (Aaron): Arena has no backing memory
+    if (arena->BasePtr == 0)
+    {
+        return FALSE;
+    }
+
+    // Note (Aaron): Size is greater than MaxSize
+    if (arena->Size > arena->MaxSize)
+    {
+        return FALSE;
+    }
+
+    // Note (Aaron): Used is greater than Size or MaxSize
+    if (arena->Used > arena->Size || arena->Used > arena->MaxSize)
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+
 global_function void *ArenaPushSize(memory_arena *arena, memory_index size)
 {
     // Note (Aaron): Guard against exceeding the arena's MaxSize
@@ -78,6 +106,7 @@ global_function void *ArenaPushSize(memory_arena *arena, memory_index size)
             return 0;
         }
 
+        // TODO (Aaron): Test this is correct. I am tired.
         arena->Size = arena->Used + size;
     }
 
@@ -109,6 +138,7 @@ global_function void *ArenaPushSizeZero(memory_arena *arena, memory_index size)
             return 0;
         }
 
+        // TODO (Aaron): Test this is correct. I am tired.
         arena->Size = arena->Used + size;
     }
 
@@ -125,6 +155,7 @@ global_function void *ArenaPushSizeZero(memory_arena *arena, memory_index size)
 global_function void *ArenaPushData(memory_arena *arena, memory_index size, U8 *sourcePtr)
 {
     void *result = ArenaPushSize(arena, size);
+    // TODO (Aaron): Test this
     if (!result)
     {
         return 0;
@@ -138,6 +169,7 @@ global_function void *ArenaPushData(memory_arena *arena, memory_index size, U8 *
 
 global_function void *ArenaPopSize(memory_arena *arena, memory_index size)
 {
+    // TODO (Aaron): Test this
     if (arena->Used < size)
     {
         Assert(arena->Used >= size && "Attempted to free more space than has been filled");

@@ -158,6 +158,7 @@ int main()
 
     START_TIMING(MemoryAllocation) //////////////////////////////////
     // allocate memory arena for token stack
+    // TODO (Aaron): Does this arena need to be growable?
     U64 tokenStackSize = Megabytes(1);
     memory_arena tokenArena = ArenaAllocate(tokenStackSize, tokenStackSize);
     if (!ArenaIsValid(&tokenArena))
