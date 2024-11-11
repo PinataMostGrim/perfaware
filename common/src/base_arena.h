@@ -19,6 +19,7 @@ typedef struct
 
 global_function memory_arena ArenaAllocate(size_t size, size_t maxSize);
 global_function void ArenaInitialize(memory_arena *arena, memory_index size, memory_index maxSize, U8 *basePtr);
+global_function B32 ArenaIsAllocated(memory_arena *arena);
 
 global_function void *ArenaPushSize(memory_arena *arena, memory_index size);
 global_function void *ArenaPushSizeZero(memory_arena *arena, memory_index size);

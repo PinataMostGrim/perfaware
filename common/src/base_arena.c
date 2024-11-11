@@ -39,6 +39,13 @@ global_function void ArenaInitialize(memory_arena *arena, memory_index size, mem
 }
 
 
+global_function B32 ArenaIsAllocated(memory_arena *arena)
+{
+    B32 result = arena->BasePtr != 0;
+    return result;
+}
+
+
 global_function void *ArenaPushSize(memory_arena *arena, memory_index size)
 {
     // Note (Aaron): Guard against exceeding the arena's MaxSize
