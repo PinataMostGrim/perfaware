@@ -9,6 +9,10 @@
 #include <sys/mman.h>
 #endif
 
+#if _WIN32
+#include <windows.h>
+#endif
+
 #include "base.h"
 #include "base_types.h"
 #include "base_memory.h"
@@ -26,7 +30,8 @@ global_function void* MemoryReserve(size_t size)
     return result;
 
 #elif _WIN32
-    Assert(FALSE && "Platform not supported");
+    void *result = VirtualAlloc(0, size, MEM_RESERVE, PAGE_READWRITE);
+    return result;
 
 #endif
 
@@ -41,8 +46,9 @@ global_function B32 MemoryCommit(void *base, size_t size)
     mprotect(base, size, PROT_READ | PROT_WRITE);
     return 1;
 
-#elif __WIN32
-    Assert(FALSE && "Platform not supported");
+#elif _WIN32
+    B32 result = (VirtualAlloc(base, size, MEM_COMMIT, PAGE_READWRITE) != 0);
+    return result;
 
 #endif
 
