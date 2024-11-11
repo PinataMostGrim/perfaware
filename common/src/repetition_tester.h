@@ -427,7 +427,7 @@ static void InitializeTester()
 {
     if (!TesterGlobals.Initialized)
     {
-        TesterGlobals.Initialized = true;
+        TesterGlobals.Initialized = RT__TRUE;
         TesterGlobals.CPUTimerFrequency = EstimateCPUTimerFrequency();
         TesterGlobals.SecondsToTry = 10;
     }
