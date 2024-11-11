@@ -10,7 +10,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # Note: Configure these variables
 SRC_FOLDER="src"
 BUILD_FOLDER="bin"
-OUT_EXE="haversine_generator"
+OUT_EXE="haversine-generator"
 
 INCLUDES="-I $SCRIPT_DIR/../common/src"
 SOURCES="$SCRIPT_DIR/$SRC_FOLDER/haversine-generator.c"
