@@ -4,6 +4,7 @@
 #include "base.h"
 #include "base_string.h"
 #include "base_memory.h"
+#include "base_arena.h"
 
 
 // +------------------------------+

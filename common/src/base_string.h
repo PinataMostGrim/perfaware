@@ -8,6 +8,7 @@
 
 #include "base_types.h"
 #include "base_memory.h"
+#include "base_arena.h"
 
 
 // +------------------------------+
