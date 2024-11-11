@@ -19,8 +19,10 @@
 #include "base_inc.h"
 #include "haversine.h"
 #include "haversine_lexer.h"
+
 #include "base_types.c"
 #include "base_memory.c"
+#include "base_arena.c"
 #include "base_string.c"
 #include "haversine.c"
 #include "haversine_lexer.c"
@@ -95,12 +97,11 @@ global_function memory_arena ReadFileContents(char *filename)
 #endif
 
     memory_index fileSize = stats.st_size;
-    U8 *basePtr = (U8 *)malloc(fileSize);
 
-    if (!basePtr)
+    result = ArenaAllocate(fileSize, fileSize);
+    if (!ArenaIsAllocated(&result))
     {
         printf("[ERROR] Unable to allocate memory for \"%s\"\n", filename);
-        free(basePtr);
         fclose(file);
         Assert(FALSE);
 
@@ -108,12 +109,12 @@ global_function memory_arena ReadFileContents(char *filename)
     }
 
     START_BANDWIDTH_TIMING(ReadFileContents, fileSize);
-    B8 read_success = fread(basePtr, fileSize, 1, file) == 1;
+    B8 read_success = fread(result.BasePtr, fileSize, 1, file) == 1;
     END_TIMING(ReadFileContents)
     if(!read_success)
     {
         fprintf(stderr, "[ERROR] Unable to read file \"%s\"\n", filename);
-        free(basePtr);
+        free(result.BasePtr);
         fclose(file);
         Assert(FALSE);
 
@@ -122,7 +123,6 @@ global_function memory_arena ReadFileContents(char *filename)
 
     fclose(file);
 
-    ArenaInitialize(&result, fileSize, basePtr);
     result.Used = fileSize;
     // Note (Aaron): We keep the arena's position pointer at the base pointer so we can use it as a read head for parsing the data.
 
@@ -223,7 +223,7 @@ int main()
     char *dataFilename = DATA_FILENAME;
     printf("[INFO] Processing file '%s'\n", dataFilename);
     memory_arena jsonContents = ReadFileContents(dataFilename);
-    if (!jsonContents.BasePtr)
+    if (!ArenaIsAllocated(&jsonContents))
     {
         perror("[ERROR] ");
         return 1;
@@ -246,15 +246,14 @@ int main()
 
     START_TIMING(MemoryAllocation) //////////////////////////////////
     // allocate memory arena for token stack
-    U8 *tokenStackPtr = calloc(1, Megabytes(1));
-    if (!tokenStackPtr)
+    U64 tokenStackSize = Megabytes(1);
+    memory_arena tokenArena = ArenaAllocate(tokenStackSize, tokenStackSize);
+    if (!ArenaIsAllocated(&tokenArena))
     {
         printf("[ERROR] Unable to allocate memory for token stack\n");
         exit(1);
     }
 
-    memory_arena tokenArena;
-    ArenaInitialize(&tokenArena, Megabytes(1), tokenStackPtr);
     token_stack tokenStack = {0};
     tokenStack.Arena = &tokenArena;
 
@@ -263,15 +262,12 @@ int main()
     U64 maxPairCount = jsonContents.Size / minimumJSONPairSize;
     memory_index pairsArenaSize = maxPairCount * sizeof(haversine_pair);
 
-    U8 *pairsPtr = malloc(pairsArenaSize);
-    if (!pairsPtr)
+    memory_arena pairsArena = ArenaAllocate(pairsArenaSize, pairsArenaSize);
+    if (!ArenaIsAllocated(&pairsArena))
     {
         printf("[ERROR] Unable to allocate memory for haversine pairs values\n");
         exit(1);
     }
-
-    memory_arena pairsArena;
-    ArenaInitialize(&pairsArena, pairsArenaSize, pairsPtr);
     END_TIMING(MemoryAllocation) ////////////////////////////////////
 
     pairs_context context = {0};

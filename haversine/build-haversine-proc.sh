@@ -10,14 +10,14 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # Note: Configure these variables
 SRC_FOLDER="src"
 BUILD_FOLDER="bin"
-OUT_EXE="haversine_processor"
+OUT_EXE="haversine-processor"
 
 INCLUDES="-I $SCRIPT_DIR/../common/src"
 SOURCES="$SCRIPT_DIR/$SRC_FOLDER/haversine-processor.c"
 LINKER_FLAGS="-lm"
 
 # Optionally set debug mode here:
-DEBUG=0
+DEBUG=1
 
 # Sets DEBUG environment variable to 0 if
 # it isn't already defined

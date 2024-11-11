@@ -28,6 +28,7 @@
 
 #include "base_types.c"
 #include "base_memory.c"
+#include "base_arena.c"
 #include "base_string.c"
 #include "sim8086.cpp"
 #include "sim8086_mnemonics.cpp"
@@ -166,7 +167,7 @@ global_function application_code LinuxLoadAppCode(char *soSourcePath, char *soTe
     close(sourceFile);
     close(tempFile);
 
-    // Note (Aaron): sendfile() isn't guarenteed to send all bytes for some reason. If we ever want
+    // Note (Aaron): sendfile() isn't guaranteed to send all bytes for some reason. If we ever want
     // to make this more robust, we could do one of the following:
     //  - try the send operation multiple times here
     //  - try using copy_file_range()
@@ -255,7 +256,6 @@ int main(int argc, char const *argv[])
         memory.TotalSize += memory.Defs[i].Size;
     }
 
-    // TODO (Aaron): Figure out how to use mmap()
     memory.BackingStore = mmap(NULL, memory.TotalSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (memory.BackingStore == (void *)-1)
     {
@@ -268,7 +268,7 @@ int main(int argc, char const *argv[])
     memory.IsInitialized = TRUE;
     for (int i = 0; i < ArrayCount(memory.Defs); ++i)
     {
-        ArenaInitialize(&memory.Defs[i].Arena, memory.Defs[i].Size, arenaStartPtr);
+        ArenaInitialize(&memory.Defs[i].Arena, memory.Defs[i].Size, memory.Defs[i].Size, arenaStartPtr);
         arenaStartPtr += memory.Defs[i].Size;
 
         if (!memory.Defs[i].Arena.BasePtr)

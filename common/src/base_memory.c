@@ -3,12 +3,58 @@
         - What behaviour would we expect?
         - Return a null pointer?
         - Casey mentioned that he always returns a stub that can be used but is zeroed out every frame
-    - Add ArenaPushFile() method?
 */
 
+#if __linux__
+#include <sys/mman.h>
+#endif
+
+#if _WIN32
+#include <windows.h>
+#endif
+
 #include "base.h"
+#include "base_types.h"
 #include "base_memory.h"
 
+
+global_function void* MemoryReserve(size_t size)
+{
+#if __linux__
+    void *result = mmap(0, size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (result == MAP_FAILED)
+    {
+        result = 0;
+    }
+
+    return result;
+
+#elif _WIN32
+    void *result = VirtualAlloc(0, size, MEM_RESERVE, PAGE_READWRITE);
+    return result;
+
+#endif
+
+    Assert(FALSE && "Platform not supported");
+    return 0;
+}
+
+
+global_function B32 MemoryCommit(void *base, size_t size)
+{
+#if __linux__
+    mprotect(base, size, PROT_READ | PROT_WRITE);
+    return 1;
+
+#elif _WIN32
+    B32 result = (VirtualAlloc(base, size, MEM_COMMIT, PAGE_READWRITE) != 0);
+    return result;
+
+#endif
+
+    Assert(FALSE && "Platform not supported");
+    return 0;
+}
 
 global_function void *MemorySet(void *destPtr, int c, size_t count)
 {
@@ -30,76 +76,4 @@ global_function void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t si
     while(size--) *dest++ = *source++;
 
     return destPtr;
-}
-
-
-global_function void ArenaInitialize(memory_arena *arena, memory_index size, U8 *basePtr)
-{
-    arena->BasePtr = basePtr;
-    arena->PositionPtr = basePtr;
-    arena->Size = size;
-    arena->Used = 0;
-}
-
-
-global_function void *ArenaPushSize(memory_arena *arena, memory_index size)
-{
-    Assert(((arena->Used + size) <= arena->Size) && "Attempted to allocate more space than the arena has remaining");
-
-    void *result = arena->BasePtr + arena->Used;
-    arena->Used += size;
-    arena->PositionPtr = arena->BasePtr + arena->Used;
-
-    return result;
-}
-
-
-global_function void *ArenaPushSizeZero(memory_arena *arena, memory_index size)
-{
-    Assert((arena->Used + size) <= arena->Size && "Attempted to allocate more space than the arena has remaining");
-
-    MemorySet(arena->PositionPtr, 0, size);
-
-    void *result = arena->BasePtr + arena->Used;
-    arena->Used += size;
-    arena->PositionPtr = arena->BasePtr + arena->Used;
-
-    return result;
-}
-
-
-global_function void *ArenaPushData(memory_arena *arena, memory_index size, U8 *sourcePtr)
-{
-    void *result = ArenaPushSize(arena, size);
-    MemoryCopy(result, sourcePtr, size);
-
-    return result;
-}
-
-
-global_function void *ArenaPopSize(memory_arena *arena, memory_index size)
-{
-    Assert(arena->Used >= size && "Attempted to free more space than has been filled");
-
-    arena->Used -= size;
-    arena->PositionPtr = arena->BasePtr + arena->Used;
-
-    void *result = arena->BasePtr + arena->Used;
-    return result;
-}
-
-
-global_function void ArenaClear(memory_arena *arena)
-{
-    arena->PositionPtr = arena->BasePtr;
-    arena->Used = 0;
-}
-
-
-global_function void ArenaClearZero(memory_arena *arena)
-{
-    arena->PositionPtr = arena->BasePtr;
-    arena->Used = 0;
-
-    MemorySet(arena->BasePtr, 0x0, arena->Size);
 }
