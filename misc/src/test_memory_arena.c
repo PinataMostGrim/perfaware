@@ -28,52 +28,9 @@ typedef int32_t b32;
 #define ARENA_MAX Gigabytes(1)
 
 
-void* ReserveMemory(size_t size)
-{
-    void *result = mmap(0, size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (result == MAP_FAILED)
-    {
-        result = 0;
-    }
-
-    return result;
-}
-
-
-b32 CommitMemory(void *base, size_t size)
-{
-    mprotect(base, size, PROT_READ | PROT_WRITE);
-    return 1;
-}
-
-
 b32 UnCommitMemory()
 {
     return 1;
-}
-
-
-memory_arena ArenaAllocate(size_t size, size_t maxSize)
-{
-    memory_arena result = {0};
-
-    // Note (Aaron): A value of 0 for maxSize indicates the arena is not growable.
-    if (!maxSize)
-    {
-        maxSize = size;
-    }
-
-    // TODO (Aaron): Consider how to handle this in production code.
-    Assert(maxSize >= size);
-
-    u8 *base = ReserveMemory(maxSize);
-    if (base)
-    {
-        CommitMemory(base, size);
-        ArenaInitialize(&result, size, base);
-    }
-
-    return result;
 }
 
 
@@ -87,12 +44,12 @@ int main(int argc, char const *argv[])
     u64 size4K = Kilobytes(4);
     u64 size8K = Kilobytes(4*2);
 
-    u8 *base = ReserveMemory(size8K);
+    u8 *base = MemoryReserve(size8K);
 
     // Note (Aaron): This will fail without mprotect() being called first.
     // *(u64*)base = 12;
 
-    CommitMemory(base, size4K);
+    MemoryCommit(base, size4K);
 
     // Note (Aaron): This will succeed because mprotect has changed the entire allocation to be read / write
     *(u64*)base = 12;

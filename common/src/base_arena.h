@@ -12,11 +12,13 @@ typedef struct
     U8 *BasePtr;
     U8 *PositionPtr;
     memory_index Size;
+    memory_index MaxSize;
     memory_index Used;
 } memory_arena;
 
 
-global_function void ArenaInitialize(memory_arena *arena, memory_index size, U8 *basePtr);
+global_function memory_arena ArenaAllocate(size_t size, size_t maxSize);
+global_function void ArenaInitialize(memory_arena *arena, memory_index size, memory_index maxSize, U8 *basePtr);
 
 global_function void *ArenaPushSize(memory_arena *arena, memory_index size);
 global_function void *ArenaPushSizeZero(memory_arena *arena, memory_index size);
