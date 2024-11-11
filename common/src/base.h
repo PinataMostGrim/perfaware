@@ -26,7 +26,7 @@ Base layer conforms to the following principles:
 #endif
 
 #define Stmnt(S) do{ S }while(0)
-#define AssertBreak() (*(int*)0 = 0)
+#define AssertBreak() (*(volatile unsigned *)0 = 0)
 
 #ifdef ENABLE_ASSERT
 #   define Assert(c) Stmnt( if (!(c)){ AssertBreak(); } )
