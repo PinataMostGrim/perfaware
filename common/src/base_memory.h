@@ -10,6 +10,7 @@
 
 global_function void* MemoryReserve(size_t size);
 global_function B32 MemoryCommit(void *base, size_t size);
+global_function B32 MemoryFree(void* memory, size_t size);
 
 global_function void *MemorySet(void *destPtr, int c, size_t count);
 global_function void *MemoryCopy(void *destPtr, void const *sourcePtr, size_t size);

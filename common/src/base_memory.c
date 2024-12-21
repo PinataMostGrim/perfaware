@@ -56,6 +56,31 @@ global_function B32 MemoryCommit(void *base, size_t size)
     return 0;
 }
 
+
+global_function B32 MemoryFree(void* memory, size_t size)
+{
+    #if __linux__
+        if (memory)
+        {
+            int result = munmap(memory, size);
+            // "Upon successful completion, munmap() shall return 0; otherwise,
+            // it shall return -1 and set errno to indicate the error."
+            if (result != 0)
+            {
+                return 0;
+            }
+        }
+    #elif _WIN32
+        if (memory)
+        {
+            VirtualFree(memory, 0, MEM_RELEASE);
+        }
+    #endif
+
+    return 1;
+}
+
+
 global_function void *MemorySet(void *destPtr, int c, size_t count)
 {
     Assert(count > 0 && "Attempted to set 0 bytes");

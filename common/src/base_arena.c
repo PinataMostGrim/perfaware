@@ -46,6 +46,13 @@ global_function B32 ArenaIsValid(memory_arena *arena)
 }
 
 
+global_function B32 ArenaFree(memory_arena *arena)
+{
+    B32 result = MemoryFree(arena->BasePtr, arena->Size);
+    return result;
+}
+
+
 global_function void *ArenaPushSize(memory_arena *arena, memory_index size)
 {
     // Note (Aaron): Guard against exceeding the arena's MaxSize
