@@ -59,7 +59,7 @@ global_function memory_arena ReadFileContents(char *filename)
     memory_index fileSize = stats.st_size;
 
     result = ArenaAllocate(fileSize, fileSize);
-    if (!ArenaIsAllocated(&result))
+    if (!ArenaIsValid(&result))
     {
         printf("[ERROR] Unable to allocate memory for \"%s\"\n", filename);
         fclose(file);
@@ -135,7 +135,7 @@ int main()
     char *dataFilename = DATA_FILENAME;
     printf("[INFO] Processing file '%s'\n", dataFilename);
     memory_arena jsonContents = ReadFileContents(dataFilename);
-    if (!ArenaIsAllocated(&jsonContents))
+    if (!ArenaIsValid(&jsonContents))
     {
         perror("[ERROR] ");
         return 1;
@@ -160,7 +160,7 @@ int main()
     // allocate memory arena for token stack
     U64 tokenStackSize = Megabytes(1);
     memory_arena tokenArena = ArenaAllocate(tokenStackSize, tokenStackSize);
-    if (!ArenaIsAllocated(&tokenArena))
+    if (!ArenaIsValid(&tokenArena))
     {
         printf("[ERROR] Unable to allocate memory for token stack\n");
         exit(1);
@@ -172,7 +172,7 @@ int main()
     // allocate memory for pairs values
     memory_index pairsArenaSize = GetMaxPairsSize(jsonContents.Size);
     memory_arena pairsArena = ArenaAllocate(pairsArenaSize, pairsArenaSize);
-    if (!ArenaIsAllocated(&pairsArena))
+    if (!ArenaIsValid(&pairsArena))
     {
         printf("[ERROR] Unable to allocate memory for haversine pairs values\n");
         exit(1);
