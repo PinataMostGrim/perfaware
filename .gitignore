@@ -27,4 +27,5 @@ breakpoints.txt
 sim8086/bin/
 haversine/bin/
 part03/bin
+part04/bin
 misc/bin
