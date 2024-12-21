@@ -5,10 +5,9 @@
 
 #pragma warning(disable:4996)
 
-
 #include <assert.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <inttypes.h>
 #include <string.h>
 #include <sys/stat.h>
 
@@ -19,6 +18,7 @@
 #include "base_inc.h"
 #include "haversine.h"
 #include "haversine_lexer.h"
+#include "haversine_parser.h"
 
 #include "base_types.c"
 #include "base_memory.c"
@@ -26,53 +26,13 @@
 #include "base_string.c"
 #include "haversine.c"
 #include "haversine_lexer.c"
+#include "haversine_parser.c"
 
 
 #define EPSILON_FLOAT 0.001
 
 // Note (Aaron): Validate each distance calculation using values from the answers file
 #define VALIDATE_ALL_PAIRS 0
-
-
-typedef struct token_stack token_stack;
-struct token_stack
-{
-    memory_arena *Arena;
-    S64 TokenCount;
-};
-
-
-typedef struct processor_stats processor_stats;
-struct processor_stats
-{
-    U64 TokenCount;
-    U64 MaxTokenLength;
-    U64 ExpectedPairCount;
-    F64 ExpectedSum;
-    U64 PairsParsed;
-    U64 PairsProcessed;
-    F64 CalculatedSum;
-    U64 CalculationErrors;
-    F64 SumDivergence;
-};
-
-
-typedef struct pairs_context pairs_context;
-struct pairs_context
-{
-    haversine_token *PairsToken;
-
-    haversine_token *ArrayStartToken;
-    haversine_token *ArrayEndToken;
-
-    haversine_token *ScopeEnterToken;
-    haversine_token *ScopeExitToken;
-
-    haversine_token *X0Token;
-    haversine_token *Y0Token;
-    haversine_token *X1Token;
-    haversine_token *Y1Token;
-};
 
 
 global_function memory_arena ReadFileContents(char *filename)
@@ -130,55 +90,15 @@ global_function memory_arena ReadFileContents(char *filename)
 }
 
 
-global_function haversine_token *PushToken(token_stack *tokenStack, haversine_token value)
+global_function void PrintToken(haversine_token *token)
 {
-    haversine_token *tokenPtr = ArenaPushStruct(tokenStack->Arena, haversine_token);
-    tokenStack->TokenCount++;
-    MemoryCopy(tokenPtr, &value, sizeof(haversine_token));
-
-    // TODO (Aaron): Error handling?
-
-    return tokenPtr;
+    printf("%s:\t\t%s\n",
+           GetTokenMenemonic(token->Type),
+           token->String);
 }
 
 
-global_function haversine_token PopToken(token_stack *tokenStack)
-{
-    haversine_token result;
-    haversine_token *tokenPtr = ArenaPopStruct(tokenStack->Arena, haversine_token);
-    tokenStack->TokenCount--;
-
-    MemoryCopy(&result, tokenPtr, sizeof(haversine_token));
-
-#if HAVERSINE_SLOW
-    MemorySet(tokenPtr, 0xff, sizeof(haversine_token));
-#endif
-
-    // TODO (Aaron): Error handling?
-
-    return result;
-}
-
-
-global_function V2F64 GetVectorFromCoordinateTokens(haversine_token xValue, haversine_token yValue)
-{
-    V2F64 result = { .x = 0, .y = 0};
-
-    char *xStartPtr = xValue.String;
-    char *xEndPtr = xStartPtr + strlen(xValue.String);
-    result.x = strtod(xValue.String, &xEndPtr);
-
-    char *yStartPtr = yValue.String;
-    char *yEndPtr = yStartPtr + strlen(yValue.String);
-    result.y = strtod(yValue.String, &yEndPtr);
-
-    // TODO (Aaron): Error handling?
-
-    return result;
-}
-
-
-global_function void PrintStats(processor_stats *stats)
+global_function void PrintStats(parsing_stats *stats)
 {
     printf("[INFO] Tokens processed:    %" PRIu64"\n", stats->TokenCount);
     printf("[INFO] Max token length:    %" PRIu64"\n", stats->MaxTokenLength);
@@ -197,14 +117,6 @@ global_function void PrintStats(processor_stats *stats)
                stats->PairsProcessed,
                stats->ExpectedPairCount);
     }
-}
-
-
-global_function void PrintToken(haversine_token *token)
-{
-    printf("%s:\t\t%s\n",
-           GetTokenMenemonic(token->Type),
-           token->String);
 }
 
 
@@ -258,10 +170,7 @@ int main()
     tokenStack.Arena = &tokenArena;
 
     // allocate memory for pairs values
-    U32 minimumJSONPairSize = 6*4;      // 5 alpha chars + 1 numeric char (e.g. "x0":1)
-    U64 maxPairCount = jsonContents.Size / minimumJSONPairSize;
-    memory_index pairsArenaSize = maxPairCount * sizeof(haversine_pair);
-
+    memory_index pairsArenaSize = GetMaxPairsSize(jsonContents.Size);
     memory_arena pairsArena = ArenaAllocate(pairsArenaSize, pairsArenaSize);
     if (!ArenaIsAllocated(&pairsArena))
     {
@@ -269,163 +178,13 @@ int main()
         exit(1);
     }
     END_TIMING(MemoryAllocation) ////////////////////////////////////
-
-    pairs_context context = {0};
-    processor_stats stats = {0};
-    stats.ExpectedSum = answerHeader.ExpectedSum;
-    stats.ExpectedPairCount = answerHeader.PairCount;
-
     END_TIMING(Startup); //////////////////////////////////////////////////////
 
     printf("[INFO] Processing haversine pairs\n");
     START_BANDWIDTH_TIMING(JSONParsing, jsonContents.Size)
-    for (;;)
-    {
-        haversine_token nextToken = GetNextToken(&jsonContents);
-
-        stats.TokenCount++;
-        stats.MaxTokenLength = nextToken.Length > stats.MaxTokenLength
-            ? nextToken.Length
-            : stats.MaxTokenLength;
-
-#if 0
-        printf("[INFO] %lli: ", stats.TokenCount);
-        PrintToken(&nextToken);
-#endif
-
-        if (nextToken.Type == Token_EOF)
-        {
-#if 0
-            printf("\n");
-            printf("[INFO] EOF reached\n");
-#endif
-            break;
-        }
-
-        // skip token types we aren't (currently) interested in
-        if (nextToken.Type == Token_assignment
-            || nextToken.Type == Token_delimiter
-            || nextToken.Type == Token_scope_open
-            || nextToken.Type == Token_scope_close)
-        {
-            continue;
-        }
-
-        haversine_token *tokenPtr = PushToken(&tokenStack, nextToken);
-
-        if (!context.PairsToken
-            && nextToken.Type == Token_identifier
-            && strcmp(nextToken.String, "\"pairs\"") == 0)
-        {
-            context.PairsToken = tokenPtr;
-        }
-
-        // parse the pairs token
-        if (context.PairsToken)
-        {
-            // parse until we reach the pairs array start token
-            if (!context.ArrayStartToken && nextToken.Type == Token_array_start)
-            {
-                context.ArrayStartToken = tokenPtr;
-                continue;
-            }
-
-            if (!context.ArrayStartToken)
-            {
-                continue;
-            }
-
-            // clean up context and token stack when we reach the end of the pairs array
-            if (tokenPtr->Type == Token_array_end)
-            {
-                PopToken(&tokenStack);
-                PopToken(&tokenStack);
-
-                context.ArrayStartToken = 0;
-                context.PairsToken = 0;
-                continue;
-            }
-
-            // load up token pointers in the context until we fill all required tokens
-            if (tokenPtr->Type == Token_identifier
-                && strcmp(tokenPtr->String, "\"x0\"") == 0)
-            {
-                if (context.X0Token)
-                {
-                    printf("[ERROR] Duplicate x0 identifier encountered in Haversine pair (%" PRIu64")\n", stats.PairsProcessed);
-                    exit(1);
-                }
-                context.X0Token = tokenPtr;
-                continue;
-            }
-
-            if (tokenPtr->Type == Token_identifier
-                && strcmp(tokenPtr->String, "\"y0\"") == 0)
-            {
-                if (context.Y0Token)
-                {
-                    printf("[ERROR] Duplicate y0 identifier encountered in Haversine pair (%" PRIu64")\n", stats.PairsProcessed);
-                    exit(1);
-                }
-                context.Y0Token = tokenPtr;
-                continue;
-            }
-
-            if (tokenPtr->Type == Token_identifier
-                && strcmp(tokenPtr->String, "\"x1\"") == 0)
-            {
-                if (context.X1Token)
-                {
-                    printf("[ERROR] Duplicate x1 identifier encountered in Haversine pair (%" PRIu64")\n", stats.PairsProcessed);
-                    exit(1);
-                }
-                context.X1Token = tokenPtr;
-                continue;
-            }
-
-            if (tokenPtr->Type == Token_identifier
-                && strcmp(tokenPtr->String, "\"y1\"") == 0)
-            {
-                if (context.Y1Token)
-                {
-                    printf("[ERROR] Duplicate y1 identifier encountered in Haversine pair (%" PRIu64")\n", stats.PairsProcessed);
-                    exit(1);
-                }
-                context.Y1Token = tokenPtr;
-                continue;
-            }
-
-            // process a Haversine point pair once we have parsed its values
-            if (context.X0Token && context.Y0Token && context.X1Token && context.Y1Token)
-            {
-                haversine_token y1Value = PopToken(&tokenStack);
-                PopToken(&tokenStack);
-                haversine_token x1Value = PopToken(&tokenStack);
-                PopToken(&tokenStack);
-                haversine_token y0Value = PopToken(&tokenStack);
-                PopToken(&tokenStack);
-                haversine_token x0Value = PopToken(&tokenStack);
-                PopToken(&tokenStack);
-
-                Assert(x0Value.Type == Token_value
-                       && y0Value.Type == Token_value
-                       && x1Value.Type == Token_value
-                       && y1Value.Type == Token_value);
-
-                context.X0Token = 0;
-                context.Y0Token = 0;
-                context.X1Token = 0;
-                context.Y1Token = 0;
-
-                haversine_pair *pair = ArenaPushStruct(&pairsArena, haversine_pair);
-                pair->point0 = GetVectorFromCoordinateTokens(x0Value, y0Value);
-                pair->point1 = GetVectorFromCoordinateTokens(x1Value, y1Value);
-
-                stats.PairsParsed++;
-                continue;
-            }
-        }
-    }
+    parsing_stats stats = ParseHaversinePairs(&jsonContents, &pairsArena, &tokenArena);
+    stats.ExpectedSum = answerHeader.ExpectedSum;
+    stats.ExpectedPairCount = answerHeader.PairCount;
     END_TIMING(JSONParsing)
 
     START_BANDWIDTH_TIMING(HaversineDistance, pairsArena.Used)

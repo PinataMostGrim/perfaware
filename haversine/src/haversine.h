@@ -22,6 +22,14 @@ struct answers_file_header
 };
 
 
+typedef struct haversine_pair haversine_pair;
+struct haversine_pair
+{
+    V2F64 point0;
+    V2F64 point1;
+};
+
+
 global_function F64 Square(F64 A);
 global_function F64 RadiansFromDegrees(F64 Degrees);
 global_function F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius);

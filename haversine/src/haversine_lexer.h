@@ -40,14 +40,6 @@ struct haversine_token
 };
 
 
-typedef struct haversine_pair haversine_pair;
-struct haversine_pair
-{
-    V2F64 point0;
-    V2F64 point1;
-};
-
-
 global_function const char *GetTokenMenemonic(token_type tokenType);
 global_function int EatNextCharacter(memory_arena *arena);
 global_function int PeekNextCharacter(memory_arena *arena);
