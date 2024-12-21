@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "../../common/src/repetition_tester.h"
-#include "../../common/src/buffer.h"
+#include "repetition_tester.h"
+#include "buffer.h"
 
 #define TC__Assert(condition, ...) \
     do { \

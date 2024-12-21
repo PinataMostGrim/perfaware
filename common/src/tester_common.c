@@ -3,8 +3,8 @@
 #include <stdarg.h>
 
 #include "tester_common.h"
-#include "../../common/src/repetition_tester.h"
-#include "../../common/src/buffer.h"
+#include "repetition_tester.h"
+#include "buffer.h"
 
 
 static test_series TestSeriesAllocate(uint32_t columnCount, uint32_t maxRowCount)
