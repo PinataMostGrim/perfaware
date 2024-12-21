@@ -12,7 +12,7 @@ SRC_FOLDER="src"
 BUILD_FOLDER="bin"
 OUT_EXE="test_read_unroll"
 
-INCLUDES=""
+INCLUDES="-I../../common/src/"
 SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/test_read_unroll.c"
 LINKER_FLAGS="-L. -l:read_unroll.a"
 

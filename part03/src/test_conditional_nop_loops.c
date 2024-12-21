@@ -3,13 +3,13 @@
 #include <stdint.h>
 
 #include "tester_common.h"
-#include "../../common/src/buffer.h"
+#include "buffer.h"
+
+#include "buffer.c"
+#include "tester_common.c"
 
 #define REPETITION_TESTER_IMPLEMENTATION
-#include "../../common/src/repetition_tester.h"
-
-#include "../../common/src/buffer.c"
-#include "tester_common.c"
+#include "repetition_tester.h"
 
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))

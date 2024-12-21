@@ -17,6 +17,7 @@ set SRC_FOLDER=src
 set BUILD_FOLDER=bin
 set OUT_EXE=test_2x_faster_file_reads
 
+:: TODO (Aaron): Update the includes to point to common/src when next on a windows machine
 set INCLUDES=
 set SOURCES="%SCRIPT_FOLDER%%SRC_FOLDER%\test_2x_faster_file_reads.c"
 set LINKER_FLAGS=-incremental:no -opt:ref

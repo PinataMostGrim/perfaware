@@ -12,7 +12,7 @@ SRC_FOLDER="src"
 BUILD_FOLDER="bin"
 OUT_EXE="test_cache_sets"
 
-INCLUDES=""
+INCLUDES="-I../../common/src/"
 SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/test_cache_sets.c"
 LINKER_FLAGS="-L. -l:cache_sets.a"
 

@@ -11,7 +11,7 @@ SRC_FOLDER="src"
 BUILD_FOLDER="bin"
 OUT_EXE="test_conditional_nop_loops"
 
-INCLUDES=""
+INCLUDES="-I../../common/src/"
 SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/test_conditional_nop_loops.c"
 LINKER_FLAGS="-L. -l:conditional_nop_loops.a"
 

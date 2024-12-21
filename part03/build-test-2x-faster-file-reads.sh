@@ -12,7 +12,7 @@ SRC_FOLDER="src"
 BUILD_FOLDER="bin"
 OUT_EXE="test_2x_faster_file_reads"
 
-INCLUDES=""
+INCLUDES="-I../../common/src/"
 SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/test_2x_faster_file_reads.c"
 LINKER_FLAGS=""
 
