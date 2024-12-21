@@ -21,6 +21,7 @@ imgui.ini
 
 # Rad Debugger files
 raddbg
+breakpoints.txt
 
 # Project build artifacts
 sim8086/bin/
