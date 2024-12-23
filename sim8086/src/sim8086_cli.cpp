@@ -292,7 +292,7 @@ int main(int argc, char const *argv[])
     // init scratch memory
     U64 scratchMemorySize = Megabytes(1);
     memory_arena scratchArena = ArenaAllocate(scratchMemorySize, scratchMemorySize);
-    if (!ArenaIsAllocated(&scratchArena))
+    if (!ArenaIsValid(&scratchArena))
     {
         printf("ERROR: Unable to allocate scratch memory for sim8086\n");
         exit(1);

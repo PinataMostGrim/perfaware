@@ -12,7 +12,7 @@ SRC_FOLDER="src"
 BUILD_FOLDER="bin"
 OUT_EXE="test_jump_alignment"
 
-INCLUDES=""
+INCLUDES="-I../../common/src/"
 SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/test_jump_alignment.c"
 LINKER_FLAGS="-L. -l:jump_alignment.a"
 

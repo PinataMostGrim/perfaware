@@ -7,11 +7,11 @@
 #include "tester_common.h"
 #include "tester_common.c"
 
-#include "../../common/src/buffer.h"
-#include "../../common/src/buffer.c"
+#include "buffer.h"
+#include "buffer.c"
 
 #define REPETITION_TESTER_IMPLEMENTATION
-#include "../../common/src/repetition_tester.h"
+#include "repetition_tester.h"
 
 #if _WIN32
 #include <windows.h>

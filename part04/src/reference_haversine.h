@@ -1,7 +1,7 @@
 #ifndef HAVERSINE_H
 #define HAVERSINE_H
 
-#include "base_types.h"
+#include "base_inc.h"
 
 #define EARTH_RADIUS 6372.8
 #define DATA_FILENAME "haversine-pairs.json"
@@ -30,8 +30,35 @@ struct haversine_pair
 };
 
 
+typedef struct haversine_setup haversine_setup;
+struct haversine_setup
+{
+    memory_arena JsonArena;
+    memory_arena AnswersArena;
+    memory_arena PairsArena;
+    memory_arena TokenArena;
+
+    U64 ParsedByteCount;
+
+    U64 PairCount;
+    haversine_pair *Pairs;
+    F64 *Answers;
+
+    F64 SumAnswer;
+    B64 Valid;
+};
+
+
+global_function memory_arena ReadFileContents(char *filename);
+global_function haversine_setup SetupHaversine(char *haversinePairsFilename, char *answersFilename);
+global_function B32 SetupIsValid(haversine_setup setup);
+global_function void FreeHaversine(haversine_setup *setup);
+
 global_function F64 Square(F64 A);
 global_function F64 RadiansFromDegrees(F64 Degrees);
+
 global_function F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius);
+global_function F64 ReferenceSumHaversine(haversine_setup setup);
+global_function U64 ReferenceVerifyHaversine(haversine_setup setup);
 
 #endif // HAVERSINE_H

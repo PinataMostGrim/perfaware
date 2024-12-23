@@ -7,11 +7,11 @@
 #include <math.h>
 #include <sys/stat.h>
 
-#include "../../common/src/buffer.h"
-#include "../../common/src/buffer.c"
+#include "buffer.h"
+#include "buffer.c"
 
 #define REPETITION_TESTER_IMPLEMENTATION
-#include "../../common/src/repetition_tester.h"
+#include "repetition_tester.h"
 
 typedef uint8_t u8;
 typedef uint32_t u32;

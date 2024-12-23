@@ -11,7 +11,7 @@ SRC_FOLDER="src"
 BUILD_FOLDER="bin"
 OUT_EXE="test_multinop_loops"
 
-INCLUDES=""
+INCLUDES="-I../../common/src/"
 SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/test_multinop_loops.c"
 LINKER_FLAGS="-L. -l:multinop_loops.a"
 

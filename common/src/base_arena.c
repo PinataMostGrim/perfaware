@@ -39,9 +39,16 @@ global_function void ArenaInitialize(memory_arena *arena, memory_index size, mem
 }
 
 
-global_function B32 ArenaIsAllocated(memory_arena *arena)
+global_function B32 ArenaIsValid(memory_arena *arena)
 {
-    B32 result = arena->BasePtr != 0;
+    B32 result = (arena->BasePtr != 0);
+    return result;
+}
+
+
+global_function B32 ArenaFree(memory_arena *arena)
+{
+    B32 result = MemoryFree(arena->BasePtr, arena->Size);
     return result;
 }
 

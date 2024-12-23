@@ -11,7 +11,7 @@ SRC_FOLDER="src"
 BUILD_FOLDER="bin"
 OUT_EXE="test_front_end"
 
-INCLUDES=""
+INCLUDES="-I../../common/src/"
 SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/test_front_end.c"
 LINKER_FLAGS="-L. -l:nop_loop.a"
 

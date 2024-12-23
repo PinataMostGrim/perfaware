@@ -1,8 +1,3 @@
-/* TODO (Aaron):
-    - Consider how to best pick size for MAX_TOKEN_LENGTH
-    - Specify an int size for token_type enum?
-*/
-
 #ifndef HAVERSINE_LEXER_H
 #define HAVERSINE_LEXER_H
 
