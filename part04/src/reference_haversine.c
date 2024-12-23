@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 
 #include "base_inc.h"
@@ -7,62 +8,9 @@
 #include "buffer.h"
 #include "tester_common.h"
 
-#include "haversine.h"
-#include "haversine_lexer.h"
-#include "haversine_parser.h"
-
-#include "base_types.c"
-#include "base_memory.c"
-#include "base_arena.c"
-#include "base_string.c"
-
-#include "buffer.c"
-#include "tester_common.c"
-
-#include "haversine.c"
-#include "haversine_lexer.c"
-#include "haversine_parser.c"
-
-
-#define REPETITION_TESTER_IMPLEMENTATION
-#include <repetition_tester.h>
-
-typedef struct haversine_setup haversine_setup;
-typedef struct test_function test_function;
-typedef F64 haversine_compute_func(haversine_setup setup);
-typedef U64 haversine_verify_func(haversine_setup setup);
-
-F64 ReferenceSumHaversine(haversine_setup setup);
-U64 ReferenceVerifyHaversine(haversine_setup setup);
-
-struct haversine_setup
-{
-    memory_arena JsonArena;
-    memory_arena AnswersArena;
-    memory_arena PairsArena;
-    memory_arena TokenArena;
-
-    U64 ParsedByteCount;
-
-    U64 PairCount;
-    haversine_pair *Pairs;
-    F64 *Answers;
-
-    F64 SumAnswer;
-    B64 Valid;
-};
-
-struct test_function
-{
-    char const *Name;
-    haversine_compute_func *Compute;
-    haversine_verify_func *Verify;
-};
-
-static test_function TestFunctions[] =
-{
-    {"ReferenceHaversine", ReferenceSumHaversine, ReferenceVerifyHaversine }
-};
+#include "reference_haversine.h"
+#include "reference_haversine_lexer.h"
+#include "reference_haversine_parser.h"
 
 
 global_function memory_arena ReadFileContents(char *filename)
@@ -118,11 +66,11 @@ global_function memory_arena ReadFileContents(char *filename)
 }
 
 
-haversine_setup SetupHaversine(char *haversinePairsFilename, char *answersFilename)
+global_function haversine_setup SetupHaversine(char *haversinePairsFilename, char *answersFilename)
 {
     haversine_setup result = {0};
 
-    fprintf(stdout, "[INFO] Initializing reference haversine tester");
+    fprintf(stdout, "[INFO] Initializing reference haversine tester\n");
 
     // read haversine pairs and answers files into buffers
     result.JsonArena = ReadFileContents(haversinePairsFilename);
@@ -176,14 +124,14 @@ haversine_setup SetupHaversine(char *haversinePairsFilename, char *answersFilena
 }
 
 
-B32 SetupIsValid(haversine_setup setup)
+global_function B32 SetupIsValid(haversine_setup setup)
 {
     B32 result =  setup.Valid;
     return result;
 }
 
 
-static void FreeHaversine(haversine_setup *setup)
+global_function void FreeHaversine(haversine_setup *setup)
 {
     ArenaFree(&setup->JsonArena);
     ArenaFree(&setup->AnswersArena);
@@ -192,7 +140,7 @@ static void FreeHaversine(haversine_setup *setup)
 }
 
 
-B32 ApproxAreEqual(F64 a, F64 b)
+global_function B32 ApproxAreEqual(F64 a, F64 b)
 {
     /* NOTE(casey): Epsilon can be set to whatever tolerance we decide we will accept. If we make this value larger,
        we have more options for optimization. If we make it smaller, we must more closely follow the sequence
@@ -206,7 +154,48 @@ B32 ApproxAreEqual(F64 a, F64 b)
 }
 
 
-F64 ReferenceSumHaversine(haversine_setup setup)
+global_function F64 Square(F64 A)
+{
+    F64 Result = (A*A);
+    return Result;
+}
+
+
+global_function F64 RadiansFromDegrees(F64 Degrees)
+{
+    F64 Result = 0.01745329251994329577f * Degrees;
+    return Result;
+}
+
+
+// NOTE(casey): EarthRadius is generally expected to be 6372.8
+global_function F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius)
+{
+    /* NOTE(casey): This is not meant to be a "good" way to calculate the Haversine distance.
+       Instead, it attempts to follow, as closely as possible, the formula used in the real-world
+       question on which these homework exercises are loosely based.
+    */
+
+    F64 lat1 = Y0;
+    F64 lat2 = Y1;
+    F64 lon1 = X0;
+    F64 lon2 = X1;
+
+    F64 dLat = RadiansFromDegrees(lat2 - lat1);
+    F64 dLon = RadiansFromDegrees(lon2 - lon1);
+    lat1 = RadiansFromDegrees(lat1);
+    lat2 = RadiansFromDegrees(lat2);
+
+    F64 a = Square(sin(dLat/2.0)) + cos(lat1)*cos(lat2)*Square(sin(dLon/2));
+    F64 c = 2.0*asin(sqrt(a));
+
+    F64 Result = EarthRadius * c;
+
+    return Result;
+}
+
+
+global_function F64 ReferenceSumHaversine(haversine_setup setup)
 {
     U64 pairCount = setup.PairCount;
     haversine_pair *pairs = setup.Pairs;
@@ -226,7 +215,7 @@ F64 ReferenceSumHaversine(haversine_setup setup)
 }
 
 
-U64 ReferenceVerifyHaversine(haversine_setup setup)
+global_function U64 ReferenceVerifyHaversine(haversine_setup setup)
 {
     U64 pairCount = setup.PairCount;
     haversine_pair *pairs = setup.Pairs;
@@ -246,69 +235,4 @@ U64 ReferenceVerifyHaversine(haversine_setup setup)
     }
 
     return errorCount;
-}
-
-
-int main(int argCount, char const *args[])
-{
-    if (argCount != 3)
-    {
-        fprintf(stderr, "Usage: %s [haversine pairs file] [haversine answers file]\n", args[0]);
-        return 1;
-    }
-
-    InitializeTester();
-
-    char *haversinePairsFilename = (char *)args[1];
-    char *answersFilename = (char *)args[2];
-
-    haversine_setup setup = SetupHaversine(haversinePairsFilename, answersFilename);
-    test_series testSeries = TestSeriesAllocate(ArrayCount(TestFunctions), 1);
-
-    if (SetupIsValid(setup) && TestSeriesIsValid(testSeries))
-    {
-        F64 referenceSum = setup.SumAnswer;
-        SetRowLabelLabel(&testSeries, "Test");
-        SetRowLabel(&testSeries, "Haversine");
-
-        for(U32 testFunctionIndex = 0; testFunctionIndex < ArrayCount(TestFunctions); ++testFunctionIndex)
-        {
-            test_function testFunction = TestFunctions[testFunctionIndex];
-
-            SetColumnLabel(&testSeries, "%s", testFunction.Name);
-
-            repetition_tester tester = {0};
-            TestSeriesNewTestWave(&testSeries, &tester, setup.ParsedByteCount, TesterGlobals.CPUTimerFrequency, TesterGlobals.SecondsToTry);
-
-            U64 individualErrorCount = testFunction.Verify(setup);
-            U64 sumErrorCount = 0;
-
-            while(TestSeriesIsTesting(&testSeries, &tester))
-            {
-                BeginTime(&tester);
-                F64 computedSum = testFunction.Compute(setup);
-                CountBytes(&tester, setup.ParsedByteCount);
-                EndTime(&tester);
-
-                sumErrorCount += !ApproxAreEqual(computedSum, referenceSum);
-            }
-
-            if (sumErrorCount || individualErrorCount)
-            {
-                fprintf(stderr, "[WARNING]: %lu haversines mismatched, %lu sum mismatches\n",
-                        individualErrorCount, sumErrorCount);
-            }
-
-            PrintCSVForValue(&testSeries, StatValue_GBPerSecond, stdout, 1.0);
-        }
-    }
-    else
-    {
-        fprintf(stderr, "[ERROR]: Test data size must be non-zero\n");
-    }
-
-    FreeHaversine(&setup);
-    TestSeriesFree(&testSeries);
-
-    return 0;
 }

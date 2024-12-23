@@ -1,4 +1,4 @@
-# Build script for reference_haversine.c
+# Build script for reference_haversine_main.c
 
 # Note: Uncomment to debug commands
 # set -ex
@@ -10,10 +10,10 @@ SCRIPT_FOLDER=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd
 # Note: Configure these variables
 SRC_FOLDER="src"
 BUILD_FOLDER="bin"
-OUT_EXE="reference_haversine"
+OUT_EXE="reference_haversine_main"
 
 INCLUDES="-I../../common/src/ -I../../haversine/src/"
-SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/reference_haversine.c"
+SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/reference_haversine_main.c"
 LINKER_FLAGS="-lm"
 
 # Optionally set debug mode here:
@@ -44,6 +44,6 @@ mkdir -p "$SCRIPT_FOLDER/$BUILD_FOLDER"
 # Change to the build folder (and redirect stdout to /dev/null and the redirect stderr to stdout)
 pushd "$SCRIPT_FOLDER/$BUILD_FOLDER" > /dev/null 2>&1
 
-# Compile reference_haversine.c
+# Compile reference_haversine_main.c
 gcc $COMPILER_FLAGS $INCLUDES $SOURCES -o $OUT_EXE $LINKER_FLAGS
 popd > /dev/null 2>&1
