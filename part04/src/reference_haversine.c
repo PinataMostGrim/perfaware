@@ -127,7 +127,7 @@ global_function haversine_setup SetupHaversine(char *haversinePairsFilename, cha
 
 global_function B32 SetupIsValid(haversine_setup setup)
 {
-    B32 result = setup.Valid;
+    B32 result = (B32)setup.Valid;
     return result;
 }
 
