@@ -49,6 +49,11 @@ global_function B32 ArenaIsValid(memory_arena *arena)
 global_function B32 ArenaFree(memory_arena *arena)
 {
     B32 result = MemoryFree(arena->BasePtr, arena->Size);
+    if (result)
+    {
+        ArenaClear(arena);
+    }
+
     return result;
 }
 
