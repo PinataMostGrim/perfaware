@@ -58,16 +58,6 @@ struct error
 };
 
 
-typedef struct errors errors;
-struct errors
-{
-    error Sin;
-    error Cos;
-    error ArcSin;
-    error Sqrt;
-};
-
-
 global_variable F64 Reference_SinInput[] = {-3.14159, -3.09251, -3.04342, -2.99433, -2.94524, -2.89616, -2.84707, -2.79798, -2.74889, -2.69981, -2.65072, -2.60163, -2.55254, -2.50346, -2.45437, -2.40528, -2.35619, -2.30711, -2.25802, -2.20893, -2.15984, -2.11076, -2.06167, -2.01258, -1.9635, -1.91441, -1.86532, -1.81623, -1.76715, -1.71806, -1.66897, -1.61988, -1.5708, -1.52171, -1.47262, -1.42353, -1.37445, -1.32536, -1.27627, -1.22718, -1.1781, -1.12901, -1.07992, -1.03084, -0.981748, -0.93266, -0.883573, -0.834486, -0.785398, -0.736311, -0.687223, -0.638136, -0.589049, -0.539961, -0.490874, -0.441786, -0.392699, -0.343612, -0.294524, -0.245437, -0.19635, -0.147262, -0.0981748, -0.0490874, 0, 0.0490874, 0.0981748, 0.147262, 0.19635, 0.245437, 0.294524, 0.343612, 0.392699, 0.441786, 0.490874, 0.539961, 0.589049, 0.638136, 0.687223, 0.736311, 0.785398, 0.834486, 0.883573, 0.93266, 0.981748, 1.03084, 1.07992, 1.12901, 1.1781, 1.22718, 1.27627, 1.32536, 1.37445, 1.42353, 1.47262, 1.52171, 1.5708, 1.61988, 1.66897, 1.71806, 1.76715, 1.81623, 1.86532, 1.91441, 1.9635, 2.01258, 2.06167, 2.11076, 2.15984, 2.20893, 2.25802, 2.30711, 2.35619, 2.40528, 2.45437, 2.50346, 2.55254, 2.60163, 2.65072, 2.69981, 2.74889, 2.79798, 2.84707, 2.89616, 2.94524, 2.99433, 3.04342, 3.09251, 3.14159};
 
 global_variable F64 Reference_SinOutput[] = {-1.22465e-16, -0.0490677, -0.0980171, -0.14673, -0.19509, -0.24298, -0.290285, -0.33689, -0.382683, -0.427555, -0.471397, -0.514103, -0.55557, -0.595699, -0.634393, -0.671559, -0.707107, -0.740951, -0.77301, -0.803208, -0.83147, -0.857729, -0.881921, -0.903989, -0.92388, -0.941544, -0.95694, -0.970031, -0.980785, -0.989177, -0.995185, -0.998795, -1, -0.998795, -0.995185, -0.989177, -0.980785, -0.970031, -0.95694, -0.941544, -0.92388, -0.903989, -0.881921, -0.857729, -0.83147, -0.803208, -0.77301, -0.740951, -0.707107, -0.671559, -0.634393, -0.595699, -0.55557, -0.514103, -0.471397, -0.427555, -0.382683, -0.33689, -0.290285, -0.24298, -0.19509, -0.14673, -0.0980171, -0.0490677, 0, 0.0490677, 0.0980171, 0.14673, 0.19509, 0.24298, 0.290285, 0.33689, 0.382683, 0.427555, 0.471397, 0.514103, 0.55557, 0.595699, 0.634393, 0.671559, 0.707107, 0.740951, 0.77301, 0.803208, 0.83147, 0.857729, 0.881921, 0.903989, 0.92388, 0.941544, 0.95694, 0.970031, 0.980785, 0.989177, 0.995185, 0.998795, 1, 0.998795, 0.995185, 0.989177, 0.980785, 0.970031, 0.95694, 0.941544, 0.92388, 0.903989, 0.881921, 0.857729, 0.83147, 0.803208, 0.77301, 0.740951, 0.707107, 0.671559, 0.634393, 0.595699, 0.55557, 0.514103, 0.471397, 0.427555, 0.382683, 0.33689, 0.290285, 0.24298, 0.19509, 0.14673, 0.0980171, 0.0490677, 1.22465e-16};
@@ -210,36 +200,34 @@ global_function error MeasureFunctionError(f64_array inputValues, f64_array grou
 
 int main(int argc, char const *argv[])
 {
-    errors Errors = {0};
-
     fprintf(stdout, "Function error from ground truth\n");
 
     f64_array sinInput = ARRAY_PARAM(f64_array, Reference_SinInput);
     f64_array sinOutput = ARRAY_PARAM(f64_array, Reference_SinOutput);
-    Errors.Sin = MeasureFunctionError(sinInput, sinOutput, sin, CustomSin);
-    ErrorCalculate(&Errors.Sin);
-    PrintError(Errors.Sin, "--- Sin ---");
+    error errorsSin = MeasureFunctionError(sinInput, sinOutput, sin, CustomSin);
+    ErrorCalculate(&errorsSin);
+    PrintError(errorsSin, "--- Sin ---");
     fprintf(stdout, "\n");
 
     f64_array cosInput = ARRAY_PARAM(f64_array, Reference_CosInput);
     f64_array cosOutput = ARRAY_PARAM(f64_array, Reference_CosOutput);
-    Errors.Cos = MeasureFunctionError(cosInput, cosOutput, cos, CustomCos);
-    ErrorCalculate(&Errors.Cos);
-    PrintError(Errors.Cos, "--- Cos ---");
+    error errorsCos = MeasureFunctionError(cosInput, cosOutput, cos, CustomCos);
+    ErrorCalculate(&errorsCos);
+    PrintError(errorsCos, "--- Cos ---");
     fprintf(stdout, "\n");
 
     f64_array arcSinInput = ARRAY_PARAM(f64_array, Reference_ArcSinInput);
     f64_array arcSinOutput = ARRAY_PARAM(f64_array, Reference_ArcSinOutput);
-    Errors.ArcSin = MeasureFunctionError(arcSinInput, arcSinOutput, asin, CustomArcSin);
-    ErrorCalculate(&Errors.ArcSin);
-    PrintError(Errors.ArcSin, "--- ArcSin ---");
+    error errorsArcSin = MeasureFunctionError(arcSinInput, arcSinOutput, asin, CustomArcSin);
+    ErrorCalculate(&errorsArcSin);
+    PrintError(errorsArcSin, "--- ArcSin ---");
     fprintf(stdout, "\n");
 
     f64_array sqrtInput = ARRAY_PARAM(f64_array, Reference_SqrtInput);
     f64_array sqrtOutput = ARRAY_PARAM(f64_array, Reference_SqrtOutput);
-    Errors.Sqrt = MeasureFunctionError(sqrtInput, sqrtOutput, sqrt, CustomSqrt);
-    ErrorCalculate(&Errors.Sqrt);
-    PrintError(Errors.Sqrt, "--- Sqrt ---");
+    error errorsSqrt = MeasureFunctionError(sqrtInput, sqrtOutput, sqrt, CustomSqrt);
+    ErrorCalculate(&errorsSqrt);
+    PrintError(errorsSqrt, "--- Sqrt ---");
     fprintf(stdout, "\n");
 
     return 0;
