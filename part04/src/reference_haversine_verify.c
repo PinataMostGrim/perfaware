@@ -48,6 +48,8 @@ struct validation_set
 typedef struct error error;
 struct error
 {
+    U64 SampleCount;
+
     range Reference;
     range Custom;
 
@@ -110,8 +112,9 @@ global_function void PrintError(error error, char *label)
     // fprintf(stdout, "custom min: %.15f\n", error.Custom.Min);
     // fprintf(stdout, "custom max: %.15f\n", error.Custom.Max);
 
-    fprintf(stdout, "reference: %.15f\n", error.ReferenceAbs);
-    fprintf(stdout, "custom: %.15f\n", error.CustomAbs);
+    fprintf(stdout, "sample count: %" PRIu64"\n", error.SampleCount);
+    fprintf(stdout, "reference error: %.15f\n", error.ReferenceAbs);
+    fprintf(stdout, "custom error: %.15f\n", error.CustomAbs);
 }
 
 
@@ -186,6 +189,7 @@ global_function error MeasureFunctionError(f64_array inputValues, f64_array grou
                 // PrintValidationSet(set);
                 // fprintf(stdout, "\n");
 
+                result.SampleCount++;
                 RangeInclude(&result.Reference, set.ReferenceError);
                 RangeInclude(&result.Custom, set.CustomError);
             }
