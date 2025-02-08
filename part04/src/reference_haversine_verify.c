@@ -95,16 +95,16 @@ global_function void PrintValidationSet(validation_set set)
 
 global_function void PrintError(error error, char *label)
 {
-    fprintf(stdout, "%s\n", label);
+    fprintf(stdout, "--- %s ---\n", label);
+
+    fprintf(stdout, "reference error: %.15f\n", error.ReferenceAbs);
+    fprintf(stdout, "custom error: %.15f\n", error.CustomAbs);
+    fprintf(stdout, "sample count: %" PRIu64"\n", error.SampleCount);
 
     // fprintf(stdout, "reference min: %.15f\n", error.Reference.Min);
     // fprintf(stdout, "reference max: %.15f\n", error.Reference.Max);
     // fprintf(stdout, "custom min: %.15f\n", error.Custom.Min);
     // fprintf(stdout, "custom max: %.15f\n", error.Custom.Max);
-
-    fprintf(stdout, "sample count: %" PRIu64"\n", error.SampleCount);
-    fprintf(stdout, "reference error: %.15f\n", error.ReferenceAbs);
-    fprintf(stdout, "custom error: %.15f\n", error.CustomAbs);
 }
 
 
@@ -194,6 +194,8 @@ global_function error MeasureFunctionError(f64_array inputValues, f64_array grou
         fprintf(stderr, "[ERROR] Input value array and ground truth value array sizes do not match\n");
     }
 
+    ErrorCalculate(&result);
+
     return result;
 }
 
@@ -205,29 +207,25 @@ int main(int argc, char const *argv[])
     f64_array sinInput = ARRAY_PARAM(f64_array, Reference_SinInput);
     f64_array sinOutput = ARRAY_PARAM(f64_array, Reference_SinOutput);
     error errorsSin = MeasureFunctionError(sinInput, sinOutput, sin, CustomSin);
-    ErrorCalculate(&errorsSin);
-    PrintError(errorsSin, "--- Sin ---");
+    PrintError(errorsSin, "Sin");
     fprintf(stdout, "\n");
 
     f64_array cosInput = ARRAY_PARAM(f64_array, Reference_CosInput);
     f64_array cosOutput = ARRAY_PARAM(f64_array, Reference_CosOutput);
     error errorsCos = MeasureFunctionError(cosInput, cosOutput, cos, CustomCos);
-    ErrorCalculate(&errorsCos);
-    PrintError(errorsCos, "--- Cos ---");
+    PrintError(errorsCos, "Cos");
     fprintf(stdout, "\n");
 
     f64_array arcSinInput = ARRAY_PARAM(f64_array, Reference_ArcSinInput);
     f64_array arcSinOutput = ARRAY_PARAM(f64_array, Reference_ArcSinOutput);
     error errorsArcSin = MeasureFunctionError(arcSinInput, arcSinOutput, asin, CustomArcSin);
-    ErrorCalculate(&errorsArcSin);
-    PrintError(errorsArcSin, "--- ArcSin ---");
+    PrintError(errorsArcSin, "ArcSin");
     fprintf(stdout, "\n");
 
     f64_array sqrtInput = ARRAY_PARAM(f64_array, Reference_SqrtInput);
     f64_array sqrtOutput = ARRAY_PARAM(f64_array, Reference_SqrtOutput);
     error errorsSqrt = MeasureFunctionError(sqrtInput, sqrtOutput, sqrt, CustomSqrt);
-    ErrorCalculate(&errorsSqrt);
-    PrintError(errorsSqrt, "--- Sqrt ---");
+    PrintError(errorsSqrt, "Sqrt");
     fprintf(stdout, "\n");
 
     return 0;
