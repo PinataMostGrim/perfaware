@@ -38,6 +38,9 @@ int main()
 
         if (inputs && outputs)
         {
+            // Write the beginning of the include guard
+            fprintf(fp, "#ifndef REFERENCE_VALUES_H\n#define REFERENCE_VALUES_H\n\n");
+
             // Write size define
             fprintf(fp, "#define REFERENCE_ARRAY_SIZE %d\n\n", ARRAY_SIZE);
 
@@ -87,6 +90,9 @@ int main()
 
             // Close the output array
             fprintf(fp, "};\n");
+
+            // Write the end of the include guard
+            fprintf(fp, "\n#endif // REFERENCE_VALUES_H\n");
 
             // Cleanup
             for (int i = 0; i < ARRAY_SIZE; i++)
