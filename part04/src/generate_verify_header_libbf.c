@@ -11,114 +11,121 @@
 #include "libbf/libbf.c"
 #include "libbf/cutils.c"
 
-
 #define ARRAY_SIZE 100
+
+#define SIN_INPUT_NAME "Reference_SinInput"
+#define SIN_OUTPUT_NAME "Reference_SinOutput"
 
 void *bf_realloc_func(void *opaque, void *ptr, size_t size)
 {
     return realloc(ptr, size);
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     int result = 0;
 
-    FILE *fp = fopen("reference_values_libbf.h", "w");
-    if (fp)
+    // Check if output path is provided
+    if (argc != 2)
     {
-        bf_context_t ctx;
-        bf_context_init(&ctx, bf_realloc_func, NULL);
+        printf("Usage: %s <output_path>\n", argv[0]);
+        return 1;
+    }
 
-        // Seed random number generator
-        srand(time(NULL));
+    // Use the provided output path
+    FILE *fp = fopen(argv[1], "w");
+    if (!fp)
+    {
+        printf("Failed to open output file: %s\n", argv[1]);
+        return 1;
+    }
 
-        // Allocate arrays dynamically
-        bf_t *inputs = malloc(ARRAY_SIZE * sizeof(bf_t));
-        bf_t *outputs = malloc(ARRAY_SIZE * sizeof(bf_t));
+    bf_context_t ctx;
+    bf_context_init(&ctx, bf_realloc_func, NULL);
 
-        if (inputs && outputs)
+    // Seed random number generator
+    srand(time(NULL));
+
+    // Allocate arrays dynamically
+    bf_t *inputs = malloc(ARRAY_SIZE * sizeof(bf_t));
+    bf_t *outputs = malloc(ARRAY_SIZE * sizeof(bf_t));
+
+    if (inputs && outputs)
+    {
+        // Write the beginning of the include guard
+        fprintf(fp, "#ifndef REFERENCE_VALUES_H\n#define REFERENCE_VALUES_H\n\n");
+
+        // Write size define
+        fprintf(fp, "#define REFERENCE_ARRAY_SIZE %d\n\n", ARRAY_SIZE);
+
+        // Write input array header
+        fprintf(fp, "global_variable F64 %s[] = {", SIN_INPUT_NAME);
+
+        // Initialize and generate input numbers
+        for (int i = 0; i < ARRAY_SIZE; i++)
         {
-            // Write the beginning of the include guard
-            fprintf(fp, "#ifndef REFERENCE_VALUES_H\n#define REFERENCE_VALUES_H\n\n");
+            bf_init(&ctx, &inputs[i]);
 
-            // Write size define
-            fprintf(fp, "#define REFERENCE_ARRAY_SIZE %d\n\n", ARRAY_SIZE);
+            // Generate random value between 0 and 1
+            double rand_val = (double)rand() / RAND_MAX;
+            bf_set_float64(&inputs[i], rand_val);
 
-            // Write input array header
-            fprintf(fp, "global_variable F64 Reference_SinInput[] = {");
-
-            // Initialize and generate input numbers
-            for (int i = 0; i < ARRAY_SIZE; i++)
+            // Convert to string
+            size_t len;
+            char *str = bf_ftoa(&len, &inputs[i], 10, 17, BF_RNDN);
+            if (str)
             {
-                bf_init(&ctx, &inputs[i]);
-
-                // Generate random value between 0 and 1
-                double rand_val = (double)rand() / RAND_MAX;
-                bf_set_float64(&inputs[i], rand_val);
-
-                // Convert to string
-                size_t len;
-                char *str = bf_ftoa(&len, &inputs[i], 10, 17, BF_RNDN);
-                if (str)
-                {
-                    fprintf(fp, "%s%s", str, (i < ARRAY_SIZE-1) ? ", " : "");
-                }
-            }
-
-            // Close the input array
-            fprintf(fp, "};\n\n");
-
-            // Write output array header
-            fprintf(fp, "global_variable F64 Reference_SinOutput[] = {");
-
-            // Generate and write sine values
-            for (int i = 0; i < ARRAY_SIZE; i++)
-            {
-                bf_init(&ctx, &outputs[i]);
-
-                // Compute sine using bf_sin with specific precision (17 digits ≈ 57 bits)
-                bf_sin(&outputs[i], &inputs[i], 57, BF_RNDN);
-
-                // Convert sine result to string
-                size_t len;
-                char *str = bf_ftoa(&len, &outputs[i], 10, 17, BF_RNDN);
-                if (str)
-                {
-                    fprintf(fp, "%s%s", str, (i < ARRAY_SIZE-1) ? ", " : "");
-                }
-            }
-
-            // Close the output array
-            fprintf(fp, "};\n");
-
-            // Write the end of the include guard
-            fprintf(fp, "\n#endif // REFERENCE_VALUES_H\n");
-
-            // Cleanup
-            for (int i = 0; i < ARRAY_SIZE; i++)
-            {
-                bf_delete(&inputs[i]);
-                bf_delete(&outputs[i]);
+                fprintf(fp, "%s%s", str, (i < ARRAY_SIZE-1) ? ", " : "");
             }
         }
-        else
+
+        // Close the input array
+        fprintf(fp, "};\n\n");
+
+        // Write output array header
+        fprintf(fp, "global_variable F64 %s[] = {", SIN_OUTPUT_NAME);
+
+        // Generate and write sine values
+        for (int i = 0; i < ARRAY_SIZE; i++)
         {
-            printf("Memory allocation failed\n");
-            result = 1;
+            bf_init(&ctx, &outputs[i]);
+
+            // Compute sine using bf_sin with specific precision (17 digits ≈ 57 bits)
+            bf_sin(&outputs[i], &inputs[i], 57, BF_RNDN);
+
+            // Convert sine result to string
+            size_t len;
+            char *str = bf_ftoa(&len, &outputs[i], 10, 17, BF_RNDN);
+            if (str)
+            {
+                fprintf(fp, "%s%s", str, (i < ARRAY_SIZE-1) ? ", " : "");
+            }
         }
 
-        if (inputs) free(inputs);
-        if (outputs) free(outputs);
+        // Close the output array
+        fprintf(fp, "};\n");
 
-        bf_context_end(&ctx);
+        // Write the end of the include guard
+        fprintf(fp, "\n#endif // REFERENCE_VALUES_H\n");
 
-        fclose(fp);
+        // Cleanup
+        for (int i = 0; i < ARRAY_SIZE; i++)
+        {
+            bf_delete(&inputs[i]);
+            bf_delete(&outputs[i]);
+        }
     }
     else
     {
-        printf("Failed to open output file\n");
+        printf("Memory allocation failed\n");
         result = 1;
     }
+
+    if (inputs) free(inputs);
+    if (outputs) free(outputs);
+
+    bf_context_end(&ctx);
+    fclose(fp);
 
     return result;
 }
