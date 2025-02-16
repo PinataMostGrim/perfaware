@@ -8,6 +8,9 @@
 #include "base_types.c"
 
 
+// Note (Aaron): Include for reference values from libbf
+// #include "reference_values_libbf.h"
+
 #define STATIC_ASSERT(condition, message) \
     typedef char static_assertion_##message[(condition) ? 1 : -1]
 
