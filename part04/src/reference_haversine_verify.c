@@ -9,8 +9,8 @@
 
 
 // Note (Aaron): Reference values from different sources. Include one.
-#include "reference_values_wolfram.h"
-// #include "reference_values_libbf.h"
+// #include "reference_values_wolfram.h"
+#include "reference_values_libbf.h"
 
 #define STATIC_ASSERT(condition, message) \
     typedef char static_assertion_##message[(condition) ? 1 : -1]
