@@ -11,7 +11,7 @@
 #include "libbf/libbf.c"
 #include "libbf/cutils.c"
 
-#define ARRAY_SIZE 100
+#define ARRAY_SIZE 1000000
 
 #define SIN_INPUT_NAME "Reference_SinInput"
 #define SIN_OUTPUT_NAME "Reference_SinOutput"
