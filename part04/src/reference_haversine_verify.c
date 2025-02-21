@@ -7,33 +7,21 @@
 #include "base_inc.h"
 #include "base_types.c"
 
+typedef F64 math_func(F64);
+
+typedef struct reference_answer reference_answer;
+struct reference_answer
+{
+    F64 Input;
+    F64 Output;
+};
+
+
 
 // Note (Aaron): Reference values from different sources. Include one.
-// #include "reference_values_wolfram.h"
-#include "reference_values_libbf.h"
+#include "reference_values_wolfram.h"
+// #include "reference_values_libbf.h"
 
-#define STATIC_ASSERT(condition, message) \
-    typedef char static_assertion_##message[(condition) ? 1 : -1]
-
-STATIC_ASSERT(sizeof(Reference_SinInput) == sizeof(Reference_SinOutput), array_lengths_must_be_equal);
-STATIC_ASSERT(sizeof(Reference_CosInput) == sizeof(Reference_CosOutput), array_lengths_must_be_equal);
-STATIC_ASSERT(sizeof(Reference_ArcSinInput) == sizeof(Reference_ArcSinOutput), array_lengths_must_be_equal);
-STATIC_ASSERT(sizeof(Reference_SqrtInput) == sizeof(Reference_SqrtOutput), array_lengths_must_be_equal);
-
-
-#define ARRAY_PARAM(type, array) ((type) \
-{ \
-    .Size = (sizeof(array) / sizeof((array)[0])), \
-    .Data = (array) \
-})
-
-
-typedef struct f64_array f64_array;
-struct f64_array
-{
-    size_t Size;
-    F64 *Data;
-};
 
 typedef struct range range;
 struct range
@@ -140,81 +128,28 @@ global_function void ErrorCalculate(error *error)
 }
 
 
-global_function error MeasureFunctionError(f64_array inputValues, f64_array groundTruthValues, F64 (*referenceFunc)(F64), F64 (*customFunc)(F64))
+global_function void CheckHardcodedAnswer(char *label, math_func referenceFunc, reference_answer *answers, size_t answerCount)
 {
-    range invertedInfinite = {DBL_MAX, -DBL_MAX};
-
-    error result = {0};
-    result.Reference = invertedInfinite;
-    result.Custom = invertedInfinite;
-
-    if (inputValues.Size == groundTruthValues.Size)
+    printf("%s:\n", label);
+    for (int i = 0; i < answerCount; ++i)
     {
-        if (referenceFunc && customFunc)
-        {
-            validation_set set = {0};
-            for (int i = 0; i < inputValues.Size; ++i)
-            {
-                set.Input = inputValues.Data[i];
-                set.GroundTruth = groundTruthValues.Data[i];
-
-                set.ReferenceOutput = referenceFunc(set.Input);
-                set.CustomOutput = customFunc(set.Input);
-
-                set.ReferenceError = set.GroundTruth - set.ReferenceOutput;
-                set.CustomError = set.GroundTruth - set.CustomOutput;
-
-                // PrintValidationSet(set);
-                // fprintf(stdout, "\n");
-
-                result.SampleCount++;
-                RangeInclude(&result.Reference, set.ReferenceError);
-                RangeInclude(&result.Custom, set.CustomError);
-            }
-        }
-        else
-        {
-            fprintf(stderr, "[ERROR] Invalid reference or custom function\n");
-        }
+        reference_answer answer = answers[i];
+        printf("  f(%+.16f) = %+.16f [reference]\n", answer.Input, answer.Output);
+        F64 output = referenceFunc(answer.Input);
+        printf("            = %+.16f (%+.16f) [%s]\n", output, answer.Output - output, label);
     }
-    else
-    {
-        fprintf(stderr, "[ERROR] Input value array and ground truth value array sizes do not match\n");
-    }
-
-    ErrorCalculate(&result);
-
-    return result;
+    printf("\n");
 }
+
+
 
 
 int main(int argc, char const *argv[])
 {
-    fprintf(stdout, "Function error from ground truth\n");
-
-    f64_array sinInput = ARRAY_PARAM(f64_array, Reference_SinInput);
-    f64_array sinOutput = ARRAY_PARAM(f64_array, Reference_SinOutput);
-    error errorsSin = MeasureFunctionError(sinInput, sinOutput, sin, CustomSin);
-    PrintError(errorsSin, "Sin");
-    fprintf(stdout, "\n");
-
-    f64_array cosInput = ARRAY_PARAM(f64_array, Reference_CosInput);
-    f64_array cosOutput = ARRAY_PARAM(f64_array, Reference_CosOutput);
-    error errorsCos = MeasureFunctionError(cosInput, cosOutput, cos, CustomCos);
-    PrintError(errorsCos, "Cos");
-    fprintf(stdout, "\n");
-
-    f64_array arcSinInput = ARRAY_PARAM(f64_array, Reference_ArcSinInput);
-    f64_array arcSinOutput = ARRAY_PARAM(f64_array, Reference_ArcSinOutput);
-    error errorsArcSin = MeasureFunctionError(arcSinInput, arcSinOutput, asin, CustomArcSin);
-    PrintError(errorsArcSin, "ArcSin");
-    fprintf(stdout, "\n");
-
-    f64_array sqrtInput = ARRAY_PARAM(f64_array, Reference_SqrtInput);
-    f64_array sqrtOutput = ARRAY_PARAM(f64_array, Reference_SqrtOutput);
-    error errorsSqrt = MeasureFunctionError(sqrtInput, sqrtOutput, sqrt, CustomSqrt);
-    PrintError(errorsSqrt, "Sqrt");
-    fprintf(stdout, "\n");
+    CheckHardcodedAnswer("sin", sin, Reference_Sin, ArrayCount(Reference_Sin));
+    CheckHardcodedAnswer("cos", cos, Reference_Cos, ArrayCount(Reference_Cos));
+    CheckHardcodedAnswer("asin", asin, Reference_ArcSin, ArrayCount(Reference_ArcSin));
+    CheckHardcodedAnswer("sqrt", sqrt, Reference_Sqrt, ArrayCount(Reference_Sqrt));
 
     return 0;
 }
