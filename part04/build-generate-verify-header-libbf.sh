@@ -12,7 +12,6 @@ SRC_FOLDER="src"
 BUILD_FOLDER="bin"
 OUT_EXE="generate_verify_header_libbf"
 
-# INCLUDES="-I../include"
 INCLUDES=""
 SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/generate_verify_header_libbf.c"
 LINKER_FLAGS=""
