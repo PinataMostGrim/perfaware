@@ -56,6 +56,7 @@ F64 calculate_bf_sin(bf_context_t *ctx, F64 input)
 // Function to calculate error between two values
 F64 calculate_error(F64 reference, F64 calculated)
 {
+    // TODO (Aaron): See if Hacker's Delight has something for this
     return fabs(reference - calculated);
 }
 

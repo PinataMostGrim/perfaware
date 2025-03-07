@@ -11,8 +11,7 @@
 #include "libbf/libbf.c"
 #include "libbf/cutils.c"
 
-#define ARRAY_SIZE 1000000
-
+// Keep all the existing #define names, but remove ARRAY_SIZE
 #define SIN_INPUT_NAME "Reference_SinInput"
 #define SIN_OUTPUT_NAME "Reference_SinOutput"
 #define COS_INPUT_NAME "Reference_CosInput"
@@ -22,14 +21,13 @@
 #define SQRT_INPUT_NAME "Reference_SqrtInput"
 #define SQRT_OUTPUT_NAME "Reference_SqrtOutput"
 
-
 void *bf_realloc_func(void *opaque, void *ptr, size_t size)
 {
     return realloc(ptr, size);
 }
 
 
-void process_sine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outputs)
+void process_sine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outputs, size_t array_size)
 {
     // Create and initialize pi value
     bf_t pi;
@@ -40,7 +38,7 @@ void process_sine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *output
     fprintf(fp, "global_variable F64 %s[] = {", SIN_INPUT_NAME);
 
     // Initialize and generate sine input numbers
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < array_size; i++)
     {
         // Generate random value between -pi and pi
         double rand_val = ((double)rand() / RAND_MAX) * 2.0 - 1.0; // [-1, 1]
@@ -52,7 +50,7 @@ void process_sine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *output
         char *str = bf_ftoa(&len, &inputs[i], 10, 17, BF_RNDN);
         if (str)
         {
-            fprintf(fp, "%s%s", str, (i < ARRAY_SIZE-1) ? ", " : "");
+            fprintf(fp, "%s%s", str, (i < array_size-1) ? ", " : "");
         }
     }
 
@@ -63,7 +61,7 @@ void process_sine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *output
     fprintf(fp, "global_variable F64 %s[] = {", SIN_OUTPUT_NAME);
 
     // Generate and write sine values
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < array_size; i++)
     {
         // Compute sine using bf_sin with specific precision (17 digits ≈ 57 bits)
         bf_sin(&outputs[i], &inputs[i], 57, BF_RNDN);
@@ -73,7 +71,7 @@ void process_sine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *output
         char *str = bf_ftoa(&len, &outputs[i], 10, 17, BF_RNDN);
         if (str)
         {
-            fprintf(fp, "%s%s", str, (i < ARRAY_SIZE-1) ? ", " : "");
+            fprintf(fp, "%s%s", str, (i < array_size-1) ? ", " : "");
         }
     }
 
@@ -85,7 +83,7 @@ void process_sine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *output
 }
 
 
-void process_cosine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outputs)
+void process_cosine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outputs, size_t array_size)
 {
     // Create and initialize pi value
     bf_t pi;
@@ -103,7 +101,7 @@ void process_cosine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
     fprintf(fp, "global_variable F64 %s[] = {", COS_INPUT_NAME);
 
     // Generate cosine input numbers
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < array_size; i++)
     {
         // Generate random value between -1 and 1
         double rand_val = ((double)rand() / RAND_MAX) * 2.0 - 1.0;
@@ -117,7 +115,7 @@ void process_cosine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
         char *str = bf_ftoa(&len, &inputs[i], 10, 17, BF_RNDN);
         if (str)
         {
-            fprintf(fp, "%s%s", str, (i < ARRAY_SIZE-1) ? ", " : "");
+            fprintf(fp, "%s%s", str, (i < array_size-1) ? ", " : "");
         }
     }
 
@@ -128,7 +126,7 @@ void process_cosine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
     fprintf(fp, "global_variable F64 %s[] = {", COS_OUTPUT_NAME);
 
     // Generate and write cosine values
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < array_size; i++)
     {
         // Compute cosine using bf_cos with specific precision (17 digits ≈ 57 bits)
         bf_cos(&outputs[i], &inputs[i], 57, BF_RNDN);
@@ -138,7 +136,7 @@ void process_cosine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
         char *str = bf_ftoa(&len, &outputs[i], 10, 17, BF_RNDN);
         if (str)
         {
-            fprintf(fp, "%s%s", str, (i < ARRAY_SIZE-1) ? ", " : "");
+            fprintf(fp, "%s%s", str, (i < array_size-1) ? ", " : "");
         }
     }
 
@@ -152,13 +150,13 @@ void process_cosine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
 }
 
 
-void process_arcsin_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outputs)
+void process_arcsin_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outputs, size_t array_size)
 {
     // Write arc sine input array header
     fprintf(fp, "global_variable F64 %s[] = {", ARCSIN_INPUT_NAME);
 
     // Generate arc sine input numbers
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < array_size; i++)
     {
         // Generate random value between 0 and 1
         double rand_val = (double)rand() / RAND_MAX; // [0, 1]
@@ -169,7 +167,7 @@ void process_arcsin_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
         char *str = bf_ftoa(&len, &inputs[i], 10, 17, BF_RNDN);
         if (str)
         {
-            fprintf(fp, "%s%s", str, (i < ARRAY_SIZE-1) ? ", " : "");
+            fprintf(fp, "%s%s", str, (i < array_size-1) ? ", " : "");
         }
     }
 
@@ -180,7 +178,7 @@ void process_arcsin_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
     fprintf(fp, "global_variable F64 %s[] = {", ARCSIN_OUTPUT_NAME);
 
     // Generate and write arc sine values
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < array_size; i++)
     {
         // Compute arc sine using bf_asin with specific precision (17 digits ≈ 57 bits)
         bf_asin(&outputs[i], &inputs[i], 57, BF_RNDN);
@@ -190,7 +188,7 @@ void process_arcsin_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
         char *str = bf_ftoa(&len, &outputs[i], 10, 17, BF_RNDN);
         if (str)
         {
-            fprintf(fp, "%s%s", str, (i < ARRAY_SIZE-1) ? ", " : "");
+            fprintf(fp, "%s%s", str, (i < array_size-1) ? ", " : "");
         }
     }
 
@@ -199,13 +197,13 @@ void process_arcsin_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
 }
 
 
-void process_sqrt_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outputs)
+void process_sqrt_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outputs, size_t array_size)
 {
     // Write square root input array header
     fprintf(fp, "global_variable F64 %s[] = {", SQRT_INPUT_NAME);
 
     // Generate square root input numbers
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < array_size; i++)
     {
         // Generate random value between 0 and 1
         double rand_val = (double)rand() / RAND_MAX; // [0, 1]
@@ -216,7 +214,7 @@ void process_sqrt_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *output
         char *str = bf_ftoa(&len, &inputs[i], 10, 17, BF_RNDN);
         if (str)
         {
-            fprintf(fp, "%s%s", str, (i < ARRAY_SIZE-1) ? ", " : "");
+            fprintf(fp, "%s%s", str, (i < array_size-1) ? ", " : "");
         }
     }
 
@@ -227,7 +225,7 @@ void process_sqrt_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *output
     fprintf(fp, "global_variable F64 %s[] = {", SQRT_OUTPUT_NAME);
 
     // Generate and write square root values
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    for (int i = 0; i < array_size; i++)
     {
         // Compute square root using bf_sqrt with specific precision (17 digits ≈ 57 bits)
         bf_sqrt(&outputs[i], &inputs[i], 57, BF_RNDN);
@@ -237,7 +235,7 @@ void process_sqrt_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *output
         char *str = bf_ftoa(&len, &outputs[i], 10, 17, BF_RNDN);
         if (str)
         {
-            fprintf(fp, "%s%s", str, (i < ARRAY_SIZE-1) ? ", " : "");
+            fprintf(fp, "%s%s", str, (i < array_size-1) ? ", " : "");
         }
     }
 
@@ -250,10 +248,21 @@ int main(int argc, char *argv[])
 {
     int result = 0;
 
-    // Check if output path is provided
-    if (argc != 2)
+    // Check if both output path and array size are provided
+    if (argc != 3)
     {
-        printf("Usage: %s <output_path>\n", argv[0]);
+        printf("Usage: %s <output_path> <array_size>\n", argv[0]);
+        return 1;
+    }
+
+    // Convert array size argument to integer
+    char *endptr;
+    long array_size = strtol(argv[2], &endptr, 10);
+
+    // Validate array size
+    if (*endptr != '\0' || array_size <= 0)
+    {
+        printf("Invalid array size: %s\nPlease provide a positive integer.\n", argv[2]);
         return 1;
     }
 
@@ -271,14 +280,14 @@ int main(int argc, char *argv[])
     // Seed random number generator
     srand(time(NULL));
 
-    // Allocate arrays dynamically
-    bf_t *inputs = malloc(ARRAY_SIZE * sizeof(bf_t));
-    bf_t *outputs = malloc(ARRAY_SIZE * sizeof(bf_t));
+    // Allocate arrays dynamically using the provided size
+    bf_t *inputs = malloc(array_size * sizeof(bf_t));
+    bf_t *outputs = malloc(array_size * sizeof(bf_t));
 
     if (inputs && outputs)
     {
         // Initialize arrays
-        for (int i = 0; i < ARRAY_SIZE; i++)
+        for (int i = 0; i < array_size; i++)
         {
             bf_init(&ctx, &inputs[i]);
             bf_init(&ctx, &outputs[i]);
@@ -287,26 +296,26 @@ int main(int argc, char *argv[])
         // Write the beginning of the include guard
         fprintf(fp, "#ifndef REFERENCE_VALUES_H\n#define REFERENCE_VALUES_H\n\n");
 
-        // Write size define
-        fprintf(fp, "#define REFERENCE_ARRAY_SIZE %d\n\n", ARRAY_SIZE);
+        // Write size define with the dynamic size
+        fprintf(fp, "#define REFERENCE_ARRAY_SIZE %ld\n\n", array_size);
 
         // Process sine values
-        process_sine_values(fp, &ctx, inputs, outputs);
+        process_sine_values(fp, &ctx, inputs, outputs, array_size);
 
         // Process cosine values
-        process_cosine_values(fp, &ctx, inputs, outputs);
+        process_cosine_values(fp, &ctx, inputs, outputs, array_size);
 
         // Process arc sine values
-        process_arcsin_values(fp, &ctx, inputs, outputs);
+        process_arcsin_values(fp, &ctx, inputs, outputs, array_size);
 
         // Process square root values
-        process_sqrt_values(fp, &ctx, inputs, outputs);
+        process_sqrt_values(fp, &ctx, inputs, outputs, array_size);
 
         // Write the end of the include guard
         fprintf(fp, "\n#endif // REFERENCE_VALUES_H\n");
 
         // Cleanup
-        for (int i = 0; i < ARRAY_SIZE; i++)
+        for (int i = 0; i < array_size; i++)
         {
             bf_delete(&inputs[i]);
             bf_delete(&outputs[i]);
