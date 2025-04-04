@@ -4,12 +4,12 @@
 @echo off
 
 :: Get the script's directory
-set SCRIPT_DIR=%~dp0
+set SCRIPT_FOLDER=%~dp0
 
 :: Configure paths relative to the script's directory
-set INCLUDES=-I%SCRIPT_DIR%..\common\src
-set SOURCES=%SCRIPT_DIR%src\haversine-generator.c
-set BUILD_FOLDER=%SCRIPT_DIR%bin
+set INCLUDES=-I%SCRIPT_FOLDER%..\common\src
+set SOURCES=%SCRIPT_FOLDER%src\haversine-generator.c
+set BUILD_FOLDER=%SCRIPT_FOLDER%bin
 set OUT_EXE=haversine-generator
 set LINKER_FLAGS=-incremental:no -opt:ref
 set LIBS=
