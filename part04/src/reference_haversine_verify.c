@@ -7,6 +7,12 @@
 #include "base_inc.h"
 #include "base_types.c"
 
+#if _MSC_VER
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#endif
+
 // source: https://www.wolframalpha.com/input?i=N%5BPi%2C+17%5D
 // N[Pi, 17]
 #define Pi64 3.1415926535897932
@@ -64,9 +70,14 @@ global_function F64 CustomArcSin(F64 input)
 }
 
 
-global_function F64 CustomSqrt(F64 input)
+global_function F64 CustomSqrt(F64 value)
 {
-    return 0;
+    __m128d xmmValue = _mm_set_sd(value);
+    __m128d xmmZero = _mm_set_sd(0);
+    __m128d xmmResult = _mm_sqrt_sd(xmmZero, xmmValue);
+    F64 result = _mm_cvtsd_f64(xmmResult);
+
+    return result;
 }
 
 
