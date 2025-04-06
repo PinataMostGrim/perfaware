@@ -50,25 +50,30 @@ global_function F64 GetRandomF64InRange(F64 minValue, F64 maxValue)
 }
 
 
-// perform modulo operation on values so they fall within the range (-180, 180)
-global_function F64 CanonicalizeCoordinate(F64 value)
+// perform modulo operation on values so they fall within the range, centered around 0 (eg. -180, 180)
+global_function F64 CanonicalizeCoordinate(F64 value, F64 range)
 {
-    value += 180;
-    if (value > 360)
+    if (range < 0)
     {
-        while (value > 360)
+        return value;
+    }
+
+    value += (range / 2.0);
+    if (value > range)
+    {
+        while (value > range)
         {
-            value -= 360;
+            value -= range;
         }
     }
     else
     {
         while (value < 0)
         {
-            value += 360;
+            value += range;
         }
     }
-    value -= 180;
+    value -= (range / 2.0);
 
     return value;
 }
@@ -152,7 +157,7 @@ int main(int argc, char const *argv[])
     {
         V2F64 cluster = v2f64(
             GetRandomF64InRange(-180, 180),
-            GetRandomF64InRange(-180, 180));
+            GetRandomF64InRange(-90, 90));
 
         clusters[i] = cluster;
     }
@@ -174,10 +179,10 @@ int main(int argc, char const *argv[])
             GetRandomF64InRange(clusterPoint1.x - CLUSTER_PROXIMITY, clusterPoint1.x + CLUSTER_PROXIMITY),
             GetRandomF64InRange(clusterPoint1.y - CLUSTER_PROXIMITY, clusterPoint1.y + CLUSTER_PROXIMITY));
 
-        point0.x = CanonicalizeCoordinate(point0.x);
-        point0.y = CanonicalizeCoordinate(point0.y);
-        point1.x = CanonicalizeCoordinate(point1.x);
-        point1.y = CanonicalizeCoordinate(point1.y);
+        point0.x = CanonicalizeCoordinate(point0.x, 360);
+        point0.y = CanonicalizeCoordinate(point0.y, 180);
+        point1.x = CanonicalizeCoordinate(point1.x, 360);
+        point1.y = CanonicalizeCoordinate(point1.y, 180);
 
         sprintf((char *)line, "\t\t{ \"x0\":%.16f, \"y0\":%.16f, \"x1\":%.16f, \"y1\":%.16f }", point0.x, point0.y, point1.x, point1.y);
         fputs((char *)line, dataFile);

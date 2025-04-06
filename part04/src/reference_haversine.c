@@ -1,4 +1,5 @@
 #include <math.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -108,14 +109,14 @@ global_function haversine_setup SetupHaversine(char *haversinePairsFilename, cha
 
             result.ParsedByteCount = (sizeof(haversine_pair) * result.PairCount);
 
-            fprintf(stdout, "Source JSON: %llumb\n", result.JsonArena.Size / Megabytes(1));
-            fprintf(stdout, "Parsed: %llumb (%lu pairs)\n", result.ParsedByteCount / Megabytes(1), result.PairCount);
+            fprintf(stdout, "Source JSON: %" PRIu64 "mb\n", result.JsonArena.Size / Megabytes(1));
+            fprintf(stdout, "Parsed: %" PRIu64 "mb (%" PRIu64 " pairs)\n", result.ParsedByteCount / Megabytes(1), result.PairCount);
 
             result.Valid = (result.PairCount != 0);
         }
         else
         {
-            fprintf(stderr, "[ERROR]: JSON source data has %lu pairs, but answer file has %lu values (should have %lu).\n",
+            fprintf(stderr, "[ERROR]: JSON source data has %" PRIu64 " pairs, but answer file has %" PRIu64 " values (should have %" PRIu64 ").\n",
                     pairCount, answerCount, answersHeader.PairCount);
         }
     }
@@ -126,7 +127,7 @@ global_function haversine_setup SetupHaversine(char *haversinePairsFilename, cha
 
 global_function B32 SetupIsValid(haversine_setup setup)
 {
-    B32 result =  setup.Valid;
+    B32 result = (B32)setup.Valid;
     return result;
 }
 
