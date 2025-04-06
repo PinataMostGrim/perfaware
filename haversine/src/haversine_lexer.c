@@ -56,6 +56,8 @@ global_function int _NextCharacter(memory_arena *arena, B8 peek)
             continue;
         }
 
+        // TODO (Aaron): If peek is true, this will reset the pointer back to the last whitespace character
+        // Need to resolve this.
         if (peek)
         {
             arena->PositionPtr--;
