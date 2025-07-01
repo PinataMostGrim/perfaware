@@ -52,9 +52,21 @@ struct function_error
 };
 
 
-global_function F64 CustomSin(F64 input)
+global_function F64 Square(F64 x)
 {
-    return 0;
+    F64 result = x*x;
+    return result;
+}
+
+
+global_function F64 CustomSin(F64 x)
+{
+    F64 x2 = Square(x);
+    F64 a = -4 / Square(Pi64);
+    F64 b = 4 / Pi64;
+
+    F64 result = (a * x2) + (b * x);
+    return result;
 }
 
 
@@ -70,9 +82,9 @@ global_function F64 CustomArcSin(F64 input)
 }
 
 
-global_function F64 CustomSqrt(F64 value)
+global_function F64 CustomSqrt(F64 x)
 {
-    __m128d xmmValue = _mm_set_sd(value);
+    __m128d xmmValue = _mm_set_sd(x);
     __m128d xmmZero = _mm_set_sd(0);
     __m128d xmmResult = _mm_sqrt_sd(xmmZero, xmmValue);
     F64 result = _mm_cvtsd_f64(xmmResult);
@@ -147,16 +159,22 @@ global_function void PrintError(function_error error)
 
 int main(int argc, char const *argv[])
 {
+    // Note (Aaron): Enable to verify reference values
+#if 0
     CheckHardcodedAnswer("sin", sin, Reference_Sin, ArrayCount(Reference_Sin));
     CheckHardcodedAnswer("cos", cos, Reference_Cos, ArrayCount(Reference_Cos));
     CheckHardcodedAnswer("asin", asin, Reference_ArcSin, ArrayCount(Reference_ArcSin));
     CheckHardcodedAnswer("sqrt", sqrt, Reference_Sqrt, ArrayCount(Reference_Sqrt));
+#endif
 
     U32 stepCount = 100000000;
 
-    printf("Maximum function error:\n");
-    function_error errorSin = MeasureMaximumFunctionError(CustomSin, sin, -Pi64, Pi64, stepCount, "CustomSin");
-    PrintError(errorSin);
+    printf("Calulating maximum function error:\n");
+    function_error errorSinUpperRange = MeasureMaximumFunctionError(CustomSin, sin, 0, Pi64, stepCount, "CustomSin - 0 to Pi");
+    PrintError(errorSinUpperRange);
+
+    function_error errorSinFullRange = MeasureMaximumFunctionError(CustomSin, sin, -Pi64, Pi64, stepCount, "CustomSin - Full range");
+    PrintError(errorSinFullRange);
 
     function_error errorCos = MeasureMaximumFunctionError(CustomCos, cos, -Pi64/2, Pi64/2, stepCount, "CustomCos");
     PrintError(errorCos);
