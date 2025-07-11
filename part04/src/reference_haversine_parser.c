@@ -10,7 +10,7 @@
 
 // Note (Aaron): Returns the max size in bytes a memory_arena needs to be in order to hold
 // haversine pairs parsed from JSON.
-global_function memory_index GetMaxPairsSize(memory_index jsonSize)
+static memory_index GetMaxPairsSize(memory_index jsonSize)
 {
     U32 minimumJSONPairSize = 6*4;      // 5 alpha chars + 1 numeric char (e.g. "x0":1)
 
@@ -28,7 +28,7 @@ global_function memory_index GetMaxPairsSize(memory_index jsonSize)
 }
 
 
-global_function haversine_token *PushToken(token_stack *tokenStack, haversine_token value)
+static haversine_token *PushToken(token_stack *tokenStack, haversine_token value)
 {
     haversine_token *tokenPtr = ArenaPushStruct(tokenStack->Arena, haversine_token);
     tokenStack->TokenCount++;
@@ -40,7 +40,7 @@ global_function haversine_token *PushToken(token_stack *tokenStack, haversine_to
 }
 
 
-global_function haversine_token PopToken(token_stack *tokenStack)
+static haversine_token PopToken(token_stack *tokenStack)
 {
     haversine_token result;
     haversine_token *tokenPtr = ArenaPopStruct(tokenStack->Arena, haversine_token);
@@ -58,7 +58,7 @@ global_function haversine_token PopToken(token_stack *tokenStack)
 }
 
 
-global_function V2F64 GetVectorFromCoordinateTokens(haversine_token xValue, haversine_token yValue)
+static V2F64 GetVectorFromCoordinateTokens(haversine_token xValue, haversine_token yValue)
 {
     V2F64 result = { .x = 0, .y = 0};
 
@@ -76,7 +76,7 @@ global_function V2F64 GetVectorFromCoordinateTokens(haversine_token xValue, have
 }
 
 
-global_function parsing_stats ParseHaversinePairs(memory_arena *jsonContents, memory_arena *pairsArena, memory_arena *tokenArena)
+static parsing_stats ParseHaversinePairs(memory_arena *jsonContents, memory_arena *pairsArena, memory_arena *tokenArena)
 {
     parsing_stats stats = {0};
     pairs_context context = {0};

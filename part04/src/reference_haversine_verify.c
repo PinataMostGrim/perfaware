@@ -52,14 +52,14 @@ struct function_error
 };
 
 
-global_function F64 Square(F64 x)
+static F64 Square(F64 x)
 {
     F64 result = x*x;
     return result;
 }
 
 
-global_function F64 CustomSin(F64 x)
+static F64 CustomSin(F64 x)
 {
     F64 x2 = Square(x);
     F64 a = -4 / Square(Pi64);
@@ -70,19 +70,19 @@ global_function F64 CustomSin(F64 x)
 }
 
 
-global_function F64 CustomCos(F64 input)
+static F64 CustomCos(F64 input)
 {
     return 0;
 }
 
 
-global_function F64 CustomArcSin(F64 input)
+static F64 CustomArcSin(F64 input)
 {
     return 0;
 }
 
 
-global_function F64 CustomSqrt(F64 x)
+static F64 CustomSqrt(F64 x)
 {
     __m128d xmmValue = _mm_set_sd(x);
     __m128d xmmZero = _mm_set_sd(0);
@@ -93,7 +93,7 @@ global_function F64 CustomSqrt(F64 x)
 }
 
 
-global_function void CheckHardcodedAnswer(char *label, math_func referenceFunc, reference_answer *answers, size_t answersCount)
+static void CheckHardcodedAnswer(char *label, math_func referenceFunc, reference_answer *answers, size_t answersCount)
 {
     printf("%s:\n", label);
     for (int i = 0; i < answersCount; ++i)
@@ -107,7 +107,7 @@ global_function void CheckHardcodedAnswer(char *label, math_func referenceFunc, 
 }
 
 
-global_function function_error MeasureMaximumFunctionError(math_func mathFunc, math_func referenceFunc, F64 minInputValue, F64 maxInputValue, U32 stepCount, char const *format, ...)
+static function_error MeasureMaximumFunctionError(math_func mathFunc, math_func referenceFunc, F64 minInputValue, F64 maxInputValue, U32 stepCount, char const *format, ...)
 {
     function_error result = {0};
 
@@ -150,7 +150,7 @@ global_function function_error MeasureMaximumFunctionError(math_func mathFunc, m
 }
 
 
-global_function void PrintError(function_error error)
+static void PrintError(function_error error)
 {
     F64 averageDiff = error.SampleCount ? (error.TotalDiff / (F64)error.SampleCount) : 0;
     printf("%+.16f (%+.16f) at %+.16f [%s]\n", error.MaxDiff, averageDiff, error.InputValueAtMaxDiff, error.Label);

@@ -37,7 +37,7 @@ void process_sine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *output
     bf_const_pi(&pi, 57, BF_RNDN);
 
     // Write sine input array header
-    fprintf(fp, "global_variable F64 %s[] = {", SIN_INPUT_NAME);
+    fprintf(fp, "static F64 %s[] = {", SIN_INPUT_NAME);
 
     // Initialize and generate sine input numbers
     for (int i = 0; i < ARRAY_SIZE; i++)
@@ -60,7 +60,7 @@ void process_sine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *output
     fprintf(fp, "};\n\n");
 
     // Write sine output array header
-    fprintf(fp, "global_variable F64 %s[] = {", SIN_OUTPUT_NAME);
+    fprintf(fp, "static F64 %s[] = {", SIN_OUTPUT_NAME);
 
     // Generate and write sine values
     for (int i = 0; i < ARRAY_SIZE; i++)
@@ -100,7 +100,7 @@ void process_cosine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
     bf_div(&pi_half, &pi, &two, 57, BF_RNDN);  // Divide pi by 2
 
     // Write cosine input array header
-    fprintf(fp, "global_variable F64 %s[] = {", COS_INPUT_NAME);
+    fprintf(fp, "static F64 %s[] = {", COS_INPUT_NAME);
 
     // Generate cosine input numbers
     for (int i = 0; i < ARRAY_SIZE; i++)
@@ -125,7 +125,7 @@ void process_cosine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
     fprintf(fp, "};\n\n");
 
     // Write cosine output array header
-    fprintf(fp, "global_variable F64 %s[] = {", COS_OUTPUT_NAME);
+    fprintf(fp, "static F64 %s[] = {", COS_OUTPUT_NAME);
 
     // Generate and write cosine values
     for (int i = 0; i < ARRAY_SIZE; i++)
@@ -155,7 +155,7 @@ void process_cosine_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
 void process_arcsin_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outputs)
 {
     // Write arc sine input array header
-    fprintf(fp, "global_variable F64 %s[] = {", ARCSIN_INPUT_NAME);
+    fprintf(fp, "static F64 %s[] = {", ARCSIN_INPUT_NAME);
 
     // Generate arc sine input numbers
     for (int i = 0; i < ARRAY_SIZE; i++)
@@ -177,7 +177,7 @@ void process_arcsin_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
     fprintf(fp, "};\n\n");
 
     // Write arc sine output array header
-    fprintf(fp, "global_variable F64 %s[] = {", ARCSIN_OUTPUT_NAME);
+    fprintf(fp, "static F64 %s[] = {", ARCSIN_OUTPUT_NAME);
 
     // Generate and write arc sine values
     for (int i = 0; i < ARRAY_SIZE; i++)
@@ -202,7 +202,7 @@ void process_arcsin_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outp
 void process_sqrt_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *outputs)
 {
     // Write square root input array header
-    fprintf(fp, "global_variable F64 %s[] = {", SQRT_INPUT_NAME);
+    fprintf(fp, "static F64 %s[] = {", SQRT_INPUT_NAME);
 
     // Generate square root input numbers
     for (int i = 0; i < ARRAY_SIZE; i++)
@@ -224,7 +224,7 @@ void process_sqrt_values(FILE *fp, bf_context_t *ctx, bf_t *inputs, bf_t *output
     fprintf(fp, "};\n\n");
 
     // Write square root output array header
-    fprintf(fp, "global_variable F64 %s[] = {", SQRT_OUTPUT_NAME);
+    fprintf(fp, "static F64 %s[] = {", SQRT_OUTPUT_NAME);
 
     // Generate and write square root values
     for (int i = 0; i < ARRAY_SIZE; i++)
