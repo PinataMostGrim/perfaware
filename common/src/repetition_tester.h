@@ -366,7 +366,7 @@ static void InitializeTester()
 {
     if (!TesterGlobals.Initialized)
     {
-        TesterGlobals.Initialized = true;
+        TesterGlobals.Initialized = RT__TRUE;
         TesterGlobals.ProcessHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, GetCurrentProcessId());
         TesterGlobals.CPUTimerFrequency = EstimateCPUTimerFrequency();
         TesterGlobals.SecondsToTry = 10;
