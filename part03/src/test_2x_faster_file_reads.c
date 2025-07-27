@@ -246,7 +246,7 @@ int main(int argCount, char const *args[])
         return 0;
     }
 
-    InitializeTester();
+    InitializeTesterGlobals();
 
     const char *fileName = args[1];
     buffer buff = ReadEntireFile((char *)fileName);

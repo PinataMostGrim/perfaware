@@ -78,7 +78,7 @@ struct repetition_tester
 };
 
 
-static void InitializeTester();
+static void InitializeTesterGlobals();
 static void NewTestWave(repetition_tester *tester, uint64_t targetProcessedByteCount, uint64_t cpuTimerFrequency, uint32_t secondsToTry);
 static rt__b32 IsTesting(repetition_tester *tester);
 static void BeginTime(repetition_tester *tester);
@@ -362,7 +362,7 @@ struct tester_globals
 };
 static tester_globals TesterGlobals;
 
-static void InitializeTester()
+static void InitializeTesterGlobals()
 {
     if (!TesterGlobals.Initialized)
     {
@@ -423,7 +423,7 @@ struct tester_globals
 static tester_globals TesterGlobals;
 
 
-static void InitializeTester()
+static void InitializeTesterGlobals()
 {
     if (!TesterGlobals.Initialized)
     {
