@@ -16,6 +16,8 @@
 // source: https://www.wolframalpha.com/input?i=N%5BPi%2C+17%5D
 // N[Pi, 17]
 #define Pi64 3.1415926535897932
+#define DegToRad(degrees) (0.01745329251994329577 * degrees)
+#define RadToDeg(radians) (57.29577951308232 * radians)
 
 // Note (Aaron H): Must be defined before including the reference values header
 typedef struct reference_answer reference_answer;
