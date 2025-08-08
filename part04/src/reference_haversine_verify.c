@@ -61,6 +61,10 @@ static F64 Square(F64 x)
 
 static F64 CustomSin(F64 x)
 {
+    // sin approximation
+    // ax^2 * bx where:
+    //  a = -4/Pi^2
+    //  b = 4/Pi
     F64 x2 = Square(x);
     F64 a = -4.0 / Square(Pi64);
     F64 b = 4.0 / Pi64;
@@ -79,6 +83,10 @@ static F64 CustomSinRR(F64 x)
     double multiplier = (x >= 0) ? 1 : -1;
     x *= multiplier;
 
+    // sin approximation
+    // ax^2 * bx where:
+    //  a = -4/Pi^2
+    //  b = 4/Pi
     F64 x2 = Square(x);
     F64 a = -4.0 / Square(Pi64);
     F64 b = 4.0 / Pi64;
@@ -92,7 +100,8 @@ static F64 CustomSinRR(F64 x)
 
 static F64 CustomCos(F64 input)
 {
-    return 0;
+    F64 result = CustomSinRR(input + (Pi64 / 2));
+    return result;
 }
 
 
@@ -200,14 +209,14 @@ int main(int argc, char const *argv[])
     error = MeasureMaximumFunctionError(CustomSinRR, sin, -Pi64, Pi64, stepCount, "CustomSinRR: -Pi to Pi");
     PrintError(error);
 
-    function_error errorCos = MeasureMaximumFunctionError(CustomCos, cos, -Pi64/2, Pi64/2, stepCount, "CustomCos");
-    PrintError(errorCos);
+    error = MeasureMaximumFunctionError(CustomCos, cos, -Pi64/2, Pi64/2, stepCount, "CustomCos: -Pi/2 to Pi/2");
+    PrintError(error);
 
-    function_error errorASin = MeasureMaximumFunctionError(CustomArcSin, asin, 0, 1, stepCount, "CustomArcSin");
-    PrintError(errorASin);
+    error = MeasureMaximumFunctionError(CustomArcSin, asin, 0, 1, stepCount, "CustomArcSin: 0 to 1");
+    PrintError(error);
 
-    function_error errorSqrt = MeasureMaximumFunctionError(CustomSqrt, sqrt, 0, 1, stepCount, "CustomSqrt");
-    PrintError(errorSqrt);
+    error = MeasureMaximumFunctionError(CustomSqrt, sqrt, 0, 1, stepCount, "CustomSqrt: 0 to 1");
+    PrintError(error);
 
     return 0;
 }
