@@ -5,7 +5,7 @@
 
 // Table[N[x, 17], {x, N[-Pi, 17], N[Pi, 17], N[Pi/64, 17]}]
 // Table[N[Sin[x], 17], {x, N[-Pi, 17], N[Pi, 17], N[Pi/64, 17]}]
-global_variable reference_answer Reference_Sin[] =
+static math_answer Reference_Sin[] =
 {
     {-3.1415926535897932, 0.e-16},
     {-3.0925052683774527, -0.0490676743274180},
@@ -140,7 +140,7 @@ global_variable reference_answer Reference_Sin[] =
 
 // Table[N[x, 17], {x, N[-Pi/2, 17], N[Pi/2, 17], N[Pi/128, 17]}]
 // Table[N[Cos[x], 17], {x, N[-Pi/2, 17], N[Pi/2, 17], N[Pi/128, 17]}]
-global_variable reference_answer Reference_Cos[] =
+static math_answer Reference_Cos[] =
 {
     { -1.5707963267948966, 0.e-16},
     { -1.5462526341887264, 0.0245412285229123},
@@ -276,7 +276,7 @@ global_variable reference_answer Reference_Cos[] =
 
 // Table[N[x, 17], {x, N[0, 17], N[1, 17], N[Pi/512, 17]}]
 // Table[N[ASin[x], 17], {x, N[0, 17], N[1, 17], N[Pi/512, 17]}]
-global_variable reference_answer Reference_ArcSin[] =
+static math_answer Reference_ArcSin[] =
 {
     { 0, 0},
     { 0.0061359231515425649, 0.0061359616546554692},
@@ -446,7 +446,7 @@ global_variable reference_answer Reference_ArcSin[] =
 
 // Table[N[x, 17], {x, N[0, 17], N[1, 17], N[Pi/512, 17]}]
 // Table[N[Sqrt[x], 17], {x, N[0, 17], N[1, 17], N[Pi/512, 17]}]
-global_variable reference_answer Reference_Sqrt[] =
+static math_answer Reference_Sqrt[] =
 {
     { 0, 0},
     { 0.0061359231515425649, 0.078332133582218766},
