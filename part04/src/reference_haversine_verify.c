@@ -156,20 +156,6 @@ int main(int argc, char const *argv[])
 #endif
 
 
-#if 1
-    U32 result = Factorial(5);
-    F64 result = Exponent(5, 1);
-    fprintf(stdout, "result: %f\n", result);
-
-    F64 value = -Pi64;
-    F64 reference = sin(value);
-    F64 result = CustomSinTaylor(value, 19);
-
-    fprintf(stdout, "reference: %f\n", reference);
-    fprintf(stdout, "result: %f\n", result);
-#endif
-
-#if 0
     math_tester tester = {0};
     U32 stepCount = 100000000;
     printf("Calulating maximum function errors:\n");
@@ -204,6 +190,16 @@ int main(int argc, char const *argv[])
         TestResult(&tester, sqrt(tester.InputValue), CustomSqrt(tester.InputValue), "CustomSqrt: 0 to 1");
     }
 
+    // Note (Aaron): Enable to precision test multiple Taylor series higher power approximations
+#if 1
+    U32 taylorSeriesMaxPower = 21;
+    for (int i = 1; i <= taylorSeriesMaxPower; i+=2)
+    {
+        while(PrecisionTest(&tester, -Pi64, Pi64, stepCount))
+        {
+            TestResult(&tester, sin(tester.InputValue), CustomSinTaylor(tester.InputValue, i), "CustomSinTaylor(%i): -Pi to Pi", i);
+        }
+    }
 #endif
 
 
