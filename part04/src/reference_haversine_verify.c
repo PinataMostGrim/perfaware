@@ -69,6 +69,58 @@ static F64 CustomSinHalf(F64 x)
 }
 
 
+static U64 Factorial(U32 value)
+{
+    U64 result = value;
+    for (int i = value - 1; i > 0; --i)
+    {
+        result *= i;
+    }
+
+    return result;
+}
+
+
+static F64 Exponent(F64 base, U32 power)
+{
+    F64 result = base;
+    if (power == 0)
+    {
+        result = 1;
+    }
+    else
+    {
+        for (U32 i = 1; i < power; ++i)
+        {
+            result *= base;
+        }
+    }
+
+    return result;
+}
+
+
+static F64 CustomSinTaylor(F64 x, U32 power)
+{
+    // Taylor series estimation for sin:
+    // x - (X^3)/(3!) + (x^5)/(5!) - (x^7)/(7!) + ...
+
+    F64 result = x;
+    B32 add = FALSE;
+    for (U32 i = 3; i <= power; i+=2)
+    {
+        F64 dividend = Exponent(x, i);
+        F64 divisor = (F64)Factorial(i);
+        F64 term = dividend / divisor;
+        result = add ? (result + term) : (result - term);
+
+        add = !add;
+    }
+
+    return result;
+}
+
+
 static F64 CustomCos(F64 input)
 {
     F64 result = CustomSinHalf(input + (Pi64 / 2));
