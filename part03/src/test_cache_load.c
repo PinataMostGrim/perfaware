@@ -4,6 +4,7 @@
 #include <math.h>
 #include <sys/stat.h>
 
+// TODO (Aaron): Update when next on a Windows machine
 #define LINUX 1
 #define WRITE_TO_BUFFER 1
 

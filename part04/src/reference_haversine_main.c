@@ -54,7 +54,7 @@ int main(int argCount, char const *args[])
         return 1;
     }
 
-    InitializeTester();
+    InitializeTesterGlobals();
 
     char *haversinePairsFilename = (char *)args[1];
     char *answersFilename = (char *)args[2];

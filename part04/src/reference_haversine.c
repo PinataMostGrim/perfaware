@@ -14,7 +14,7 @@
 #include "reference_haversine_parser.h"
 
 
-global_function memory_arena ReadFileContents(char *filename)
+static memory_arena ReadFileContents(char *filename)
 {
     memory_arena result = {0};
     FILE *file = fopen(filename, "rb");
@@ -67,7 +67,7 @@ global_function memory_arena ReadFileContents(char *filename)
 }
 
 
-global_function haversine_setup SetupHaversine(char *haversinePairsFilename, char *answersFilename)
+static haversine_setup SetupHaversine(char *haversinePairsFilename, char *answersFilename)
 {
     haversine_setup result = {0};
 
@@ -125,14 +125,14 @@ global_function haversine_setup SetupHaversine(char *haversinePairsFilename, cha
 }
 
 
-global_function B32 SetupIsValid(haversine_setup setup)
+static B32 SetupIsValid(haversine_setup setup)
 {
     B32 result = (B32)setup.Valid;
     return result;
 }
 
 
-global_function void FreeHaversine(haversine_setup *setup)
+static void FreeHaversine(haversine_setup *setup)
 {
     ArenaFree(&setup->JsonArena);
     ArenaFree(&setup->AnswersArena);
@@ -141,7 +141,7 @@ global_function void FreeHaversine(haversine_setup *setup)
 }
 
 
-global_function B32 ApproxAreEqual(F64 a, F64 b)
+static B32 ApproxAreEqual(F64 a, F64 b)
 {
     /* NOTE(casey): Epsilon can be set to whatever tolerance we decide we will accept. If we make this value larger,
        we have more options for optimization. If we make it smaller, we must more closely follow the sequence
@@ -155,14 +155,14 @@ global_function B32 ApproxAreEqual(F64 a, F64 b)
 }
 
 
-global_function F64 Square(F64 A)
+static F64 Square(F64 A)
 {
     F64 Result = (A*A);
     return Result;
 }
 
 
-global_function F64 RadiansFromDegrees(F64 Degrees)
+static F64 RadiansFromDegrees(F64 Degrees)
 {
     F64 Result = 0.01745329251994329577f * Degrees;
     return Result;
@@ -170,7 +170,7 @@ global_function F64 RadiansFromDegrees(F64 Degrees)
 
 
 // NOTE(casey): EarthRadius is generally expected to be 6372.8
-global_function F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius)
+static F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius)
 {
     /* NOTE(casey): This is not meant to be a "good" way to calculate the Haversine distance.
        Instead, it attempts to follow, as closely as possible, the formula used in the real-world
@@ -196,7 +196,7 @@ global_function F64 ReferenceHaversine(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 Earth
 }
 
 
-global_function F64 ReferenceSumHaversine(haversine_setup setup)
+static F64 ReferenceSumHaversine(haversine_setup setup)
 {
     U64 pairCount = setup.PairCount;
     haversine_pair *pairs = setup.Pairs;
@@ -216,7 +216,7 @@ global_function F64 ReferenceSumHaversine(haversine_setup setup)
 }
 
 
-global_function U64 ReferenceVerifyHaversine(haversine_setup setup)
+static U64 ReferenceVerifyHaversine(haversine_setup setup)
 {
     U64 pairCount = setup.PairCount;
     haversine_pair *pairs = setup.Pairs;

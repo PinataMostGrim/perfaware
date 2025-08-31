@@ -16,6 +16,8 @@
 // source: https://www.wolframalpha.com/input?i=N%5BPi%2C+17%5D
 // N[Pi, 17]
 #define Pi64 3.1415926535897932
+#define DegToRad(degrees) (0.01745329251994329577 * degrees)
+#define RadToDeg(radians) (57.29577951308232 * radians)
 
 // Note (Aaron H): Must be defined before including the reference values header
 typedef struct reference_answer reference_answer;
@@ -52,37 +54,66 @@ struct function_error
 };
 
 
-global_function F64 Square(F64 x)
+static F64 Square(F64 x)
 {
     F64 result = x*x;
     return result;
 }
 
 
-global_function F64 CustomSin(F64 x)
+static F64 CustomSin(F64 x)
 {
+    // sin approximation
+    // ax^2 * bx where:
+    //  a = -4/Pi^2
+    //  b = 4/Pi
     F64 x2 = Square(x);
-    F64 a = -4 / Square(Pi64);
-    F64 b = 4 / Pi64;
+    F64 a = -4.0 / Square(Pi64);
+    F64 b = 4.0 / Pi64;
 
     F64 result = (a * x2) + (b * x);
     return result;
 }
 
 
-global_function F64 CustomCos(F64 input)
+static F64 CustomSinRR(F64 x)
+{
+    // Range reduction
+
+    // If input is 0 or above, do nothing
+    // If input is below 0, invert it so that it is above zero, and then invert the answer before returning later.
+    double multiplier = (x >= 0) ? 1 : -1;
+    x *= multiplier;
+
+    // sin approximation
+    // ax^2 * bx where:
+    //  a = -4/Pi^2
+    //  b = 4/Pi
+    F64 x2 = Square(x);
+    F64 a = -4.0 / Square(Pi64);
+    F64 b = 4.0 / Pi64;
+
+    F64 result = (a * x2) + (b * x);
+    result *= multiplier;
+
+    return result;
+}
+
+
+static F64 CustomCos(F64 input)
+{
+    F64 result = CustomSinRR(input + (Pi64 / 2));
+    return result;
+}
+
+
+static F64 CustomArcSin(F64 input)
 {
     return 0;
 }
 
 
-global_function F64 CustomArcSin(F64 input)
-{
-    return 0;
-}
-
-
-global_function F64 CustomSqrt(F64 x)
+static F64 CustomSqrt(F64 x)
 {
     __m128d xmmValue = _mm_set_sd(x);
     __m128d xmmZero = _mm_set_sd(0);
@@ -93,7 +124,7 @@ global_function F64 CustomSqrt(F64 x)
 }
 
 
-global_function void CheckHardcodedAnswer(char *label, math_func referenceFunc, reference_answer *answers, size_t answersCount)
+static void CheckHardcodedAnswer(char *label, math_func referenceFunc, reference_answer *answers, size_t answersCount)
 {
     printf("%s:\n", label);
     for (int i = 0; i < answersCount; ++i)
@@ -107,7 +138,7 @@ global_function void CheckHardcodedAnswer(char *label, math_func referenceFunc, 
 }
 
 
-global_function function_error MeasureMaximumFunctionError(math_func mathFunc, math_func referenceFunc, F64 minInputValue, F64 maxInputValue, U32 stepCount, char const *format, ...)
+static function_error MeasureMaximumFunctionError(math_func mathFunc, math_func referenceFunc, F64 minInputValue, F64 maxInputValue, U32 stepCount, char const *format, ...)
 {
     function_error result = {0};
 
@@ -127,7 +158,7 @@ global_function function_error MeasureMaximumFunctionError(math_func mathFunc, m
 
             F64 outputValue = mathFunc(inputValue);
             F64 referenceOutputValue = referenceFunc(inputValue);
-            F64 diff = fabs(outputValue - referenceOutputValue);
+            F64 diff = fabs(referenceOutputValue - outputValue);
 
             if (diff > result.MaxDiff)
             {
@@ -150,10 +181,10 @@ global_function function_error MeasureMaximumFunctionError(math_func mathFunc, m
 }
 
 
-global_function void PrintError(function_error error)
+static void PrintError(function_error error)
 {
     F64 averageDiff = error.SampleCount ? (error.TotalDiff / (F64)error.SampleCount) : 0;
-    printf("%+.16f (%+.16f) at %+.16f [%s]\n", error.MaxDiff, averageDiff, error.InputValueAtMaxDiff, error.Label);
+    printf("%+.16f at %+.16f (%+.16f) [%s]\n", error.MaxDiff, error.InputValueAtMaxDiff, averageDiff, error.Label);
 }
 
 
@@ -170,20 +201,24 @@ int main(int argc, char const *argv[])
     U32 stepCount = 100000000;
 
     printf("Calulating maximum function error:\n");
-    function_error errorSinUpperRange = MeasureMaximumFunctionError(CustomSin, sin, 0, Pi64, stepCount, "CustomSin - 0 to Pi");
-    PrintError(errorSinUpperRange);
 
-    function_error errorSinFullRange = MeasureMaximumFunctionError(CustomSin, sin, -Pi64, Pi64, stepCount, "CustomSin - Full range");
-    PrintError(errorSinFullRange);
+    function_error error = MeasureMaximumFunctionError(CustomSin, sin, 0, Pi64, stepCount, "CustomSin: 0 to Pi");
+    PrintError(error);
 
-    function_error errorCos = MeasureMaximumFunctionError(CustomCos, cos, -Pi64/2, Pi64/2, stepCount, "CustomCos");
-    PrintError(errorCos);
+    error = MeasureMaximumFunctionError(CustomSin, sin, -Pi64, Pi64, stepCount, "CustomSin: -Pi to Pi");
+    PrintError(error);
 
-    function_error errorASin = MeasureMaximumFunctionError(CustomArcSin, asin, 0, 1, stepCount, "CustomArcSin");
-    PrintError(errorASin);
+    error = MeasureMaximumFunctionError(CustomSinRR, sin, -Pi64, Pi64, stepCount, "CustomSinRR: -Pi to Pi");
+    PrintError(error);
 
-    function_error errorSqrt = MeasureMaximumFunctionError(CustomSqrt, sqrt, 0, 1, stepCount, "CustomSqrt");
-    PrintError(errorSqrt);
+    error = MeasureMaximumFunctionError(CustomCos, cos, -Pi64/2, Pi64/2, stepCount, "CustomCos: -Pi/2 to Pi/2");
+    PrintError(error);
+
+    error = MeasureMaximumFunctionError(CustomArcSin, asin, 0, 1, stepCount, "CustomArcSin: 0 to 1");
+    PrintError(error);
+
+    error = MeasureMaximumFunctionError(CustomSqrt, sqrt, 0, 1, stepCount, "CustomSqrt: 0 to 1");
+    PrintError(error);
 
     return 0;
 }

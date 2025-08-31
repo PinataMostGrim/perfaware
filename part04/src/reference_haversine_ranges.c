@@ -41,17 +41,17 @@ struct haversine_ranges
 };
 
 
-global_variable haversine_ranges Ranges = {0};
+static haversine_ranges Ranges = {0};
 
 
-global_function void RangeInclude(range *range, F64 value)
+static void RangeInclude(range *range, F64 value)
 {
     if (value < range->Min) { range->Min = value; }
     if (value > range->Max) { range->Max = value; }
 }
 
 
-global_function F64 SinRange(F64 value)
+static F64 SinRange(F64 value)
 {
     RangeInclude(&Ranges.Sin, value);
     F64 result = sin(value);
@@ -60,7 +60,7 @@ global_function F64 SinRange(F64 value)
 }
 
 
-global_function F64 CosRange(F64 value)
+static F64 CosRange(F64 value)
 {
     RangeInclude(&Ranges.Cos, value);
     F64 result = cos(value);
@@ -69,7 +69,7 @@ global_function F64 CosRange(F64 value)
 }
 
 
-global_function F64 ArcSinRange(F64 value)
+static F64 ArcSinRange(F64 value)
 {
     RangeInclude(&Ranges.ArcSin, value);
     F64 result = asin(value);
@@ -78,7 +78,7 @@ global_function F64 ArcSinRange(F64 value)
 }
 
 
-global_function F64 SqrtRange(F64 value)
+static F64 SqrtRange(F64 value)
 {
     RangeInclude(&Ranges.Sqrt, value);
     F64 result = sqrt(value);
@@ -87,7 +87,7 @@ global_function F64 SqrtRange(F64 value)
 }
 
 
-global_function F64 ReferenceHaversineRanges(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius)
+static F64 ReferenceHaversineRanges(F64 X0, F64 Y0, F64 X1, F64 Y1, F64 EarthRadius)
 {
     F64 lat1 = Y0;
     F64 lat2 = Y1;

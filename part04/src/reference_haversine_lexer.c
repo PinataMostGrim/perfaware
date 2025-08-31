@@ -24,7 +24,7 @@ global_variable const char *TokenMnemonics[] =
 };
 
 
-global_function const char *GetTokenMenemonic(token_type tokenType)
+static const char *GetTokenMenemonic(token_type tokenType)
 {
     static_assert(ArrayCount(TokenMnemonics) == Token_type_count,
         "'TokenMnemonics' count does not match 'Token_type_count'");
@@ -33,7 +33,7 @@ global_function const char *GetTokenMenemonic(token_type tokenType)
 }
 
 
-global_function int _NextCharacter(memory_arena *arena, B8 peek)
+static int _NextCharacter(memory_arena *arena, B8 peek)
 {
     for (;;)
     {
@@ -62,27 +62,27 @@ global_function int _NextCharacter(memory_arena *arena, B8 peek)
 
 
 // Eat characters from a file stream until we get a non-whitespace character or reach EOF
-global_function int EatNextCharacter(memory_arena *arena)
+static int EatNextCharacter(memory_arena *arena)
 {
     return _NextCharacter(arena, FALSE);
 }
 
 
 // Peek at the next character in a file stream (white-space characters excluded)
-global_function int PeekNextCharacter(memory_arena *arena)
+static int PeekNextCharacter(memory_arena *arena)
 {
     return _NextCharacter(arena, TRUE);
 }
 
 // Returns whether or not the character belong to the set of characters used by floating point values
-global_function B8 IsFloatingPointChar(char character)
+static B8 IsFloatingPointChar(char character)
 {
     return (isdigit(character) || character == '.' || character == '-');
 }
 
 
 // Extracts next JSON token from file stream
-global_function haversine_token GetNextToken(memory_arena *arena)
+static haversine_token GetNextToken(memory_arena *arena)
 {
     haversine_token token;
     token.Type = Token_invalid;
