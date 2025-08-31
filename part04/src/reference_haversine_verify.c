@@ -6,6 +6,9 @@
 
 #include "base_inc.h"
 #include "base_types.c"
+#include "math_tester.h"
+#include "math_tester.c"
+#include "reference_values_wolfram.h"
 
 #if _MSC_VER
 #include <intrin.h>
@@ -18,40 +21,6 @@
 #define Pi64 3.1415926535897932
 #define DegToRad(degrees) (0.01745329251994329577 * degrees)
 #define RadToDeg(radians) (57.29577951308232 * radians)
-
-// Note (Aaron H): Must be defined before including the reference values header
-typedef struct reference_answer reference_answer;
-struct reference_answer
-{
-    F64 Input;
-    F64 Output;
-};
-
-#include "reference_values_wolfram.h"
-
-
-typedef F64 math_func(F64);
-
-typedef struct math_test math_test;
-struct math_test
-{
-    F64 MaxDiff;
-};
-
-
-typedef struct function_error function_error;
-struct function_error
-{
-    F64 SampleCount;
-    F64 MaxDiff;
-    F64 TotalDiff;
-
-    F64 InputValueAtMaxDiff;
-    F64 OutputValueAtMaxDiff;
-    F64 ExpectedValueAtMaxDiff;
-
-    char Label[64];
-};
 
 
 static F64 Square(F64 x)
@@ -76,7 +45,7 @@ static F64 CustomSin(F64 x)
 }
 
 
-static F64 CustomSinRR(F64 x)
+static F64 CustomSinHalf(F64 x)
 {
     // Range reduction
 
@@ -100,9 +69,61 @@ static F64 CustomSinRR(F64 x)
 }
 
 
+static U64 Factorial(U32 value)
+{
+    U64 result = value;
+    for (int i = value - 1; i > 0; --i)
+    {
+        result *= i;
+    }
+
+    return result;
+}
+
+
+static F64 Exponent(F64 base, U32 power)
+{
+    F64 result = base;
+    if (power == 0)
+    {
+        result = 1;
+    }
+    else
+    {
+        for (U32 i = 1; i < power; ++i)
+        {
+            result *= base;
+        }
+    }
+
+    return result;
+}
+
+
+static F64 CustomSinTaylor(F64 x, U32 power)
+{
+    // Taylor series estimation for sin:
+    // x - (X^3)/(3!) + (x^5)/(5!) - (x^7)/(7!) + ...
+
+    F64 result = x;
+    B32 add = FALSE;
+    for (U32 i = 3; i <= power; i+=2)
+    {
+        F64 dividend = Exponent(x, i);
+        F64 divisor = (F64)Factorial(i);
+        F64 term = dividend / divisor;
+        result = add ? (result + term) : (result - term);
+
+        add = !add;
+    }
+
+    return result;
+}
+
+
 static F64 CustomCos(F64 input)
 {
-    F64 result = CustomSinRR(input + (Pi64 / 2));
+    F64 result = CustomSinHalf(input + (Pi64 / 2));
     return result;
 }
 
@@ -124,70 +145,6 @@ static F64 CustomSqrt(F64 x)
 }
 
 
-static void CheckHardcodedAnswer(char *label, math_func referenceFunc, reference_answer *answers, size_t answersCount)
-{
-    printf("%s:\n", label);
-    for (int i = 0; i < answersCount; ++i)
-    {
-        reference_answer answer = answers[i];
-        printf("  f(%+.16f) = %+.16f [reference]\n", answer.Input, answer.Output);
-        F64 output = referenceFunc(answer.Input);
-        printf("            = %+.16f (%+.16f) [%s]\n", output, answer.Output - output, label);
-    }
-    printf("\n");
-}
-
-
-static function_error MeasureMaximumFunctionError(math_func mathFunc, math_func referenceFunc, F64 minInputValue, F64 maxInputValue, U32 stepCount, char const *format, ...)
-{
-    function_error result = {0};
-
-    if (mathFunc && referenceFunc)
-    {
-        // Set Label on error
-        va_list argList;
-        va_start(argList, format);
-        vsnprintf(result.Label, sizeof(result.Label), format, argList);
-        va_end(argList);
-
-        // Determine largest diff
-        for (U32 i = 0; i < stepCount; ++i)
-        {
-            F64 tStep = (F64)i / (F64)(stepCount - 1);
-            F64 inputValue = ((1.0 - tStep) * minInputValue) + (tStep * maxInputValue);
-
-            F64 outputValue = mathFunc(inputValue);
-            F64 referenceOutputValue = referenceFunc(inputValue);
-            F64 diff = fabs(referenceOutputValue - outputValue);
-
-            if (diff > result.MaxDiff)
-            {
-                result.MaxDiff = diff;
-                result.InputValueAtMaxDiff = inputValue;
-                result.OutputValueAtMaxDiff = outputValue;
-                result.ExpectedValueAtMaxDiff = referenceOutputValue;
-            }
-
-            result.TotalDiff += diff;
-            result.SampleCount++;
-        }
-    }
-    else
-    {
-        fprintf(stderr, "[ERROR] Invalid function or reference function\n");
-    }
-
-    return result;
-}
-
-
-static void PrintError(function_error error)
-{
-    F64 averageDiff = error.SampleCount ? (error.TotalDiff / (F64)error.SampleCount) : 0;
-    printf("%+.16f at %+.16f (%+.16f) [%s]\n", error.MaxDiff, error.InputValueAtMaxDiff, averageDiff, error.Label);
-}
-
-
 int main(int argc, char const *argv[])
 {
     // Note (Aaron): Enable to verify reference values
@@ -198,27 +155,53 @@ int main(int argc, char const *argv[])
     CheckHardcodedAnswer("sqrt", sqrt, Reference_Sqrt, ArrayCount(Reference_Sqrt));
 #endif
 
+
+    math_tester tester = {0};
     U32 stepCount = 100000000;
+    printf("Calulating maximum function errors:\n");
 
-    printf("Calulating maximum function error:\n");
+    while(PrecisionTest(&tester, 0, Pi64, stepCount))
+    {
+        TestResult(&tester, sin(tester.InputValue), CustomSin(tester.InputValue), "CustomSin: 0 to Pi");
+    }
 
-    function_error error = MeasureMaximumFunctionError(CustomSin, sin, 0, Pi64, stepCount, "CustomSin: 0 to Pi");
-    PrintError(error);
+    while(PrecisionTest(&tester, -Pi64, Pi64, stepCount))
+    {
+        TestResult(&tester, sin(tester.InputValue), CustomSin(tester.InputValue), "CustomSin: -Pi to Pi");
+    }
 
-    error = MeasureMaximumFunctionError(CustomSin, sin, -Pi64, Pi64, stepCount, "CustomSin: -Pi to Pi");
-    PrintError(error);
+    while(PrecisionTest(&tester, -Pi64, Pi64, stepCount))
+    {
+        TestResult(&tester, sin(tester.InputValue), CustomSinHalf(tester.InputValue), "CustomSinHalf: -Pi to Pi");
+    }
 
-    error = MeasureMaximumFunctionError(CustomSinRR, sin, -Pi64, Pi64, stepCount, "CustomSinRR: -Pi to Pi");
-    PrintError(error);
+    while(PrecisionTest(&tester, -Pi64/2, Pi64/2, stepCount))
+    {
+        TestResult(&tester, cos(tester.InputValue), CustomCos(tester.InputValue), "CustomCos: -Pi/2 to Pi/2");
+    }
 
-    error = MeasureMaximumFunctionError(CustomCos, cos, -Pi64/2, Pi64/2, stepCount, "CustomCos: -Pi/2 to Pi/2");
-    PrintError(error);
+    while(PrecisionTest(&tester, 0, 1, stepCount))
+    {
+        TestResult(&tester, asin(tester.InputValue), CustomArcSin(tester.InputValue), "CustomArcSin: 0 to 1");
+    }
 
-    error = MeasureMaximumFunctionError(CustomArcSin, asin, 0, 1, stepCount, "CustomArcSin: 0 to 1");
-    PrintError(error);
+    while(PrecisionTest(&tester, 0, 1, stepCount))
+    {
+        TestResult(&tester, sqrt(tester.InputValue), CustomSqrt(tester.InputValue), "CustomSqrt: 0 to 1");
+    }
 
-    error = MeasureMaximumFunctionError(CustomSqrt, sqrt, 0, 1, stepCount, "CustomSqrt: 0 to 1");
-    PrintError(error);
+    // Note (Aaron): Enable to precision test multiple Taylor series higher power approximations
+#if 1
+    U32 taylorSeriesMaxPower = 21;
+    for (int i = 1; i <= taylorSeriesMaxPower; i+=2)
+    {
+        while(PrecisionTest(&tester, -Pi64, Pi64, stepCount))
+        {
+            TestResult(&tester, sin(tester.InputValue), CustomSinTaylor(tester.InputValue, i), "CustomSinTaylor(%i): -Pi to Pi", i);
+        }
+    }
+#endif
+
 
     return 0;
 }
