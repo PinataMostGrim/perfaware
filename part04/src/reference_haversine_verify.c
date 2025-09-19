@@ -5,10 +5,22 @@
 #include <sys/stat.h>
 
 #include "base_inc.h"
+#include "base_memory.h"
+#include "base_arena.h"
+#include "base_string.h"
+
 #include "base_types.c"
+#include "base_memory.c"
+#include "base_arena.c"
+#include "base_string.c"
+
 #include "math_tester.h"
 #include "math_tester.c"
 #include "reference_values_wolfram.h"
+
+#define PLATFORM_METRICS_IMPLEMENTATION
+#define PROFILER 1
+#include "platform_metrics.h"
 
 #if _MSC_VER
 #include <intrin.h>
@@ -147,19 +159,25 @@ static F64 CustomSqrt(F64 x)
 
 int main(int argc, char const *argv[])
 {
-    // Note (Aaron): Enable to verify reference values
+    StartTimingsProfile();
+
+    math_tester tester = {0};
+    U32 stepCount = 100000000;
+
 #if 0
+    // Note (Aaron): Verify reference values
+    printf("Verifying reference values:\n");
     CheckHardcodedAnswer("sin", sin, Reference_Sin, ArrayCount(Reference_Sin));
     CheckHardcodedAnswer("cos", cos, Reference_Cos, ArrayCount(Reference_Cos));
     CheckHardcodedAnswer("asin", asin, Reference_ArcSin, ArrayCount(Reference_ArcSin));
     CheckHardcodedAnswer("sqrt", sqrt, Reference_Sqrt, ArrayCount(Reference_Sqrt));
+    printf("\n");
 #endif
 
-
-    math_tester tester = {0};
-    U32 stepCount = 100000000;
+#if 0
+    // Note (Aaron): Verify reference values
     printf("Calulating maximum function errors:\n");
-
+    START_TIMING(CustomHaversineFunctions);
     while(PrecisionTest(&tester, 0, Pi64, stepCount))
     {
         TestResult(&tester, sin(tester.InputValue), CustomSin(tester.InputValue), "CustomSin: 0 to Pi");
@@ -189,19 +207,46 @@ int main(int argc, char const *argv[])
     {
         TestResult(&tester, sqrt(tester.InputValue), CustomSqrt(tester.InputValue), "CustomSqrt: 0 to 1");
     }
+    END_TIMING(CustomHaversineFunctions);
+    printf("\n");
+#endif
 
-    // Note (Aaron): Enable to precision test multiple Taylor series higher power approximations
 #if 1
-    U32 taylorSeriesMaxPower = 21;
+    // Note (Aaron): Precision test multiple Taylor series higher power approximations
+    printf("Calulating maximum function errors for Taylor series approxmination:\n");
+
+    // Allocate an arena for timing labels
+    memory_arena labelsArena = ArenaAllocate(Megabytes(1), Megabytes(1));
+
+    START_TIMING(TaylorSeriesExpansion_Total);
+
+    int taylorSeriesMaxPower = 31;
     for (int i = 1; i <= taylorSeriesMaxPower; i+=2)
     {
-        while(PrecisionTest(&tester, -Pi64, Pi64, stepCount))
+        // Construct a dynamic label for the taylor series
+        char *labelPtr = ArenaPushCStringf(&labelsArena, TRUE, "%s%i", "TaylorSeriesExpansion_", i);
+        zone_block zoneBlock = {0};
+        _StartTiming(&zoneBlock, labelPtr, i + __COUNTER__, 0);
+
+        // Perform the precision test
+        while(PrecisionTest(&tester, 0, Pi64/2, stepCount))
         {
-            TestResult(&tester, sin(tester.InputValue), CustomSinTaylor(tester.InputValue, i), "CustomSinTaylor(%i): -Pi to Pi", i);
+            TestResult(&tester, sin(tester.InputValue), CustomSinTaylor(tester.InputValue, i), "CustomSinTaylor(%i): 0 to Pi/2", i);
         }
+
+        _EndTiming(&zoneBlock);
     }
+
+    END_TIMING(TaylorSeriesExpansion_Total);
+
+    printf("\n");
 #endif
 
 
+    EndTimingsProfile();
+    PrintProfileTimings();
+
     return 0;
 }
+
+ProfilerEndOfCompilationUnit
