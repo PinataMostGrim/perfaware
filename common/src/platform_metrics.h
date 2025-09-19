@@ -1,7 +1,14 @@
 /* Note (Aaron):
     - Add '#define PLATFORM_METRICS_IMPLEMENTATION' before the inclusion of this file in one C or C++ file to create the implementation
     - Add '#define PROFILER 1' before inclusion of this file to enable the taking of timings
+
     - Complile under C++ to enable automatic scope and function timings via the FUNCTION_TIMING and ZONE_TIMING(label) macros
+
+    - Call StartTimingsProfile() and EndTimingsProfile() to start and end the profiling
+    - Begin and end timings with START_TIMING(), START_BANDWIDTH_TIMING(), END_TIMING() and END_BANDWIDTH_TIMING()
+    - Call PrintProfileTimings() to print accumulated timings
+
+    - Place ProfilerEndOfCompilationUnit macro at the end of the translation unit to assert there is enough space for all timings
 */
 
 #ifndef PLATFORM_METRICS_H ////////////////////////////////////////////////////
