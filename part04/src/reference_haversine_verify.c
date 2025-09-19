@@ -81,9 +81,9 @@ static F64 CustomSinHalf(F64 x)
 }
 
 
-static U64 Factorial(U32 value)
+static F64 Factorial(U32 value)
 {
-    U64 result = value;
+    F64 result = (F64)value;
     for (int i = value - 1; i > 0; --i)
     {
         result *= i;
