@@ -133,6 +133,39 @@ static F64 CustomSinTaylor(F64 x, U32 power)
 }
 
 
+static F64 CustomTaylorSeriesCoefficient(U32 power)
+{
+    F64 sign = ((power - 1) / 2) % 2 ? -1.0 : 1.0;
+    F64 result = (sign / Factorial(power));
+
+    return result;
+}
+
+
+static F64 CustomSinTaylorHorner(F64 x, U32 maxPower)
+{
+    // Taylor series estimation for sin:
+    // x - (X^3)/(3!) + (x^5)/(5!) - (x^7)/(7!) + ...
+
+    // Taylor series factored into a polynomial:
+    // (-1/7!)(x^7) + (1/5!)(x^5) + (-1/3!)(x^3) + x
+
+    // Horner's rule applied to the Taylor series for sin:
+
+    F64 result = 0;
+
+    F64 x2 = x*x;
+    for (U32 inversePower = 1; inversePower <= maxPower; inversePower += 2)
+    {
+        U32 power = maxPower - (inversePower - 1);
+        result = result * x2 + CustomTaylorSeriesCoefficient(power);
+    }
+
+    result *= x;
+
+    return result;
+}
+
 static F64 CustomCos(F64 input)
 {
     F64 result = CustomSinHalf(input + (Pi64 / 2));
