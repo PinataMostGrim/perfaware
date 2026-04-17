@@ -48,6 +48,7 @@ pushd "%SCRIPT_FOLDER%%BUILD_FOLDER%"
 
 :: Compile and link
 cl %COMPILER_FLAGS% %INCLUDES% %SOURCES% -Fe%OUT_EXE% /link %LINKER_FLAGS% %LIBS%
+set BUILD_ERRORLEVEL=%ERRORLEVEL%
 
 popd
-endlocal
+endlocal & exit /b %BUILD_ERRORLEVEL%
