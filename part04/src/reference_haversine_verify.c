@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
-#include "base_inc.h"
-#include "base_memory.h"
 #include "base_arena.h"
 #include "base_string.h"
 
@@ -200,16 +198,21 @@ int main(int argc, char const *argv[])
 #if 0
     // Note (Aaron): Verify reference values
     printf("Verifying reference values:\n");
+
+    START_TIMING(VerifyReferenceValues);
     CheckHardcodedAnswer("sin", sin, Reference_Sin, ArrayCount(Reference_Sin));
     CheckHardcodedAnswer("cos", cos, Reference_Cos, ArrayCount(Reference_Cos));
     CheckHardcodedAnswer("asin", asin, Reference_ArcSin, ArrayCount(Reference_ArcSin));
     CheckHardcodedAnswer("sqrt", sqrt, Reference_Sqrt, ArrayCount(Reference_Sqrt));
+    END_TIMING(VerifyReferenceValues);
+
     printf("\n");
 #endif
 
-#if 0
-    // Note (Aaron): Verify reference values
+#if 1
+    // Note (Aaron): Precision test custom haversine math functions
     printf("Calulating maximum function errors:\n");
+
     START_TIMING(CustomHaversineFunctions);
     while(PrecisionTest(&tester, 0, Pi64, stepCount))
     {
@@ -241,10 +244,11 @@ int main(int argc, char const *argv[])
         TestResult(&tester, sqrt(tester.InputValue), CustomSqrt(tester.InputValue), "CustomSqrt: 0 to 1");
     }
     END_TIMING(CustomHaversineFunctions);
+
     printf("\n");
 #endif
 
-#if 1
+#if 0
     // Note (Aaron): Precision test multiple Taylor series higher power approximations
     printf("Calulating maximum function errors for Taylor series approxmination:\n");
 
@@ -254,12 +258,13 @@ int main(int argc, char const *argv[])
     START_TIMING(TaylorSeriesExpansion_Total);
 
     int taylorSeriesMaxPower = 31;
+
     for (int i = 1; i <= taylorSeriesMaxPower; i+=2)
     {
         // Construct a dynamic label for the taylor series
-        char *labelPtr = ArenaPushCStringf(&labelsArena, TRUE, "%s%i", "TaylorSeriesExpansion_", i);
-        zone_block zoneBlock = {0};
-        _StartTiming(&zoneBlock, labelPtr, i + __COUNTER__, 0);
+        char *taylorLabel = ArenaPushCStringf(&labelsArena, TRUE, "%s%i", "CustomSinTaylor_", i);
+        zone_block zoneBlockTaylor = {0};
+        _StartTiming(&zoneBlockTaylor, taylorLabel, i + __COUNTER__, 0);
 
         // Perform the precision test
         while(PrecisionTest(&tester, 0, Pi64/2, stepCount))
@@ -267,14 +272,27 @@ int main(int argc, char const *argv[])
             TestResult(&tester, sin(tester.InputValue), CustomSinTaylor(tester.InputValue, i), "CustomSinTaylor(%i): 0 to Pi/2", i);
         }
 
-        _EndTiming(&zoneBlock);
+        _EndTiming(&zoneBlockTaylor);
+
+        // Construct a dynamic label for the Horner implementation
+        char *hornerLabel = ArenaPushCStringf(&labelsArena, TRUE, "%s%i", "CustomSinHorner_", i);
+        zone_block zoneBlockHorner = {0};
+        _StartTiming(&zoneBlockHorner, hornerLabel, i + __COUNTER__, 0);
+
+        // Perform the precision test
+        while(PrecisionTest(&tester, 0, Pi64/2, stepCount))
+        {
+            TestResult(&tester, sin(tester.InputValue), CustomSinTaylorHorner(tester.InputValue, i), "CustomSinTaylorHorner(%i): 0 to Pi/2", i);
+        }
+
+        _EndTiming(&zoneBlockHorner);
+
     }
 
     END_TIMING(TaylorSeriesExpansion_Total);
 
     printf("\n");
 #endif
-
 
     EndTimingsProfile();
     PrintProfileTimings();
