@@ -250,7 +250,7 @@ int main(int argc, char const *argv[])
 
 #if 0
     // Note (Aaron): Precision test multiple Taylor series higher power approximations
-    printf("Calulating maximum function errors for Taylor series approxmination:\n");
+    printf("\nCalulating maximum function errors for Taylor series approxmination:\n");
 
     // Allocate an arena for timing labels
     memory_arena labelsArena = ArenaAllocate(Megabytes(1), Megabytes(1));
@@ -264,7 +264,7 @@ int main(int argc, char const *argv[])
         // Construct a dynamic label for the taylor series
         char *taylorLabel = ArenaPushCStringf(&labelsArena, TRUE, "%s%i", "CustomSinTaylor_", i);
         zone_block zoneBlockTaylor = {0};
-        _StartTiming(&zoneBlockTaylor, taylorLabel, i + __COUNTER__, 0);
+        _StartTiming(&zoneBlockTaylor, taylorLabel, (i * 2) + (__COUNTER__), 0);
 
         // Perform the precision test
         while(PrecisionTest(&tester, 0, Pi64/2, stepCount))
@@ -277,7 +277,7 @@ int main(int argc, char const *argv[])
         // Construct a dynamic label for the Horner implementation
         char *hornerLabel = ArenaPushCStringf(&labelsArena, TRUE, "%s%i", "CustomSinHorner_", i);
         zone_block zoneBlockHorner = {0};
-        _StartTiming(&zoneBlockHorner, hornerLabel, i + __COUNTER__, 0);
+        _StartTiming(&zoneBlockHorner, hornerLabel, (i *2) + __COUNTER__, 0);
 
         // Perform the precision test
         while(PrecisionTest(&tester, 0, Pi64/2, stepCount))
