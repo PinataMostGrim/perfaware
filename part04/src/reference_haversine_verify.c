@@ -142,14 +142,6 @@ static F64 CustomTaylorSeriesCoefficient(U32 power)
 
 static F64 CustomSinTaylorHorner(F64 x, U32 maxPower)
 {
-    // Taylor series estimation for sin:
-    // x - (X^3)/(3!) + (x^5)/(5!) - (x^7)/(7!) + ...
-
-    // Taylor series factored into a polynomial:
-    // (-1/7!)(x^7) + (1/5!)(x^5) + (-1/3!)(x^3) + x
-
-    // Horner's rule applied to the Taylor series for sin:
-
     F64 result = 0;
 
     F64 x2 = x*x;
@@ -163,6 +155,33 @@ static F64 CustomSinTaylorHorner(F64 x, U32 maxPower)
 
     return result;
 }
+
+
+static F64 CustomSinTaylorHornerFusedMultiply(F64 x, U32 maxPower)
+{
+    F64 result = 0;
+
+    F64 x2 = x*x;
+    for (U32 inversePower = 1; inversePower <= maxPower; inversePower += 2)
+    {
+        U32 power = maxPower - (inversePower - 1);
+
+        // result = result * x2 + CustomTaylorSeriesCoefficient(power);
+
+        // result = fma(result, x2, CustomTaylorSeriesCoefficient(power));
+
+        __m128d xmmA = _mm_set_sd(result);
+        __m128d xmmB = _mm_set_sd(x2);
+        __m128d xmmC = _mm_set_sd(CustomTaylorSeriesCoefficient(power));
+        __m128d fmaResult = _mm_fmadd_sd(xmmA, xmmB, xmmC);
+        result = _mm_cvtsd_f64(fmaResult);
+    }
+
+    result *= x;
+
+    return result;
+}
+
 
 static F64 CustomCos(F64 input)
 {
