@@ -228,7 +228,7 @@ int main(int argc, char const *argv[])
     printf("\n");
 #endif
 
-#if 1
+#if 0
     // Note (Aaron): Precision test custom haversine math functions
     printf("Calulating maximum function errors:\n");
 
@@ -267,7 +267,7 @@ int main(int argc, char const *argv[])
     printf("\n");
 #endif
 
-#if 0
+#if 1
     // Note (Aaron): Precision test multiple Taylor series higher power approximations
     printf("\nCalulating maximum function errors for Taylor series approxmination:\n");
 
