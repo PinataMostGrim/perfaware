@@ -4,11 +4,21 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
-#include "base_inc.h"
+#include "base_arena.h"
+#include "base_string.h"
+
 #include "base_types.c"
+#include "base_memory.c"
+#include "base_arena.c"
+#include "base_string.c"
+
 #include "math_tester.h"
 #include "math_tester.c"
 #include "reference_values_wolfram.h"
+
+#define PLATFORM_METRICS_IMPLEMENTATION
+#define PROFILER 1
+#include "platform_metrics.h"
 
 #if _MSC_VER
 #include <intrin.h>
@@ -69,9 +79,9 @@ static F64 CustomSinHalf(F64 x)
 }
 
 
-static U64 Factorial(U32 value)
+static F64 Factorial(U32 value)
 {
-    U64 result = value;
+    F64 result = (F64)value;
     for (int i = value - 1; i > 0; --i)
     {
         result *= i;
@@ -121,6 +131,39 @@ static F64 CustomSinTaylor(F64 x, U32 power)
 }
 
 
+static F64 CustomTaylorSeriesCoefficient(U32 power)
+{
+    F64 sign = ((power - 1) / 2) % 2 ? -1.0 : 1.0;
+    F64 result = (sign / Factorial(power));
+
+    return result;
+}
+
+
+static F64 CustomSinTaylorHorner(F64 x, U32 maxPower)
+{
+    // Taylor series estimation for sin:
+    // x - (X^3)/(3!) + (x^5)/(5!) - (x^7)/(7!) + ...
+
+    // Taylor series factored into a polynomial:
+    // (-1/7!)(x^7) + (1/5!)(x^5) + (-1/3!)(x^3) + x
+
+    // Horner's rule applied to the Taylor series for sin:
+
+    F64 result = 0;
+
+    F64 x2 = x*x;
+    for (U32 inversePower = 1; inversePower <= maxPower; inversePower += 2)
+    {
+        U32 power = maxPower - (inversePower - 1);
+        result = result * x2 + CustomTaylorSeriesCoefficient(power);
+    }
+
+    result *= x;
+
+    return result;
+}
+
 static F64 CustomCos(F64 input)
 {
     F64 result = CustomSinHalf(input + (Pi64 / 2));
@@ -147,19 +190,30 @@ static F64 CustomSqrt(F64 x)
 
 int main(int argc, char const *argv[])
 {
-    // Note (Aaron): Enable to verify reference values
+    StartTimingsProfile();
+
+    math_tester tester = {0};
+    U32 stepCount = 100000000;
+
 #if 0
+    // Note (Aaron): Verify reference values
+    printf("Verifying reference values:\n");
+
+    START_TIMING(VerifyReferenceValues);
     CheckHardcodedAnswer("sin", sin, Reference_Sin, ArrayCount(Reference_Sin));
     CheckHardcodedAnswer("cos", cos, Reference_Cos, ArrayCount(Reference_Cos));
     CheckHardcodedAnswer("asin", asin, Reference_ArcSin, ArrayCount(Reference_ArcSin));
     CheckHardcodedAnswer("sqrt", sqrt, Reference_Sqrt, ArrayCount(Reference_Sqrt));
+    END_TIMING(VerifyReferenceValues);
+
+    printf("\n");
 #endif
 
-
-    math_tester tester = {0};
-    U32 stepCount = 100000000;
+#if 1
+    // Note (Aaron): Precision test custom haversine math functions
     printf("Calulating maximum function errors:\n");
 
+    START_TIMING(CustomHaversineFunctions);
     while(PrecisionTest(&tester, 0, Pi64, stepCount))
     {
         TestResult(&tester, sin(tester.InputValue), CustomSin(tester.InputValue), "CustomSin: 0 to Pi");
@@ -189,19 +243,61 @@ int main(int argc, char const *argv[])
     {
         TestResult(&tester, sqrt(tester.InputValue), CustomSqrt(tester.InputValue), "CustomSqrt: 0 to 1");
     }
+    END_TIMING(CustomHaversineFunctions);
 
-    // Note (Aaron): Enable to precision test multiple Taylor series higher power approximations
-#if 1
-    U32 taylorSeriesMaxPower = 21;
-    for (int i = 1; i <= taylorSeriesMaxPower; i+=2)
-    {
-        while(PrecisionTest(&tester, -Pi64, Pi64, stepCount))
-        {
-            TestResult(&tester, sin(tester.InputValue), CustomSinTaylor(tester.InputValue, i), "CustomSinTaylor(%i): -Pi to Pi", i);
-        }
-    }
+    printf("\n");
 #endif
 
+#if 0
+    // Note (Aaron): Precision test multiple Taylor series higher power approximations
+    printf("\nCalulating maximum function errors for Taylor series approxmination:\n");
+
+    // Allocate an arena for timing labels
+    memory_arena labelsArena = ArenaAllocate(Megabytes(1), Megabytes(1));
+
+    START_TIMING(TaylorSeriesExpansion_Total);
+
+    int taylorSeriesMaxPower = 31;
+
+    for (int i = 1; i <= taylorSeriesMaxPower; i+=2)
+    {
+        // Construct a dynamic label for the taylor series
+        char *taylorLabel = ArenaPushCStringf(&labelsArena, TRUE, "%s%i", "CustomSinTaylor_", i);
+        zone_block zoneBlockTaylor = {0};
+        _StartTiming(&zoneBlockTaylor, taylorLabel, (i * 2) + (__COUNTER__), 0);
+
+        // Perform the precision test
+        while(PrecisionTest(&tester, 0, Pi64/2, stepCount))
+        {
+            TestResult(&tester, sin(tester.InputValue), CustomSinTaylor(tester.InputValue, i), "CustomSinTaylor(%i): 0 to Pi/2", i);
+        }
+
+        _EndTiming(&zoneBlockTaylor);
+
+        // Construct a dynamic label for the Horner implementation
+        char *hornerLabel = ArenaPushCStringf(&labelsArena, TRUE, "%s%i", "CustomSinHorner_", i);
+        zone_block zoneBlockHorner = {0};
+        _StartTiming(&zoneBlockHorner, hornerLabel, (i *2) + __COUNTER__, 0);
+
+        // Perform the precision test
+        while(PrecisionTest(&tester, 0, Pi64/2, stepCount))
+        {
+            TestResult(&tester, sin(tester.InputValue), CustomSinTaylorHorner(tester.InputValue, i), "CustomSinTaylorHorner(%i): 0 to Pi/2", i);
+        }
+
+        _EndTiming(&zoneBlockHorner);
+
+    }
+
+    END_TIMING(TaylorSeriesExpansion_Total);
+
+    printf("\n");
+#endif
+
+    EndTimingsProfile();
+    PrintProfileTimings();
 
     return 0;
 }
+
+ProfilerEndOfCompilationUnit
