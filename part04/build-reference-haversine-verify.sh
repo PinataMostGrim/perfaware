@@ -17,7 +17,7 @@ SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/reference_haversine_verify.c"
 LINKER_FLAGS="-lm"
 
 # Optionally set debug mode here:
-DEBUG=1
+# DEBUG=1
 
 # Set the DEBUG environment variable to 0 if it isn't already defined
 if [ -z $DEBUG ]
@@ -28,12 +28,12 @@ fi
 if [ $DEBUG = "1" ]
 then
     # Making debug build
-    COMPILER_FLAGS="-g -O0 -Wall -Wno-unused-function -Wno-null-dereference -pedantic "
+    COMPILER_FLAGS="-mavx2 -mfma -g -O0 -Wall -Wno-unused-function -Wno-null-dereference -pedantic "
     # Uncomment to make build type explicit. May interfere with debuggers.
     # OUT_EXE="${OUT_EXE}_debug"
 else
     # Making release build
-    COMPILER_FLAGS=""
+    COMPILER_FLAGS="-mavx2 -mfma -O3 -g -Wall"
     # Uncomment to make build type explicit.
     # OUT_EXE="${OUT_EXE}_rel"
 fi

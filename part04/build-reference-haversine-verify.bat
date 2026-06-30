@@ -38,7 +38,7 @@ IF [%DEBUG%] == [1] (
     set OUT_EXE=%OUT_EXE%_debug.exe
 ) ELSE (
     :: Making release build
-    set COMPILER_FLAGS=-nologo -Od -Gm- -MT -W4 -FC
+    set COMPILER_FLAGS=-nologo -O2 -Gm- -MT -W4 -FC
     set OUT_EXE=%OUT_EXE%_release.exe
 )
 

@@ -16,7 +16,7 @@
 
 
 // Note (Aaron): Increase this count as needed
-#define MAX_NAMED_TIMINGS 64
+#define MAX_NAMED_TIMINGS 512
 
 // Note (Aaron): Defines number of milliseconds used to determine the CPU frequency. A higher number generates more accurate results.
 #define CPU_FREQUENCY_MS 200
