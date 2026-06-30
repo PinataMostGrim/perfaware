@@ -17,7 +17,7 @@ SOURCES="$SCRIPT_FOLDER/$SRC_FOLDER/reference_haversine_verify.c"
 LINKER_FLAGS="-lm"
 
 # Optionally set debug mode here:
-DEBUG=1
+# DEBUG=1
 
 # Set the DEBUG environment variable to 0 if it isn't already defined
 if [ -z $DEBUG ]
