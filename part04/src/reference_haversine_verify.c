@@ -165,10 +165,23 @@ static F64 CustomSinTaylorHornerFusedMultiply(F64 x, U32 maxPower)
     for (U32 inversePower = 1; inversePower <= maxPower; inversePower += 2)
     {
         U32 power = maxPower - (inversePower - 1);
+        result = fma(result, x2, CustomTaylorSeriesCoefficient(power));
+    }
 
-        // result = result * x2 + CustomTaylorSeriesCoefficient(power);
+    result *= x;
 
-        // result = fma(result, x2, CustomTaylorSeriesCoefficient(power));
+    return result;
+}
+
+
+static F64 CustomSinTaylorHornerFusedMultiplyIntrinsic(F64 x, U32 maxPower)
+{
+    F64 result = 0;
+
+    F64 x2 = x*x;
+    for (U32 inversePower = 1; inversePower <= maxPower; inversePower += 2)
+    {
+        U32 power = maxPower - (inversePower - 1);
 
         __m128d xmmA = _mm_set_sd(result);
         __m128d xmmB = _mm_set_sd(x2);
@@ -281,9 +294,9 @@ int main(int argc, char const *argv[])
     for (int i = 1; i <= taylorSeriesMaxPower; i+=2)
     {
         // Construct a dynamic label for the taylor series
-        char *taylorLabel = ArenaPushCStringf(&labelsArena, TRUE, "CustomSinTaylor(%i)                    ", i);
+        char *taylorLabel = ArenaPushCStringf(&labelsArena, TRUE, "CustomSinTaylor(%i)                              ", i);
         zone_block zoneBlockTaylor = {0};
-        _StartTiming(&zoneBlockTaylor, taylorLabel, (i * 3) + (__COUNTER__), 0);
+        _StartTiming(&zoneBlockTaylor, taylorLabel, (i * 4) + (__COUNTER__), 0);
 
         // Perform the precision test
         while(PrecisionTest(&tester, 0, Pi64/2, stepCount))
@@ -294,9 +307,9 @@ int main(int argc, char const *argv[])
         _EndTiming(&zoneBlockTaylor);
 
         // Construct a dynamic label for the Horner implementation
-        char *hornerLabel = ArenaPushCStringf(&labelsArena, TRUE, "CustomSinHorner(%i)                    ", i);
+        char *hornerLabel = ArenaPushCStringf(&labelsArena, TRUE, "CustomSinHorner(%i)                              ", i);
         zone_block zoneBlockHorner = {0};
-        _StartTiming(&zoneBlockHorner, hornerLabel, (i * 3) + __COUNTER__, 0);
+        _StartTiming(&zoneBlockHorner, hornerLabel, (i * 4) + __COUNTER__, 0);
 
         // Perform the precision test
         while(PrecisionTest(&tester, 0, Pi64/2, stepCount))
@@ -307,9 +320,9 @@ int main(int argc, char const *argv[])
         _EndTiming(&zoneBlockHorner);
 
         // Construct a dynamic label for the fused multiply add Horner implementation
-        char *fusedMultiplyAddLabel = ArenaPushCStringf(&labelsArena, TRUE, "CustomSinTaylorHornerFusedMultiply(%i) ", i);
-        zone_block zoneBlockFMA = {0};
-        _StartTiming(&zoneBlockFMA, fusedMultiplyAddLabel, (i * 3) + __COUNTER__, 0);
+        char *fusedMultiplyLabel = ArenaPushCStringf(&labelsArena, TRUE, "CustomSinTaylorHornerFusedMultiply(%i)           ", i);
+        zone_block zoneBlockFma = {0};
+        _StartTiming(&zoneBlockFma, fusedMultiplyLabel, (i * 4) + __COUNTER__, 0);
 
         // Perform the precision test
         while(PrecisionTest(&tester, 0, Pi64/2, stepCount))
@@ -317,7 +330,20 @@ int main(int argc, char const *argv[])
             TestResult(&tester, sin(tester.InputValue), CustomSinTaylorHornerFusedMultiply(tester.InputValue, i), "CustomSinTaylorHornerFusedMultiply(%i): 0 to Pi/2", i);
         }
 
-        _EndTiming(&zoneBlockFMA);
+        _EndTiming(&zoneBlockFma);
+
+        // Construct a dynamic label for the fused multiply add Horner implementation using intrinsics
+        char *fusedMultiplyIntrinsicsLabel = ArenaPushCStringf(&labelsArena, TRUE, "CustomSinTaylorHornerFusedMultiplyIntrinsics(%i) ", i);
+        zone_block zoneBlockFmaIntrinsics = {0};
+        _StartTiming(&zoneBlockFmaIntrinsics, fusedMultiplyIntrinsicsLabel, (i * 4) + __COUNTER__, 0);
+
+        // Perform the precision test
+        while(PrecisionTest(&tester, 0, Pi64/2, stepCount))
+        {
+            TestResult(&tester, sin(tester.InputValue), CustomSinTaylorHornerFusedMultiplyIntrinsic(tester.InputValue, i), "CustomSinTaylorHornerFusedMultiplyIntrinsic(%i): 0 to Pi/2", i);
+        }
+
+        _EndTiming(&zoneBlockFmaIntrinsics);
     }
 
     END_TIMING(TaylorSeriesExpansion_Total);
